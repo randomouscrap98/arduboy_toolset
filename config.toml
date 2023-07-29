@@ -1,0 +1,87 @@
+# These are all the supported devices for these scripts (well... maybe). Taken from
+# https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
+
+# -----------------------
+#    Arduboy Leonardo
+# -----------------------
+[[devices]]
+id = "VID:PID=2341:0036"
+display_name = "Arduboy Leonardo"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=2341:8036"
+display_name = "Arduboy Leonardo"
+has_bootloader = false
+
+[[devices]]
+id = "VID:PID=2A03:0036"
+display_name = "Arduboy Leonardo"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=2A03:8036"
+display_name = "Arduboy Leonardo"
+has_bootloader = false
+
+# -----------------------
+#     Arduboy Micro
+# -----------------------
+[[devices]]
+id = "VID:PID=2341:0037"
+display_name = "Arduboy Micro"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=2341:8037"
+display_name = "Arduboy Micro"
+has_bootloader = false
+
+[[devices]]
+id = "VID:PID=2A03:0037"
+display_name = "Arduboy Micro"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=2A03:8037"
+display_name = "Arduboy Micro"
+has_bootloader = false
+
+# -----------------------
+#     Genuino Micro
+# -----------------------
+[[devices]]
+id = "VID:PID=2431:0237"
+display_name = "Genuino Micro"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=2431:8237"
+display_name = "Genuino Micro"
+has_bootloader = false
+
+# -----------------------
+#  Sparkfun Pro Micro 5V
+# -----------------------
+[[devices]]
+id = "VID:PID=1B4F:9205"
+display_name = "Sparkfun Pro Micro 5V"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=1B4F:9206"
+display_name = "Sparkfun Pro Micro 5V"
+has_bootloader = false
+
+# -----------------------
+#  Adafruit ItsyBitsy 5V
+# -----------------------
+[[devices]]
+id = "VID:PID=239A:000E"
+display_name = "Adafruit ItsyBitsy 5V"
+has_bootloader = true
+
+[[devices]]
+id = "VID:PID=239A:800E"
+display_name = "Adafruit ItsyBitsy 5V"
+has_bootloader = false
