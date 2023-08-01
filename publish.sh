@@ -27,6 +27,7 @@ do
    echo "Building $target"
    cargo build ${BUILDPARAM}
 
+   # And copy the published stuff to the appropriate place
    PUBLISHEND="$PUBLISHDIR/$target"
    mkdir -p $PUBLISHEND
    cp -r $EXTRAS "$PUBLISHEND"

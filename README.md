@@ -16,6 +16,57 @@ I plan on having:
 - perhaps a way to "reverse engineer" an existing bin file so it is easier to simply "add" games to an existing cart
   (depends on complexity)
 
+## Releases
+
+I hope to have releases built for at least windows and linux. I assume building for macOS is possible but I don't know
+if I can cross-compile that (probably not). Releases will come in the future.
+
+## Building
+
+### Linux prerequirements
+
+You'll need:
+- **Rust**, get it from https://rustup.rs/
+- **libudev**, available as `libudev-dev` on debian-based systems (Ubuntu)
+- **pkg-config**, available as `pkg-config` on debian-based systems
+
+### Windows prerequirements
+
+You'll need:
+- **Rust**, get it from https://rustup.rs/
+- **Mingw**, get it from https://www.mingw-w64.org/ (TODO: actually test this)
+- **The mingw rust target**, `rustup target add x86_64-pc-windows-gnu`
+- ??? (will add later)
+
+### Running / Building
+
+Running is the same on all systems:
+
+```sh
+cd arduboy_toolset
+cargo run
+```
+
+Or if you want to create an executable and reuse it without rust (linux shown, change x86-64-etc with appropriate runtime):
+
+```sh
+cd arduboy_toolset
+cargo build --release
+cp target/x86-64-unknown-linux-gnu/release/arduboy_toolset .
+./arduboy_toolset
+```
+
+Note that the "config.toml" file is needed wherever you plan on running the executable.
+
+### Publishing 
+
+The "publish.sh" script will attempt to build all the possible cross-compilation stuff (assumed to be running on
+linux ofc). It will require quite a few things, and is mostly made for me:
+
+- **All the linux prereqs** (see above)
+- **mingw-w64** (called as such on Debian based systems)
+
+
 ## Caveats
 - I can't seem to build purely statically linked (using musl). I may have to build for glibc, or have people build from source.
   - This is apparently normal: they say specifically that the glibc version links against the external library libudev, and not
