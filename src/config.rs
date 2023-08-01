@@ -12,7 +12,8 @@ onestop::create_config! {
 #[derive(Deserialize, Debug, Default, Clone)]
 pub struct DeviceConfig
 {
-    pub id: String,
+    pub vid: u16,
+    pub pid: u16,
     pub has_bootloader: bool,
     pub display_name: Option<String>
 }

@@ -5,22 +5,26 @@
 #    Arduboy Leonardo
 # -----------------------
 [[devices]]
-id = "VID:PID=2341:0036"
+vid = 0x2341
+pid = 0x0036
 display_name = "Arduboy Leonardo"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=2341:8036"
+vid = 0x2341
+pid = 0x8036
 display_name = "Arduboy Leonardo"
 has_bootloader = false
 
 [[devices]]
-id = "VID:PID=2A03:0036"
+vid = 0x2A03
+pid = 0x0036
 display_name = "Arduboy Leonardo"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=2A03:8036"
+vid = 0x2A03
+pid = 0x8036
 display_name = "Arduboy Leonardo"
 has_bootloader = false
 
@@ -28,22 +32,26 @@ has_bootloader = false
 #     Arduboy Micro
 # -----------------------
 [[devices]]
-id = "VID:PID=2341:0037"
+vid = 0x2341
+pid = 0x0037
 display_name = "Arduboy Micro"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=2341:8037"
+vid = 0x2341
+pid = 0x8037
 display_name = "Arduboy Micro"
 has_bootloader = false
 
 [[devices]]
-id = "VID:PID=2A03:0037"
+vid = 0x2A03
+pid = 0x0037
 display_name = "Arduboy Micro"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=2A03:8037"
+vid = 0x2A03
+pid = 0x8037
 display_name = "Arduboy Micro"
 has_bootloader = false
 
@@ -51,12 +59,14 @@ has_bootloader = false
 #     Genuino Micro
 # -----------------------
 [[devices]]
-id = "VID:PID=2431:0237"
+vid = 0x2431
+pid = 0x0237
 display_name = "Genuino Micro"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=2431:8237"
+vid = 0x2431
+pid = 0x8237
 display_name = "Genuino Micro"
 has_bootloader = false
 
@@ -64,12 +74,14 @@ has_bootloader = false
 #  Sparkfun Pro Micro 5V
 # -----------------------
 [[devices]]
-id = "VID:PID=1B4F:9205"
+vid = 0x1B4F
+pid = 0x9205
 display_name = "Sparkfun Pro Micro 5V"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=1B4F:9206"
+vid = 0x1B4F
+pid = 0x9206
 display_name = "Sparkfun Pro Micro 5V"
 has_bootloader = false
 
@@ -77,11 +89,13 @@ has_bootloader = false
 #  Adafruit ItsyBitsy 5V
 # -----------------------
 [[devices]]
-id = "VID:PID=239A:000E"
+vid = 0x239A
+pid = 0x000E
 display_name = "Adafruit ItsyBitsy 5V"
 has_bootloader = true
 
 [[devices]]
-id = "VID:PID=239A:800E"
+vid = 0x239A
+pid = 0x800E
 display_name = "Adafruit ItsyBitsy 5V"
 has_bootloader = false
