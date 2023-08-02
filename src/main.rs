@@ -6,6 +6,7 @@ use crate::config::Config;
 
 mod config;
 mod scan;
+mod ui;
 
 const CONFIGNAME: &str = "config";
 

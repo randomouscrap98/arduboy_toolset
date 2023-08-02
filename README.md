@@ -25,10 +25,14 @@ if I can cross-compile that (probably not). Releases will come in the future.
 
 ### Linux prerequirements
 
-You'll need:
+You'll need (only if building from source!):
 - **Rust**, get it from https://rustup.rs/
 - **libudev**, available as `libudev-dev` on debian-based systems (Ubuntu)
-- **pkg-config**, available as `pkg-config` on debian-based systems
+- **libxcb** (or portions of it), available as `libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev` on deb etc
+- **libssl**, available as `libssl-dev` deb etc
+- **libxkbcommon**, available as `libxkbcommon-dev` deb etc
+- **libspeechd** available as `libspeechd-dev` deb etc
+- **pkg-config**, available as `pkg-config` deb etc
 
 ### Windows prerequirements
 
