@@ -17,7 +17,7 @@ def is_caterina(s_port):
 # Flash the given arduboy hex file to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
 def flash_arduhex(arduhex, s_port, report_progress: None):
-    logging.info("\nFlashing {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
+    logging.info("Flashing {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
     flash_page = 0
     for i in range (256):
         if arduhex.flash_page_used[i]:
@@ -33,7 +33,8 @@ def flash_arduhex(arduhex, s_port, report_progress: None):
 # Verify that the given arduboy hex file is correctly flashed to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
 def verify_arduhex(arduhex, s_port, report_progress: None):
-    logging.info("\n\nVerifying {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
+    logging.info("Verifying {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
+    flash_page = 0
     for i in range (256) :
         if arduhex.flash_page_used[i] :
             s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
