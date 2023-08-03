@@ -11,4 +11,4 @@ def make_app():
     label = QLabel("Hello, World!", parent=window)
     label.move(100, 40)
 
-    window.show()
+    return (app, window)

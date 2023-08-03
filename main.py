@@ -8,7 +8,8 @@ def main():
 
     # Run the UI if no arguments are passed
     if len(sys.argv) == 1:
-        app = gui.make_app()
+        (app, window) = gui.make_app()
+        window.show()
         sys.exit(app.exec_())
 
     # Otherwise, let's parse some arguments!
