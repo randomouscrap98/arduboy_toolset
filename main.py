@@ -1,15 +1,18 @@
 import logging
 import sys
-import arduboy
 import pprint
 import gui
 import cli
+import os
+import arduboy.device
+import arduboy.file
 
 pp = pprint.PrettyPrinter()
 
 def main():
 
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Run the UI if no arguments are passed
     if len(sys.argv) == 1:
@@ -22,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     if args.action == "scan":
-        devices = arduboy.get_connected_devices()
+        devices = arduboy.device.get_connected_devices()
         print(f"Found {len(devices)} devices:")
         pp.pprint(devices)
     elif args.action == "upload":
@@ -30,24 +33,18 @@ def main():
     else:
         print(f"Unknown command {args.action}")
 
-    # NOTE: going to have two modes: multimode and single mode. In single mode, it will automatically
-    # reset the arduboy (using arduboy.disconnect_device) and wait for SOMETHING to show up again. 
-    # In multimode, it will simply perform the given action on all connected devices that have a bootloader
-    # (will NOT try to reset any that don't)
-
 
 # Whether single or multi is supplied, return a list of bootloader-ready device(s).
 def get_devices(args):
     devices = []
     if args.multi:
         logging.info("Multimode set, running command on all connected (bootloader) devices")
-        devices = arduboy.get_connected_devices(bootloader_only=True)
+        devices = arduboy.device.get_connected_devices(bootloader_only=True)
         if len(devices) == 0:
             raise Exception("No connected arduboys in bootloader mode!")
-        return devices
     else:
         logging.debug("Finding single arduboy device in bootloader mode")
-        devices = [ arduboy.find_single() ]
+        devices = [ arduboy.device.find_single() ]
     print("------------------------------------")
     print("Operating on the following devices: ")
     print("------------------------------------")
