@@ -67,3 +67,10 @@ def write_eeprom(eepromdata, s_port):
     s_port.write(eepromdata)
     s_port.read(1)
 
+# Erase entire eeprom (apparently means all 0xFF). Cannot report progress (too small)
+def erase_eeprom(s_port):
+    s_port.write(b"A\x00\x00")
+    s_port.read(1)
+    s_port.write(b"B\x04\x00E")
+    s_port.write(b"\xFF" * 1024)
+    s_port.read(1)

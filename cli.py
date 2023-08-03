@@ -10,7 +10,8 @@ ACTIONS = [
     "scan",
     "upload",
     "eeprombackup",
-    "eepromrestore"
+    "eepromrestore",
+    "eepromerase"
 ]
 
 VERSION = "0.0.1"
@@ -20,13 +21,13 @@ GRACEFULSTOPSECONDS = 0.3 # Why though? Was 3: reduced to 0.3
 def create_parser():
     parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy')
     parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
+    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     parser.add_argument("-i", "--input_file", help="Input file for given command")
     parser.add_argument("-o", "--output_file", help="Output file for given command")
     parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
     parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
     parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (arduboy upload)")
     parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (arduboy upload)")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     return parser
 
 def run(args):
@@ -38,6 +39,8 @@ def run(args):
         eeprom_backup_action(args)
     elif args.action == "eepromrestore":
         eeprom_restore_action(args)
+    elif args.action == "eepromerase":
+        eeprom_erase_action(args)
     else:
         print(f"Unknown command {args.action}")
 
@@ -113,6 +116,12 @@ def work_per_device(args, work):
 #   CLI ACTIONS !!
 # ---------------------
 
+def scan_action(args):
+    pp = pprint.PrettyPrinter()
+    devices = arduboy.device.get_connected_devices()
+    print(f"Found {len(devices)} devices:")
+    pp.pprint(devices)
+
 def upload_action(args):
     parsed = get_arduhex(args)
     # Define the work to do per device then send it off to the generic function. The handler
@@ -123,12 +132,6 @@ def upload_action(args):
         arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
         arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
     work_per_device(args, do_work)
-
-def scan_action(args):
-    pp = pprint.PrettyPrinter()
-    devices = arduboy.device.get_connected_devices()
-    print(f"Found {len(devices)} devices:")
-    pp.pprint(devices)
 
 def eeprom_backup_action(args):
     outfile = args.output_file if args.output_file else time.strftime("eeprom-backup-%Y%m%d-%H%M%S.bin", time.localtime())
@@ -151,6 +154,12 @@ def eeprom_restore_action(args):
     def do_work(s_port):
         logging.info(f"Restoring eeprom from {infile} into {s_port.port}")
         arduboy.serial.write_eeprom(eepromdata, s_port)
+    work_per_device(args, do_work)
+
+def eeprom_erase_action(args):
+    def do_work(s_port):
+        logging.info(f"Erasing eeprom in {s_port.port}")
+        arduboy.serial.erase_eeprom(s_port)
     work_per_device(args, do_work)
 
 # -------------------------
