@@ -14,5 +14,7 @@ def create_parser():
     parser.add_argument("-o", "--output_file", help="Output file for given command")
     parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
     parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
+    parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (arduboy upload)")
+    parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (arduboy upload)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     return parser

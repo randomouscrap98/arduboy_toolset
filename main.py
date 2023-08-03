@@ -37,11 +37,8 @@ def main():
         print(f"Found {len(devices)} devices:")
         pp.pprint(devices)
     elif args.action == "upload":
+        parsed = get_arduhex(args)
         devices = get_devices(args)
-        infile = get_required_input(args)
-        records = arduboy.file.read_arduhex(infile)
-        parsed = arduboy.file.parse_arduhex(records)
-        pp.pprint(parsed)
     else:
         print(f"Unknown command {args.action}")
 
@@ -68,6 +65,22 @@ def get_required_input(args):
     if not args.input_file:
         raise Exception("Input file required! Use -i <file> or --input <file>")
     return args.input_file
+
+def get_arduhex(args):
+    infile = get_required_input(args)
+    records = arduboy.file.read_arduhex(infile)
+    parsed = arduboy.file.parse_arduhex(records)
+    if args.SSD1309:
+        if parsed.patch_ssd1309():
+            logging.info("Patching upload for SSD1309")
+        else:
+            logging.info("Flagged for SSD1309 parsing but no LCD boot program found! Not patched!")
+    if args.microled:
+        parsed.patch_microled()
+        logging.info("Patched upload for Arduino Micro LED polarity")
+    
+    logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.is_caterina}")
+    return parsed
 
 # Custom exception handler to make error information less ugly for most users
 def custom_excepthook(exc_type, exc_value, exc_traceback):

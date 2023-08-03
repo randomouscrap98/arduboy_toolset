@@ -1,20 +1,34 @@
 # NOTE: a lot of this code is taken from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities
 
-import constants
 import logging
 import time
-import os
 from dataclasses import dataclass
 from serial.tools.list_ports  import comports
 from serial import Serial
-import zipfile
+
+DEVICES = [
+    #Arduboy Leonardo
+    "VID:PID=2341:0036", "VID:PID=2341:8036",
+    "VID:PID=2A03:0036", "VID:PID=2A03:8036",
+    #Arduboy Micro
+    "VID:PID=2341:0037", "VID:PID=2341:8037",
+    "VID:PID=2A03:0037", "VID:PID=2A03:8037",
+    #Genuino Micro
+    "VID:PID=2341:0237", "VID:PID=2341:8237",
+    #Sparkfun Pro Micro 5V
+    "VID:PID=1B4F:9205", "VID:PID=1B4F:9206",
+    #Adafruit ItsyBitsy 5V
+    "VID:PID=239A:000E", "VID:PID=239A:800E",
+]
 
 SPINSLEEP = 0.25  # Time to wait between spinning for connections
 MAXRECON = 20     # Max seconds to wait for reconnection after bootloader
 CONNECTWAIT = 0.1 # Why is this a thing? I don't know...
-
 MAINBAUD = 57600
+
+def device_has_bootloader(vidpid):
+    return (DEVICES.index(vidpid) & 1) == 0
 
 # Represents a connected arduboy device. May NOT still be connected, simply
 # information at the time of reading!
@@ -57,9 +71,9 @@ def get_connected_devices(log = True, bootloader_only = False):
     devicelist = list(comports())
     result = []
     for device in devicelist:
-        for vidpid in constants.DEVICES:
+        for vidpid in DEVICES:
             if vidpid in device[2]:
-                ardevice = ArduboyDevice(device[0], vidpid, device[1], constants.device_has_bootloader(vidpid))
+                ardevice = ArduboyDevice(device[0], vidpid, device[1], device_has_bootloader(vidpid))
                 if bootloader_only and not ardevice.has_bootloader:
                     logging.debug(f"Skipping non-bootloader {ardevice}")
                     continue
