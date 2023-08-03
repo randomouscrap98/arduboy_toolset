@@ -1,3 +1,6 @@
+# NOTE: a lot of this code is taken from
+# https://github.com/MrBlinky/Arduboy-Python-Utilities
+
 DEVICES = [
  #Arduboy Leonardo
  "VID:PID=2341:0036", "VID:PID=2341:8036",
@@ -12,6 +15,9 @@ DEVICES = [
  #Adafruit ItsyBitsy 5V
  "VID:PID=239A:000E", "VID:PID=239A:800E",
 ]
+
+LCDBOOTPROGRAM = b"\xD5\xF0\x8D\x14\xA1\xC8\x81\xCF\xD9\xF1\xAF\x20\x00"
+
 
 def device_has_bootloader(vpid):
     return (DEVICES.index(vpid) & 1) == 0
