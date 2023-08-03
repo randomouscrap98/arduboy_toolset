@@ -13,5 +13,6 @@ def create_parser():
     parser.add_argument("-i", "--input_file", help="Input file for given command", default="infile")
     parser.add_argument("-o", "--output_file", help="Output file for given command", default="outfile")
     parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
+    parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     return parser

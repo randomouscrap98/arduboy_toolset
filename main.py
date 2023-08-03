@@ -6,13 +6,20 @@ import cli
 import os
 import arduboy.device
 import arduboy.file
+import traceback
 
-pp = pprint.PrettyPrinter()
+SHOWTRACE = False # Although this is capitalized like a constant, the value is set from the argument list
 
+# Main entry point!
 def main():
 
+    global SHOWTRACE
+
+    # Some initial setup
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # script_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.excepthook = custom_excepthook
+    pp = pprint.PrettyPrinter()
 
     # Run the UI if no arguments are passed
     if len(sys.argv) == 1:
@@ -20,9 +27,10 @@ def main():
         window.show()
         sys.exit(app.exec_())
 
-    # Otherwise, let's parse some arguments!
+    # Otherwise, let's parse some arguments and run the CLI version!
     parser = cli.create_parser()
     args = parser.parse_args()
+    SHOWTRACE = args.debug
 
     if args.action == "scan":
         devices = arduboy.device.get_connected_devices()
@@ -51,6 +59,18 @@ def get_devices(args):
     for d in devices:
         print(f"* {d}")
     return devices
+
+def get_required_input(args):
+    if not args.input_file:
+        raise Exception("")
+
+# Custom exception handler to make error information less ugly for most users
+def custom_excepthook(exc_type, exc_value, exc_traceback):
+    print(" ** UNHANDLED EXCEPTION: " + exc_value.args[0])
+    if SHOWTRACE:
+        print(f"Type: {exc_type}")
+        print(f"Traceback: ")
+        traceback.print_tb(exc_traceback)
 
 
 if __name__ == "__main__":
