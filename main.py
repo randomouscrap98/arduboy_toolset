@@ -38,6 +38,8 @@ def main():
         pp.pprint(devices)
     elif args.action == "upload":
         devices = get_devices(args)
+        infile = get_required_input(args)
+        arduboy.file.read_arduhex(infile)
     else:
         print(f"Unknown command {args.action}")
 
@@ -62,7 +64,8 @@ def get_devices(args):
 
 def get_required_input(args):
     if not args.input_file:
-        raise Exception("")
+        raise Exception("Input file required! Use -i <file> or --input <file>")
+    return args.input_file
 
 # Custom exception handler to make error information less ugly for most users
 def custom_excepthook(exc_type, exc_value, exc_traceback):
