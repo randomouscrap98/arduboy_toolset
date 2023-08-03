@@ -35,10 +35,10 @@ def read_arduhex(filepath):
 @dataclass 
 class ArduhexParsed:
     flash_addr: int = field(default=0)
-    flash_data: bytearray = field(default=bytearray(b'\xFF' * FLASHSIZE))
+    flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
     flash_page: int = field(default=1)
     flash_page_count: int = field(default=0)
-    flash_page_used: List[bool] = field(default=[False] * 256)
+    flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
 
 
 # Parse relevant information out of the arduboy file's "records" (the result of read_basic_arduboy).

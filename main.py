@@ -39,7 +39,9 @@ def main():
     elif args.action == "upload":
         devices = get_devices(args)
         infile = get_required_input(args)
-        arduboy.file.read_arduhex(infile)
+        records = arduboy.file.read_arduhex(infile)
+        parsed = arduboy.file.parse_arduhex(records)
+        pp.pprint(parsed)
     else:
         print(f"Unknown command {args.action}")
 
@@ -69,7 +71,7 @@ def get_required_input(args):
 
 # Custom exception handler to make error information less ugly for most users
 def custom_excepthook(exc_type, exc_value, exc_traceback):
-    print(" ** UNHANDLED EXCEPTION: " + exc_value.args[0])
+    print(" ** UNHANDLED EXCEPTION: " + str(exc_value)) # .args[0])
     if SHOWTRACE:
         print(f"Type: {exc_type}")
         print(f"Traceback: ")
