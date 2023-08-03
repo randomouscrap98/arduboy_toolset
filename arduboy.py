@@ -5,48 +5,90 @@ import constants
 import logging
 import time
 import os
+from dataclasses import dataclass
 from serial.tools.list_ports  import comports
 from serial import Serial
 import zipfile
 
-DCSLEEP = 0.5
+SPINSLEEP = 0.25  # Time to wait between spinning for connections
+MAXRECON = 20     # Max seconds to wait for reconnection after bootloader
+CONNECTWAIT = 0.1 # Why is this a thing? I don't know...
 
-# Get a list of connected Arduboy devices. Each element in the list describes the port, whether it
-# has a bootloader (has_bootloader), and the vidpid
-def get_connected_devices(log = True):
+MAINBAUD = 57600
+
+# Represents a connected arduboy device. May NOT still be connected, simply
+# information at the time of reading!
+@dataclass
+class ArduboyDevice:
+    port: str
+    vidpid: str
+    name: str
+    has_bootloader: bool
+
+    # Display self as string (show pertinent information)
+    def __str__(self):
+        result = f"{self.vidpid}({self.port})"
+        if self.has_bootloader:
+            result += "[bootld]"
+        return result
+
+    # Determine whether if, at this very moment, this device is connected
+    def is_connected(self):
+        devices = get_connected_devices(log = False)
+        return any(x.port == self.port and x.vidpid == self.vidpid for x in devices)
+    
+    # Disconnect the given device. Note that afterwards, information in this device
+    # object is no longer valid! Might only work for arduboys (I have no idea)
+    def disconnect(self):
+        logging.info(f"Attempting to disonnect device {self}")
+        s_port = Serial(self.port,1200)
+        s_port.close()
+        while self.is_connected():
+            time.sleep(SPINSLEEP)
+    
+    # Connect to the device this represents and return the serial connection
+    def connect_serial(self, baud = MAINBAUD):
+        time.sleep(CONNECTWAIT)
+        return Serial(self.port,baud)
+
+
+# Get a list of connected Arduboy devices. Each element is an ArduboyDevice (see above)
+def get_connected_devices(log = True, bootloader_only = False):
     devicelist = list(comports())
     result = []
     for device in devicelist:
         for vidpid in constants.DEVICES:
             if vidpid in device[2]:
-                port=device[0]
-                has_bootloader = constants.device_has_bootloader(vidpid)
+                ardevice = ArduboyDevice(device[0], vidpid, device[1], constants.device_has_bootloader(vidpid))
+                if bootloader_only and not ardevice.has_bootloader:
+                    logging.debug(f"Skipping non-bootloader {ardevice}")
+                    continue
                 if log:
-                    logging.debug(f"Found {device[1]} at port {port}")
-                result.append({ "port": port, "has_bootloader": has_bootloader, "vidpid": vidpid })
+                    logging.debug(f"Found {ardevice}")
+                result.append(ardevice)
     return result
-
-# Return whether a device is connected or not. Does NOT print any logging information
-def device_connected(device):
-    devices = get_connected_devices(log = False)
-    return any(x["port"] == device["port"] and x["vidpid"] == device["vidpid"] for x in devices)
-
-# Disconnect the device. Might only work for arduboys (I have no idea how this works!)
-def disconnect_device(device):
-    device = Serial(device["port"],1200)
-    device.close()
-    while device_connected(device):
-        time.sleep(DCSLEEP)
 
 # Given a connected serial port, exit the bootloader
 def exit_bootloader(s_port):
    s_port.write(b"E")
    s_port.read(1)
 
-# Attempt to connect to the given device (assumed to be in the format found in get_connected_devices)
-# and force the bootloader. Returns the new device
-# def connect_with_bootloader(device):
-#     if not device["has_bootloader"]:
-#         disconnect_device(device["port"])
-# 
-#     return device
+# Find a single arduboy device, and force it to use the bootloader. Note: 
+# MAY disconnect and reboot your arduboy device!
+def find_single():
+    devices = get_connected_devices()
+    if len(devices) == 0:
+        raise Exception("No Arduboys found!")
+    # Assume first device is what you want
+    device = devices[0]
+    if not device.has_bootloader:
+        device.disconnect()
+        start = time.time()
+        devices = get_connected_devices(log=False, bootloader_only=True)
+        while len(devices) == 0:
+            time.sleep(SPINSLEEP)
+            if time.time() - start > MAXRECON:
+                raise Exception("Could not find rebooted arduboy in time!")
+            devices = get_connected_devices(log=False, bootloader_only=True)
+        device = devices[0]
+    return device

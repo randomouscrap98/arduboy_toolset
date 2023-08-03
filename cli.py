@@ -1,7 +1,8 @@
 import argparse
 
 ACTIONS = [
-    "scan"
+    "scan",
+    "upload"
 ]
 
 VERSION = "0.0.1"
