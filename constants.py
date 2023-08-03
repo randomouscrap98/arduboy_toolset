@@ -19,5 +19,5 @@ DEVICES = [
 LCDBOOTPROGRAM = b"\xD5\xF0\x8D\x14\xA1\xC8\x81\xCF\xD9\xF1\xAF\x20\x00"
 
 
-def device_has_bootloader(vpid):
-    return (DEVICES.index(vpid) & 1) == 0
+def device_has_bootloader(vidpid):
+    return (DEVICES.index(vidpid) & 1) == 0

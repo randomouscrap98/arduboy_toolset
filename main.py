@@ -1,21 +1,34 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel
+import arduboy
+import pprint
+import gui
+import cli
 
 def main():
-    print("Hellow world!")
 
-    app = QApplication(sys.argv)
+    # Run the UI if no arguments are passed
+    if len(sys.argv) == 1:
+        app = gui.make_app()
+        sys.exit(app.exec_())
 
-    window = QWidget()
-    window.setWindowTitle("Hello, PyQt!")
-    window.setGeometry(100, 100, 300, 100)
+    # Otherwise, let's parse some arguments!
+    parser = cli.create_parser()
+    args = parser.parse_args()
 
-    label = QLabel("Hello, World!", parent=window)
-    label.move(100, 40)
+    if args.action == "scan":
+        devices = arduboy.get_connected_devices()
+        pp = pprint.PrettyPrinter()
+        print(f"Found {len(devices)} devices:")
+        pp.pprint(devices)
+    else:
+        print(f"Unknown command {args.action}")
 
-    window.show()
+    # NOTE: going to have two modes: multimode and single mode. In single mode, it will automatically
+    # reset the arduboy (using arduboy.disconnect_device) and wait for SOMETHING to show up again. 
+    # In multimode, it will simply perform the given action on all connected devices that have a bootloader
+    # (will NOT try to reset any that don't)
 
-    sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
