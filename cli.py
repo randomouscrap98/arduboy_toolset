@@ -8,7 +8,9 @@ import arduboy.serial
 
 ACTIONS = [
     "scan",
-    "upload"
+    "upload",
+    "eeprombackup",
+    "eepromrestore"
 ]
 
 VERSION = "0.0.1"
@@ -32,6 +34,10 @@ def run(args):
         scan_action(args)
     elif args.action == "upload":
         upload_action(args)
+    elif args.action == "eeprombackup":
+        eeprom_backup_action(args)
+    elif args.action == "eepromrestore":
+        eeprom_restore_action(args)
     else:
         print(f"Unknown command {args.action}")
 
@@ -56,8 +62,13 @@ def get_devices(args):
 
 def get_required_input(args):
     if not args.input_file:
-        raise Exception("Input file required! Use -i <file> or --input <file>")
+        raise Exception("Input file required! Use -i <file> or --input_file <file>")
     return args.input_file
+
+def get_required_output(args):
+    if not args.output_file:
+        raise Exception("Output file required! Use -o <file> or --output_file <file>")
+    return args.output_file
 
 def get_arduhex(args):
     infile = get_required_input(args)
@@ -67,7 +78,7 @@ def get_arduhex(args):
         if parsed.patch_ssd1309():
             logging.info("Patching upload for SSD1309")
         else:
-            logging.info("Flagged for SSD1309 parsing but no LCD boot program found! Not patched!")
+            logging.warning("Flagged for SSD1309 parsing but no LCD boot program found! Not patched!")
     if args.microled:
         parsed.patch_microled()
         logging.info("Patched upload for Arduino Micro LED polarity")
@@ -85,6 +96,18 @@ def basic_reporting(current, total):
     if current == total:
         print(f"Complete! {current}/{total}")
 
+def work_per_device(args, work):
+    devices = get_devices(args)
+    for d in devices:
+        print(f">>> Working on device {d}")
+        s_port = d.connect_serial()
+        try:
+            work(s_port)
+        except Exception as ex:
+            print(f" ** SKIPPING DEVICE {d} DUE TO ERROR: {ex}")
+        finally:
+            graceful_stop(s_port)
+
 
 # ---------------------
 #   CLI ACTIONS !!
@@ -92,25 +115,43 @@ def basic_reporting(current, total):
 
 def upload_action(args):
     parsed = get_arduhex(args)
-    devices = get_devices(args)
-    for d in devices:
-        print(f">>> Working on device {d}")
-        s_port = d.connect_serial()
-        try:
-            if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
-                raise Exception("Upload will likely corrupt the bootloader.")
-            arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
-            arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
-        except Exception as ex:
-            print(f" ** SKIPPING DEVICE {d} DUE TO ERROR: {ex}")
-        finally:
-            graceful_stop(s_port)
+    # Define the work to do per device then send it off to the generic function. The handler
+    # ensures all actions that perform work on multiple devices have the same output format.
+    def do_work(s_port):
+        if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
+            raise Exception("Upload will likely corrupt the bootloader.")
+        arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
+        arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
+    work_per_device(args, do_work)
 
 def scan_action(args):
     pp = pprint.PrettyPrinter()
     devices = arduboy.device.get_connected_devices()
     print(f"Found {len(devices)} devices:")
     pp.pprint(devices)
+
+def eeprom_backup_action(args):
+    outfile = args.output_file if args.output_file else time.strftime("eeprom-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    device = 1
+    def do_work(s_port):
+        nonlocal device
+        # Not the most elegant way to do this, I might change it later
+        real_outfile = outfile if device == 1 else f"{device}-{outfile}"
+        device += 1
+        logging.info(f"Backing up eeprom from {s_port.port} into {real_outfile}")
+        eepromdata = arduboy.serial.read_eeprom(s_port)
+        with open (real_outfile,"wb") as f:
+            f.write(eepromdata)
+    work_per_device(args, do_work)
+
+def eeprom_restore_action(args):
+    infile = get_required_input(args)
+    with open (infile,"rb") as f:
+        eepromdata = bytearray(f.read())
+    def do_work(s_port):
+        logging.info(f"Restoring eeprom from {infile} into {s_port.port}")
+        arduboy.serial.write_eeprom(eepromdata, s_port)
+    work_per_device(args, do_work)
 
 # -------------------------
 #    HANDLING NONSENSE!

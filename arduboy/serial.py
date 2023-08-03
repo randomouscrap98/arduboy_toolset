@@ -45,3 +45,25 @@ def verify_arduhex(arduhex, s_port, report_progress: None):
             flash_page += 1
             if report_progress:
                 report_progress(flash_page, arduhex.flash_page_count)
+
+# Read the 1k eeprom as a byte array. Cannot report progress (too small)
+def read_eeprom(s_port):
+    logging.debug("Reading 1K EEPROM data...")
+    s_port.write(b"A\x00\x00")
+    s_port.read(1)
+    s_port.write(b"g\x04\x00E")
+    eepromdata = bytearray(s_port.read(1024))
+    return eepromdata
+
+# Write the 1k eeprom as a byte array. Throws exception if provided data not right size. 
+# Cannot report progress (too small)
+def write_eeprom(eepromdata, s_port):
+    logging.debug("Writing 1K EEPROM data...")
+    if len(eepromdata) != 1024:
+        raise Exception("Provided EEPROM data does not contain exactly 1K (1024 bytes)")
+    s_port.write(b"A\x00\x00")
+    s_port.read(1)
+    s_port.write(b"B\x04\x00E")
+    s_port.write(eepromdata)
+    s_port.read(1)
+
