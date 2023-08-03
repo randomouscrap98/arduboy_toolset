@@ -79,7 +79,7 @@ def get_arduhex(args):
         parsed.patch_microled()
         logging.info("Patched upload for Arduino Micro LED polarity")
     
-    logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.is_caterina}")
+    logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
     return parsed
 
 # Custom exception handler to make error information less ugly for most users

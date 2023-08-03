@@ -35,12 +35,12 @@ def read_arduhex(filepath):
 
 @dataclass 
 class ArduhexParsed:
-    flash_addr: int = field(default=0)
+    # flash_addr: int = field(default=0)
     flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
-    flash_page: int = field(default=1)
+    # flash_page: int = field(default=1)
     flash_page_count: int = field(default=0)
     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
-    is_caterina: bool = field(default=False)
+    overwrites_caterina: bool = field(default=False)
 
     # Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py.
     # NO PROTECTION AGAINST MULTIPLE CALLS!
@@ -76,6 +76,7 @@ class ArduhexParsed:
 def parse_arduhex(records):
     logging.debug(f"Parsing hex file with {len(records)} records")
     result = ArduhexParsed()
+    flash_addr = 0
     for rcd in records :
         # Assuming this is some kind of end symbol
         if rcd == ":00000001FF": 
@@ -87,7 +88,7 @@ def parse_arduhex(records):
             rcd_addr = int(rcd[3:7],16)
             rcd_sum  = int(rcd[9+rcd_len*2:11+rcd_len*2],16)
             if (rcd_typ == 0) and (rcd_len > 0) :
-                result.flash_addr = rcd_addr
+                flash_addr = rcd_addr
                 result.flash_page_used[int(rcd_addr / 128)] = True
                 result.flash_page_used[int((rcd_addr + rcd_len - 1) / 128)] = True
                 checksum = rcd_sum
@@ -95,15 +96,17 @@ def parse_arduhex(records):
                     byte = int(rcd[i:i+2],16)
                     checksum = (checksum + byte) & 0xFF
                     if i >= 9:
-                        result.flash_data[result.flash_addr] = byte
-                        result.flash_addr += 1
+                        result.flash_data[flash_addr] = byte
+                        flash_addr += 1
                 if checksum != 0:
                     raise Exception(f"Hex file contains errors! Checksum fail: {checksum}")
-    # Now count the pages and see if "caterina" (whatever that means)
+    # Now count the pages and see if "caterina" (whatever that means). Note: You CANNOT simplify
+    # this into some simple array.count method! The check is if the flash page is used AND if it 
+    # goes beyond a certain threshold!
     for i in range (256) :
         if result.flash_page_used[i] :
             result.flash_page_count += 1
             if i >= 224 :
-                result.is_caterina = True
+                result.overwrites_caterina = True
 
     return result

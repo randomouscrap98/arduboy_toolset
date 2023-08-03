@@ -82,11 +82,6 @@ def get_connected_devices(log = True, bootloader_only = False):
                 result.append(ardevice)
     return result
 
-# Given a connected serial port, exit the bootloader
-def exit_bootloader(s_port):
-   s_port.write(b"E")
-   s_port.read(1)
-
 # Find a single arduboy device, and force it to use the bootloader. Note: 
 # MAY disconnect and reboot your arduboy device!
 def find_single():
