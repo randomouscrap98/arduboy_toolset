@@ -7,6 +7,12 @@ from dataclasses import dataclass
 from serial.tools.list_ports  import comports
 from serial import Serial
 
+FLASHSIZE = 32768         # Size of the onboard flash (default chip whatever, atmega etc)
+FXPAGESIZE = 256
+FXBLOCKSIZE = 65536
+FXPAGES_PER_BLOCK = FXBLOCKSIZE // FXPAGESIZE
+FXMAX_PAGES = 65536     # This times page size is 16MB, as expected
+
 DEVICES = [
     #Arduboy Leonardo
     "VID:PID=2341:0036", "VID:PID=2341:8036",
@@ -21,6 +27,20 @@ DEVICES = [
     #Adafruit ItsyBitsy 5V
     "VID:PID=239A:000E", "VID:PID=239A:800E",
 ]
+
+MANUFACTURERS = {
+  0x01 : "Spansion",
+  0x14 : "Cypress",
+  0x1C : "EON",
+  0x1F : "Adesto(Atmel)",
+  0x20 : "Micron",
+  0x37 : "AMIC",
+  0x9D : "ISSI",
+  0xC2 : "General Plus",
+  0xC8 : "Giga Device",
+  0xBF : "Microchip",
+  0xEF : "Winbond"
+}
 
 SPINSLEEP = 0.25  # Time to wait between spinning for connections
 MAXRECON = 20     # Max seconds to wait for reconnection after bootloader

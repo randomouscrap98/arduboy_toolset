@@ -11,7 +11,9 @@ ACTIONS = [
     "upload",
     "eeprombackup",
     "eepromrestore",
-    "eepromerase"
+    "eepromerase",
+    "fxbackup",
+    "fxupload"
 ]
 
 VERSION = "0.0.1"
@@ -35,6 +37,10 @@ def run(args):
         scan_action(args)
     elif args.action == "upload":
         upload_action(args)
+    elif args.action == "fxupload":
+        fxupload_action(args)
+    elif args.action == "fxbackup":
+        fxbackup_action(args)
     elif args.action == "eeprombackup":
         eeprom_backup_action(args)
     elif args.action == "eepromrestore":
@@ -131,6 +137,28 @@ def upload_action(args):
             raise Exception("Upload will likely corrupt the bootloader.")
         arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
         arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
+    work_per_device(args, do_work)
+
+def fxupload_action(args):
+    infile = get_required_input(args)
+    raise Exception("Not implemented yet!")
+    # parsed = get_arduhex(args)
+    # Define the work to do per device then send it off to the generic function. The handler
+    # ensures all actions that perform work on multiple devices have the same output format.
+    def do_work(s_port):
+        # For now, can't disable verification on fx uploads (same as arduhex, actually)
+        arduboy.serial.flash_fx(infile, 0, s_port, True, basic_reporting)
+    work_per_device(args, do_work)
+
+def fxbackup_action(args):
+    outfile = args.output_file if args.output_file else time.strftime("fx-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    device = 1
+    def do_work(s_port):
+        nonlocal device
+        # Not the most elegant way to do this, I might change it later
+        real_outfile = outfile if device == 1 else f"{device}-{outfile}"
+        device += 1
+        arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
     work_per_device(args, do_work)
 
 def eeprom_backup_action(args):

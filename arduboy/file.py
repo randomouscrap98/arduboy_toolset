@@ -5,11 +5,12 @@ import zipfile
 import tempfile
 import os
 import logging
+import arduboy.device
 from dataclasses import dataclass, field
 from typing import List
 
-FLASHSIZE=32768
 LCDBOOTPROGRAM = b"\xD5\xF0\x8D\x14\xA1\xC8\x81\xCF\xD9\xF1\xAF\x20\x00"
+
 
 # Read so-called "records" (lines) from the given arduboy or hex file. No parsing or verification is done yet.
 def read_arduhex(filepath):
@@ -36,7 +37,7 @@ def read_arduhex(filepath):
 @dataclass 
 class ArduhexParsed:
     # flash_addr: int = field(default=0)
-    flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
+    flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * arduboy.device.FLASHSIZE))
     # flash_page: int = field(default=1)
     flash_page_count: int = field(default=0)
     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
@@ -56,7 +57,7 @@ class ArduhexParsed:
     # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
     # NO PROTECTION AGAINST MULTIPLE CALLS!
     def patch_microled(self):
-        for i in range(0,FLASHSIZE-4,2):
+        for i in range(0,arduboy.device.FLASHSIZE-4,2):
             if self.flash_data[i:i+2] == b'\x28\x98':   # RXLED1
                 self.flash_data[i+1] = 0x9a
             elif self.flash_data[i:i+2] == b'\x28\x9a': # RXLED0
