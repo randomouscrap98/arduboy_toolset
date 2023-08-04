@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from typing import List
 
 LCDBOOTPROGRAM = b"\xD5\xF0\x8D\x14\xA1\xC8\x81\xCF\xD9\xF1\xAF\x20\x00"
+HEADER_START_BYTES = bytearray("ARDUBOY".encode())
+SLOT_SIZE_HEADER_INDEX = 12
 
 
 # Read so-called "records" (lines) from the given arduboy or hex file. No parsing or verification is done yet.
@@ -111,3 +113,36 @@ def parse_arduhex(records):
                 result.overwrites_caterina = True
 
     return result
+
+# Trim the given fx cart data
+def trim_fx_cart(fullBinaryData):
+    # Use header[12] concat header[13] to int, * 2*128 to determine slot size (header (256) + title (1024) + program + data)
+
+    currentHeaderIndex = 0
+    while currentHeaderIndex < len(fullBinaryData)-1:
+        if HEADER_START_BYTES != fullBinaryData[currentHeaderIndex:currentHeaderIndex+len(HEADER_START_BYTES)]:
+            break
+
+        slotByteSize = ((fullBinaryData[currentHeaderIndex+SLOT_SIZE_HEADER_INDEX] << 8) + fullBinaryData[currentHeaderIndex+SLOT_SIZE_HEADER_INDEX+1])*2*128
+        currentHeaderIndex += slotByteSize
+
+    # print("Trimming {}/{}".format(currentHeaderIndex, len(fullBinaryData)))
+
+    logging.debug(f"Trim down {len(fullBinaryData)} -> {currentHeaderIndex}")
+    return fullBinaryData[0:currentHeaderIndex]
+
+# Trim the given fx cart file and output to another file. NOTE: they can be the same file
+def trim_fx_cart_file(infile, outfile = None):
+    if not outfile:
+        outfile = infile
+        logging.debug("Trimming binary file {infile} (in-place)")
+    else:
+        logging.debug("Scanning binary file {infile} and storing trimmed output to {outfile}")
+    
+    with open(infile, 'rb') as ifile:
+        binaryData = ifile.read()
+
+    trimmedBinData = trim_fx_cart(binaryData)
+
+    with open(outfile, 'wb') as ofile:
+        ofile.write(trimmedBinData)

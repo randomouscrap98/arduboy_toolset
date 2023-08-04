@@ -23,10 +23,11 @@ GRACEFULSTOPSECONDS = 0.3 # Why though? Was 3: reduced to 0.3
 def create_parser():
     parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy')
     parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
-    parser.add_argument("-v", "--version", action="version", version=f"%(prog)s {VERSION}")
     parser.add_argument("-i", "--input_file", help="Input file for given command")
     parser.add_argument("-o", "--output_file", help="Output file for given command")
     parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
+    parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
     parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (arduboy upload)")
     parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (arduboy upload)")
@@ -101,7 +102,7 @@ def basic_reporting(current, total):
     bar_length = 30
     num_blocks = int(bar_length * progress / 100)
     bar = "[" + "#" * num_blocks + "-" * (bar_length - num_blocks) + "]"
-    print(f"Progress: {progress:.2f}% {bar}", end="\r", flush=True)
+    print(f"Progress: {progress:05.2f}% {bar}", end="\r", flush=True)
     if current == total:
         print(f"Complete! {current}/{total}")
 
@@ -159,6 +160,8 @@ def fxbackup_action(args):
         real_outfile = outfile if device == 1 else f"{device}-{outfile}"
         device += 1
         arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
+        if args.trim:
+            arduboy.file.trim_fx_cart_file(real_outfile)
     work_per_device(args, do_work)
 
 def eeprom_backup_action(args):
