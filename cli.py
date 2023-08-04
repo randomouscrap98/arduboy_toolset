@@ -27,6 +27,7 @@ def create_parser():
     parser.add_argument("-o", "--output_file", help="Output file for given command")
     parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
     parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
+    parser.add_argument("--pagenum", type=int, help="Set starting pagenumber (where appropriate, such as fx cart)")
     parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
     parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
     parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (where applicable)")
@@ -80,22 +81,6 @@ def get_required_output(args):
         raise Exception("Output file required! Use -o <file> or --output_file <file>")
     return args.output_file
 
-def get_arduhex(args):
-    infile = get_required_input(args)
-    records = arduboy.file.read_arduhex(infile)
-    parsed = arduboy.file.parse_arduhex(records)
-    if args.SSD1309:
-        if parsed.patch_ssd1309():
-            logging.info("Patching upload for SSD1309")
-        else:
-            logging.warning("Flagged for SSD1309 parsing but no LCD boot program found! Not patched!")
-    if args.microled:
-        parsed.patch_microled()
-        logging.info("Patched upload for Arduino Micro LED polarity")
-    
-    logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
-    return parsed
-
 def basic_reporting(current, total):
     # report_per = math.ceil(total / 50) # We'll display up to 50 total elements
     progress = (current / total) * 100 # progress in percent
@@ -130,7 +115,18 @@ def scan_action(args):
     pp.pprint(devices)
 
 def upload_action(args):
-    parsed = get_arduhex(args)
+    infile = get_required_input(args)
+    records = arduboy.file.read_arduhex(infile)
+    parsed = arduboy.file.parse_arduhex(records)
+    if args.SSD1309:
+        if parsed.patch_ssd1309():
+            logging.info("Patched upload for SSD1309")
+        else:
+            logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
+    if args.microled:
+        parsed.patch_microled()
+        logging.info("Patched upload for Arduino Micro LED polarity")
+    logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
     # Define the work to do per device then send it off to the generic function. The handler
     # ensures all actions that perform work on multiple devices have the same output format.
     def do_work(s_port):
@@ -142,13 +138,25 @@ def upload_action(args):
 
 def fxupload_action(args):
     infile = get_required_input(args)
-    raise Exception("Not implemented yet!")
-    # parsed = get_arduhex(args)
+    flashbytes = arduboy.file.read_fx_cart(infile)
+    if args.SSD1309:
+        count = arduboy.file.patch_all_ssd1309(flashbytes)
+        if count:
+            logging.info(f"Patched {count} programs in cart for SSD1309")
+        else:
+            logging.warning("Flagged for SSD1309 patching but not a single LCD boot program found! Not patched!")
+    if args.microled:
+        logging.warning("Micro LED polarity patching not available (yet?) for FX carts!")
+    if args.pagenum:
+        pagenum = args.pagenum
+        logging.info(f"Overriding starting page for fx to {pagenum}")
+    else:
+        pagenum = 0
     # Define the work to do per device then send it off to the generic function. The handler
     # ensures all actions that perform work on multiple devices have the same output format.
     def do_work(s_port):
         # For now, can't disable verification on fx uploads (same as arduhex, actually)
-        arduboy.serial.flash_fx(infile, 0, s_port, True, basic_reporting)
+        arduboy.serial.flash_fx(flashbytes, pagenum, s_port, True, basic_reporting)
     work_per_device(args, do_work)
 
 def fxbackup_action(args):

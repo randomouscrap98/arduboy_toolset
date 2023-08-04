@@ -6,6 +6,8 @@ import tempfile
 import os
 import logging
 import arduboy.device
+import arduboy.utils
+from arduboy.device import FXPAGESIZE
 from dataclasses import dataclass, field
 from typing import List
 
@@ -36,6 +38,19 @@ def read_arduhex(filepath):
         with open(filepath,"r") as f:
             return f.readlines()
 
+# Given binary data, patch EVERY instance of the lcd boot program for ssd1309
+def patch_all_ssd1309(flashdata):
+    logging.debug("Patching all LCD boot programs for SSD1309 displays")
+    lcdBootProgram_addr = 0
+    found = 0
+    while lcdBootProgram_addr >= 0:
+      lcdBootProgram_addr = flashdata.find(LCDBOOTPROGRAM, lcdBootProgram_addr)
+      if lcdBootProgram_addr >= 0:
+        flashdata[lcdBootProgram_addr+2] = 0xE3;
+        flashdata[lcdBootProgram_addr+3] = 0xE3;
+        found += 1
+    return found
+
 @dataclass 
 class ArduhexParsed:
     # flash_addr: int = field(default=0)
@@ -48,13 +63,7 @@ class ArduhexParsed:
     # Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py.
     # NO PROTECTION AGAINST MULTIPLE CALLS!
     def patch_ssd1309(self):
-        lcdBootProgram_addr = self.flash_data.find(LCDBOOTPROGRAM)
-        if lcdBootProgram_addr >= 0:
-            self.flash_data[lcdBootProgram_addr+2] = 0xE3;
-            self.flash_data[lcdBootProgram_addr+3] = 0xE3;
-            return True
-        else:
-            return False
+        return patch_all_ssd1309(self.flash_data) > 0
 
     # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
     # NO PROTECTION AGAINST MULTIPLE CALLS!
@@ -114,6 +123,12 @@ def parse_arduhex(records):
 
     return result
 
+# Read and pad the fx data from the given file and return the bytearray
+def read_fx_cart(filename):
+    logging.debug(f'Reading flash image from file "{filename}"')
+    with open(filename, "rb") as f:
+        flashdata = bytearray(f.read())
+    return arduboy.utils.pad_data(flashdata, FXPAGESIZE)
 
 # Trim the given fx cart data
 def trim_fx_cart(fullBinaryData):

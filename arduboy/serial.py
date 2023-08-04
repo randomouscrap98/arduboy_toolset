@@ -1,7 +1,8 @@
 # Given a connected serial port, exit the bootloader
 import logging
 import time
-from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE
+from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE,FXMAX_PAGES
+import arduboy.utils
 from dataclasses import dataclass
 
 
@@ -233,3 +234,14 @@ def backup_fx(s_port, filename, report_progress = None):
     s_port.read(1)
     time.sleep(0.5)
     logging.info("Read {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
+
+
+# NOTE: So in the flashcart-upload.py utility, it's an if/else. So, you either flash "utility" data,
+# or you flash "fx" data. This significantly simplifies writing the fx data for this version of the 
+# tools. Eventually, you should do the extra data like in the tools, but I think it requires more knowledge
+# of how it's used before you attempt to come up with the best strategy for having people use it. Dont' 
+# want to make something too difficult to use...
+
+# # Flash fx with the given package data (dictionary). At least "data" must be set, but you can also set 
+# # ""
+# def flash_fx_with_extras(flashdata_package, pagenumber, s_port, verify = True, report_progress = None):
