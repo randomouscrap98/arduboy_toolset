@@ -1,8 +1,7 @@
 # Given a connected serial port, exit the bootloader
 import logging
 import time
-import arduboy.device
-from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE,FXMAX_PAGES
+from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE
 from dataclasses import dataclass
 
 
@@ -31,9 +30,10 @@ class JedecInfo:
     manufacturer: str
 
     def __str__(self):
-        return "0x{:02X}{:02X}{:02X}{}({} KiB)".format(self.id[0],self.id[1],self.id[2], self.manufacturer, 
+        return "0x{:02X}{:02X}{:02X} - {} ({} KiB)".format(self.id[0],self.id[1],self.id[2], self.manufacturer, 
             self.capacity // 1024 if self.manufacturer != "unknown" else "???")
 
+# Get parsed jedec info from device. Will throw exception if device has no jedec info
 def get_jedec_info(s_port):
     jedec_id = get_jedec_id(s_port)
     if jedec_id[0] in MANUFACTURERS.keys():
