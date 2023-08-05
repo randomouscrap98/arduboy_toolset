@@ -6,7 +6,10 @@ providing a slightly easier way to manage Arduboy.
 
 ## Running
 
-If you have python already and just want to run from source (clone repo first ofc):
+If you have a release version, just run `arduboy_toolset.exe` to get a GUI.
+
+If you have python already and just want to run from source, or want to run the command line 
+(clone repo first ofc):
 
 ```shell
 cd arduboy_toolset
@@ -14,12 +17,14 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-python main.py
+python main_cli.py
+# Or for gui, use main_gui.py
 ```
 
 ## Creating a standalone
 
-This has to be done for each operating system, there is no cross compiler
+This has to be done for each operating system, there is no cross compiler. Note that because of weird 
+nonsense with Windows, I have to build the CLI and the GUI separately.
 
 ```shell
 cd arduboy_toolset
@@ -27,11 +32,19 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-pyinstaller --name arduboy_toolset --icon="icon.ico" main.py
-# Note: - adding --onefile makes the startup slower, but easier to distribute maybe.
-#       - adding --windowed removes the console, but then... what about the console part of the app
-#       - The icon HAS to be a .ico file for windows
+pyinstaller --name arduboy_toolset --icon="icon.ico" main_gui.py --onefile --windowed
+pyinstaller --name arduboy_toolset --icon="icon.ico" main_cli.py
+mv dist/arduboy_tooset/arduboy_toolset.exe dist/arduboy_toolset/arduboy_toolset_cli.exe
+mv dist/arduboy_toolset.exe dist/arduboy_toolset/
 ```
+
+Notes: 
+- adding `--onefile` makes the startup slower, but easier to distribute maybe, hence why I do it 
+  for the GUI
+- adding `--windowed` removes the console; since the GUI part is supposed to be for beginners, I 
+  figured it's better to have it gone. This is the sole reason I couldn't have the app be a dual
+  CLI + GUI app, even though I'm using something like python
+- The icon HAS to be a .ico file for windows
 
 ## Plans
 - Get releases for linux, windows, and macOS (I don't have a mac yet though)
