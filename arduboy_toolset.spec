@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
 
 block_cipher = None
 
@@ -41,5 +42,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['appresource\\icon.ico'],
+    icon=[os.path.join('appresource', 'icon.ico')],
 )
