@@ -5,16 +5,17 @@ import constants
 import arduboy.device
 import utils
 import gui_utils
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QLineEdit, QGroupBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QLineEdit, QGroupBox, QMessageBox
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal
 
-# I don't know what registering a font multiple times will do, might as well just make it a global
-EMOJIFONT = None
 SUBDUEDCOLOR = "rgba(128,128,128,0.5)"
 SUCCESSCOLOR = "#30c249"
 
 def main():
+
+    # Set the custom exception hook. Do this ASAP!!
+    sys.excepthook = exception_hook
 
     # Some initial setup
     try:
@@ -31,26 +32,16 @@ def main():
     app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
     app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
 
-    # Register the emoji font
-    global EMOJIFONT
-    try:
-        EMOJIFONT = gui_utils.setup_font("NotoEmoji-Medium.ttf")
-    except Exception as ex:
-        logging.error(f"Could not load emoji font, falling back to system default! Error: {ex}")
+    gui_utils.try_create_emoji_font()
 
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
 
+def exception_hook(exctype, value, traceback):
+    error_message = f"An unhandled exception occurred:\n{value}"
+    QMessageBox.critical(None, "Unhandled Exception", error_message, QMessageBox.Ok)
 
-def set_emoji_font(widget, size):
-    global EMOJIFONT
-    if EMOJIFONT:
-        widget.setFont(QtGui.QFont(EMOJIFONT, size))
-    else:
-        font = widget.font() 
-        font.setPointSize(size)
-        widget.setFont(font) 
 
 
 class MainWindow(QMainWindow):
@@ -95,22 +86,18 @@ class ConnectionInfo(QWidget):
         layout = QHBoxLayout()
 
         self.status_picture = QLabel("$")
-        set_emoji_font(self.status_picture, 24)
+        gui_utils.set_emoji_font(self.status_picture, 24)
         layout.addWidget(self.status_picture)
 
         text_container = QWidget()
         text_layout = QVBoxLayout()
 
         self.status_label = QLabel("Label")
-        font = self.status_label.font()  # Get the current font of the label
-        font.setPointSize(14)  # Set the font size to 16 points
-        self.status_label.setFont(font) 
+        gui_utils.set_font_size(self.status_label, 14)
         text_layout.addWidget(self.status_label)
 
         self.info_label = QLabel("Info")
-        font = self.info_label.font()  # Get the current font of the label
-        font.setPointSize(8) 
-        self.info_label.setFont(font) 
+        gui_utils.set_font_size(self.info_label, 8)
         self.info_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
         text_layout.addWidget(self.info_label)
 
@@ -171,13 +158,18 @@ class ActionTable(QTabWidget):
         layout2 = QVBoxLayout()
         layout3 = QVBoxLayout()
 
-        # Add widgets to tab1
+        # Add widgets to sketch tab 
         uploadsketchgroup = QGroupBox("Upload Sketch")
-        innerlayout = QHBoxLayout()
-        uploadselect = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
-        innerlayout.addWidget(uploadselect)
-        uploadsketchgroup.setLayout(innerlayout)
+        self.upload_sketch_button = QPushButton("Upload")
+        self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
+        gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", SUCCESSCOLOR)
         sketch_layout.addWidget(uploadsketchgroup)
+
+        spacer = QWidget()
+        sketch_layout.addWidget(spacer)
+
+        sketch_layout.setStretchFactor(uploadsketchgroup, 0)
+        sketch_layout.setStretchFactor(spacer, 1)
 
         # Add widgets to tab2
         label2 = QLabel("This is Tab 2")
