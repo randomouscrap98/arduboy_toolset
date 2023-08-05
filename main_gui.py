@@ -9,8 +9,10 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal
 
-SUBDUEDCOLOR = "rgba(128,128,128,0.5)"
+SUBDUEDCOLOR = "rgba(128,128,128,0.75)"
 SUCCESSCOLOR = "#30c249"
+ERRORCOLOR = "#c23030"
+BACKUPCOLOR = "#308dc2"
 
 def main():
 
@@ -50,7 +52,7 @@ class MainWindow(QMainWindow):
 
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
-        self.setGeometry(100, 100, 600, 500)  # Set a reasonable window size
+        self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
 
         # Create a vertical layout
         layout = QVBoxLayout()
@@ -58,6 +60,10 @@ class MainWindow(QMainWindow):
         # Create widgets to add to the layout
         coninfo = ConnectionInfo()
         tabs = ActionTable()
+
+        coninfo.device_connected_report.connect(lambda: tabs.set_device_connected(True))
+        coninfo.device_disconnected_report.connect(lambda: tabs.set_device_connected(False))
+        coninfo.refresh()
 
         # Add widgets to the layout
         layout.addWidget(coninfo)
@@ -109,9 +115,6 @@ class ConnectionInfo(QWidget):
         layout.setStretchFactor(text_container, 1)
 
         self.setLayout(layout)
-        # self.setObjectName("coninfo");
-        # self.setStyleSheet('#coninfo { border: 2px solid rgba(128, 128, 128, 0.5); padding: 15px; border-radius: 7px; }')  
-        self.refresh()
         self.timer.start(1000)
     
     def stop_updates(self):
@@ -155,7 +158,7 @@ class ActionTable(QTabWidget):
 
         # Create layouts for each tab
         sketch_layout = QVBoxLayout()
-        layout2 = QVBoxLayout()
+        fx_layout = QVBoxLayout()
         layout3 = QVBoxLayout()
 
         # Add widgets to sketch tab 
@@ -163,19 +166,29 @@ class ActionTable(QTabWidget):
         self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
         gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", SUCCESSCOLOR)
-        sketch_layout.addWidget(uploadsketchgroup)
 
-        spacer = QWidget()
-        sketch_layout.addWidget(spacer)
+        backupsketchgroup = QGroupBox("Backup Sketch")
+        self.backup_sketch_button = QPushButton("Backup")
+        self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
+        gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", BACKUPCOLOR)
 
-        sketch_layout.setStretchFactor(uploadsketchgroup, 0)
-        sketch_layout.setStretchFactor(spacer, 1)
+        gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
-        # Add widgets to tab2
-        label2 = QLabel("This is Tab 2")
-        button2 = QPushButton("Button in Tab 2")
-        layout2.addWidget(label2)
-        layout2.addWidget(button2)
+        # Add widgets to fx tab 
+        uploadfxgroup = QGroupBox("Upload Flashcart")
+        self.upload_fx_button = QPushButton("Upload")
+        self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        gui_utils.add_file_action(self.upload_fx_picker, self.upload_fx_button, uploadfxgroup, "⬆️", SUCCESSCOLOR)
+
+        backupfxgroup = QGroupBox("Backup Flashcart")
+        self.backup_fx_button = QPushButton("Backup")
+        self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
+        gui_utils.add_file_action(self.backup_fx_picker, self.backup_fx_button, backupfxgroup, "⬇️", BACKUPCOLOR)
+
+        warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
+        warninglabel.setStyleSheet(f"color: {SUBDUEDCOLOR}; padding: 10px")
+
+        gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
 
         # Add widgets to tab3
         label3 = QLabel("This is Tab 3")
@@ -185,9 +198,15 @@ class ActionTable(QTabWidget):
 
         # Set layouts for each tab
         tab1.setLayout(sketch_layout)
-        tab2.setLayout(layout2)
+        tab2.setLayout(fx_layout)
         tab3.setLayout(layout3)
     
+
+    def set_device_connected(self, connected):
+        self.upload_sketch_button.setEnabled(connected)
+        self.backup_sketch_button.setEnabled(connected)
+        self.upload_fx_button.setEnabled(connected)
+        self.backup_fx_button.setEnabled(connected)
 
 
 

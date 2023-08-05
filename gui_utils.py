@@ -70,6 +70,13 @@ def add_file_action(picker, button, container, symbol = None, symbol_color = Non
     innerlayout.setStretchFactor(button, 0)
     container.setLayout(innerlayout)
 
+def add_children_nostretch(layout, children):
+    for c in children:
+        layout.addWidget(c)
+        layout.setStretchFactor(c, 0)
+    spacer = QWidget()
+    layout.addWidget(spacer)
+    layout.setStretchFactor(spacer, 1)
 
 class FilePicker(QWidget):
     def __init__(self, file_filter = "All Files (*)", save_new_file = False, default_name_generator = None):
