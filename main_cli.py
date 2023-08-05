@@ -11,7 +11,8 @@ import constants
 
 ACTIONS = [
     "scan",
-    "upload",
+    "sketchupload",
+    "sketchbackup",
     "eeprombackup",
     "eepromrestore",
     "eepromerase",
@@ -36,8 +37,10 @@ def main():
 
     if args.action == "scan":
         scan_action(args)
-    elif args.action == "upload":
-        upload_action(args)
+    elif args.action == "sketchupload":
+        sketchupload_action(args)
+    elif args.action == "sketchbackup":
+        sketchbackup_action(args)
     elif args.action == "fxupload":
         fxupload_action(args)
     elif args.action == "fxbackup":
@@ -136,7 +139,7 @@ def scan_action(args):
     print(f"Found {len(devices)} devices:")
     pp.pprint(devices)
 
-def upload_action(args):
+def sketchupload_action(args):
     infile = get_required_input(args)
     records = arduboy.file.read_arduhex(infile)
     parsed = arduboy.file.parse_arduhex(records)
@@ -156,6 +159,18 @@ def upload_action(args):
             raise Exception("Upload will likely corrupt the bootloader.")
         arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
         arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
+    work_per_device(args, do_work)
+
+def sketchbackup_action(args):
+    outfile = args.output_file if args.output_file else time.strftime("fx-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    device = 1
+    raise Exception("Not implemented yet!")
+    def do_work(s_port):
+        nonlocal device
+        # Not the most elegant way to do this, I might change it later
+        real_outfile = outfile if device == 1 else f"{device}-{outfile}"
+        device += 1
+        arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
     work_per_device(args, do_work)
 
 def fxupload_action(args):
