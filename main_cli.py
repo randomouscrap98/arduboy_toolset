@@ -20,8 +20,23 @@ ACTIONS = [
     "fxupload"
 ]
 
-GRACEFULSTOPSECONDS = 0.3 # Why though? Was 3: reduced to 0.3
 SHOWTRACE = False # Although this is capitalized like a constant, the value is set from the argument list
+
+def create_parser():
+    parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy using Mr.Blinky\'s original code')
+    parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
+    parser.add_argument("-i", "--input_file", help="Input file for given command")
+    parser.add_argument("-o", "--output_file", help="Output file for given command")
+    parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
+    parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
+    parser.add_argument("--pagenum", type=int, help="Set starting pagenumber (where appropriate, such as fx cart)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {constants.VERSION}")
+    parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
+    parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (where applicable)")
+    parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (where applicable)")
+    parser.add_argument("--include_bootloader", action="store_true", help="Include bootloader in backup (where applicable: sketch)")
+    return parser
+
 
 # Main entry point!
 def main():
@@ -63,20 +78,6 @@ def custom_excepthook(exc_type, exc_value, exc_traceback):
         print(f"Traceback: ")
         traceback.print_tb(exc_traceback)
 
-def create_parser():
-    parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy using Mr.Blinky\'s original code')
-    parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
-    parser.add_argument("-i", "--input_file", help="Input file for given command")
-    parser.add_argument("-o", "--output_file", help="Output file for given command")
-    parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
-    parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
-    parser.add_argument("--pagenum", type=int, help="Set starting pagenumber (where appropriate, such as fx cart)")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {constants.VERSION}")
-    parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
-    parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (where applicable)")
-    parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (where applicable)")
-    return parser
-
 
 # Whether single or multi is supplied, return a list of bootloader-ready device(s).
 def get_devices(args):
@@ -107,16 +108,16 @@ def get_required_output(args):
     return args.output_file
 
 def basic_reporting(current, total):
-    # report_per = math.ceil(total / 50) # We'll display up to 50 total elements
     progress = (current / total) * 100 # progress in percent
     bar_length = 30
     num_blocks = int(bar_length * progress / 100)
     bar = "[" + "#" * num_blocks + "-" * (bar_length - num_blocks) + "]"
     print(f"Progress: {progress:05.2f}% {bar}", end="\r", flush=True)
     if current == total:
-        print(f"Complete! {current}/{total}")
+        complete_text = f"{current}/{total}".ljust(6) # 6 for the 5 digits of percent + the percent sign
+        print(f"Complete! {complete_text} {bar}")
 
-def work_per_device(args, work):
+def work_per_device(args, work, exit_bootloaoder = False):
     devices = get_devices(args)
     for d in devices:
         print(f">>> Working on device {d}")
@@ -126,7 +127,11 @@ def work_per_device(args, work):
         except Exception as ex:
             print(f" ** SKIPPING DEVICE {d} DUE TO ERROR: {ex}")
         finally:
-            graceful_stop(s_port)
+            print(f"<<< Disconnecting device on {s_port.port}...")
+            if exit_bootloaoder:
+                arduboy.serial.exit_bootloader(s_port)
+            else:
+                arduboy.serial.exit_normal(s_port)
 
 
 # ---------------------
@@ -159,18 +164,19 @@ def sketchupload_action(args):
             raise Exception("Upload will likely corrupt the bootloader.")
         arduboy.serial.flash_arduhex(parsed, s_port, basic_reporting) 
         arduboy.serial.verify_arduhex(parsed, s_port, basic_reporting) 
-    work_per_device(args, do_work)
+    work_per_device(args, do_work, True)
 
 def sketchbackup_action(args):
-    outfile = args.output_file if args.output_file else time.strftime("fx-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    outfile = args.output_file if args.output_file else time.strftime("sketch-backup-%Y%m%d-%H%M%S.bin", time.localtime())
     device = 1
-    raise Exception("Not implemented yet!")
     def do_work(s_port):
         nonlocal device
         # Not the most elegant way to do this, I might change it later
         real_outfile = outfile if device == 1 else f"{device}-{outfile}"
         device += 1
-        arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
+        sketchdata = arduboy.serial.backup_sketch(s_port, args.include_bootloader)
+        with open (real_outfile,"wb") as f:
+            f.write(sketchdata)
     work_per_device(args, do_work)
 
 def fxupload_action(args):
@@ -241,14 +247,6 @@ def eeprom_erase_action(args):
 # -------------------------
 #    HANDLING NONSENSE!
 # -------------------------
-
-# Mr.Blinky's scripts had some time for exiting. I assumed it was to read the screen, but just
-# in case, I have also included a small timeout here too. If I get confirmation the exit time
-# is just to read printed output, I will reduce the time further.
-def graceful_stop(s_port):
-    print(f"<<< Exiting bootloader on {s_port.port}...")
-    arduboy.serial.exit_bootloader(s_port)
-    time.sleep(GRACEFULSTOPSECONDS)
 
 if __name__ == "__main__":
     main()

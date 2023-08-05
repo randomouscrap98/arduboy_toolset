@@ -1,14 +1,26 @@
 # Given a connected serial port, exit the bootloader
 import logging
 import time
-from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE,FXMAX_PAGES
-import arduboy.utils
+from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE
 from dataclasses import dataclass
 
-
+# Mr.Blinky's scripts had some time for exiting. I assumed it was to read the screen in 
+# his scripts, since it was 3 seconds. I removed it, and hope it's not necessary
+# in case, I have also included a small timeout here too. If I get confirmation the exit time
+# is just to read printed output, I will reduce the time further.
 def exit_bootloader(s_port):
     s_port.write(b"E")
     s_port.read(1)
+    s_port.close()
+
+def exit_normal(s_port):
+    #Do a cute little LED thing (that wastes half a second but whatever, it's cute)
+    s_port.write(b"x\x44")#RGB LED GREEN, buttons enabled
+    s_port.read(1)
+    time.sleep(0.5)    
+    s_port.write(b"x\x40")#RGB LED off, buttons enabled
+    s_port.read(1)
+    s_port.close()
 
 def get_version(s_port):
     s_port.write(b"V")
@@ -69,6 +81,20 @@ def flash_arduhex(arduhex, s_port, report_progress: None):
             flash_page += 1
             if report_progress:
                 report_progress(flash_page, arduhex.flash_page_count)
+
+def backup_sketch(s_port, include_bootloader = False):
+    logging.info("Reading sketch...")
+    s_port.write(b"A\x00\x00")
+    s_port.read(1)
+    if include_bootloader:
+        logging.debug("Including bootloader in sketch backup")
+        s_port.write(b"g\x80\x00F")
+        backupdata = bytearray(s_port.read(0x8000))
+    else:
+        logging.debug("Excluding bootloader in sketch backup")
+        s_port.write(b"g\x70\x00F")
+        backupdata = bytearray(s_port.read(0x7000))
+    return backupdata
 
 # Verify that the given arduboy hex file is correctly flashed to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
@@ -184,10 +210,13 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
         if report_progress:
             report_progress(block + 1, blocks)
     
-    #write complete  
+    #write complete. Do a cute little LED thing (that wastes half a second but whatever, it's cute)
     s_port.write(b"x\x44")#RGB LED GREEN, buttons enabled
     s_port.read(1)
     time.sleep(0.5)    
+    s_port.write(b"x\x40")#RGB LED off, buttons enabled
+    s_port.read(1)
+
     logging.info("Wrote {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
 
 # Read FX data and dump to the given file. Can report progress same as arduhex functions. 

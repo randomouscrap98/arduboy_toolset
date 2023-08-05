@@ -71,15 +71,6 @@ class ArduboyDevice:
         devices = get_connected_devices(log = False)
         return any(x.port == self.port and x.vidpid == self.vidpid for x in devices)
     
-    # Disconnect the given device. Note that afterwards, information in this device
-    # object is no longer valid! Might only work for arduboys (I have no idea)
-    def disconnect(self):
-        logging.info(f"Attempting to disonnect device {self}")
-        s_port = Serial(self.port,1200)
-        s_port.close()
-        while self.is_connected():
-            time.sleep(SPINSLEEP)
-    
     # Connect to the device this represents and return the serial connection
     def connect_serial(self, baud = MAINBAUD):
         time.sleep(CONNECTWAIT)
@@ -111,7 +102,11 @@ def find_single():
     # Assume first device is what you want
     device = devices[0]
     if not device.has_bootloader:
-        device.disconnect()
+        logging.info(f"Attempting to reset device {device}")
+        s_port = Serial(device.port,1200)
+        s_port.close()
+        while device.is_connected():
+            time.sleep(SPINSLEEP)
         start = time.time()
         devices = get_connected_devices(log=False, bootloader_only=True)
         while len(devices) == 0:
