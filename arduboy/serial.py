@@ -15,7 +15,7 @@ def exit_bootloader(s_port):
 
 def exit_normal(s_port):
     #Do a cute little LED thing (that wastes half a second but whatever, it's cute)
-    s_port.write(b"x\x44")#RGB LED GREEN, buttons enabled
+    s_port.write(b"x\x46")#RGB LED GREEN + RED, buttons enabled
     s_port.read(1)
     time.sleep(0.5)    
     s_port.write(b"x\x40")#RGB LED off, buttons enabled
@@ -210,13 +210,8 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
         if report_progress:
             report_progress(block + 1, blocks)
     
-    #write complete. Do a cute little LED thing (that wastes half a second but whatever, it's cute)
-    s_port.write(b"x\x44")#RGB LED GREEN, buttons enabled
-    s_port.read(1)
-    time.sleep(0.5)    
     s_port.write(b"x\x40")#RGB LED off, buttons enabled
     s_port.read(1)
-
     logging.info("Wrote {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
 
 # Read FX data and dump to the given file. Can report progress same as arduhex functions. 
@@ -259,9 +254,8 @@ def backup_fx(s_port, filename, report_progress = None):
             if report_progress:
                 report_progress(block + 1, blocks)
 
-    s_port.write(b"x\x44")  #RGB LED GREEN, buttons enabled
+    s_port.write(b"x\x40")#RGB LED off, buttons enabled
     s_port.read(1)
-    time.sleep(0.5)
     logging.info("Read {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
 
 
@@ -270,7 +264,3 @@ def backup_fx(s_port, filename, report_progress = None):
 # tools. Eventually, you should do the extra data like in the tools, but I think it requires more knowledge
 # of how it's used before you attempt to come up with the best strategy for having people use it. Dont' 
 # want to make something too difficult to use...
-
-# # Flash fx with the given package data (dictionary). At least "data" must be set, but you can also set 
-# # ""
-# def flash_fx_with_extras(flashdata_package, pagenumber, s_port, verify = True, report_progress = None):

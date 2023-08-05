@@ -66,7 +66,8 @@ class ArduboyDevice:
             result += "[bootld]"
         return result
 
-    # Determine whether if, at this very moment, this device is connected
+    # Determine whether if, at this very moment, this device is connected to the system. 
+    # NOT whether the serial port is open!
     def is_connected(self):
         devices = get_connected_devices(log = False)
         return any(x.port == self.port and x.vidpid == self.vidpid for x in devices)
