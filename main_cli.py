@@ -8,6 +8,7 @@ import arduboy.device
 import arduboy.file
 import arduboy.serial
 import constants
+import utils
 
 ACTIONS = [
     "scan",
@@ -167,7 +168,7 @@ def sketchupload_action(args):
     work_per_device(args, do_work, True)
 
 def sketchbackup_action(args):
-    outfile = args.output_file if args.output_file else time.strftime("sketch-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    outfile = args.output_file if args.output_file else utils.get_sketch_backup_filename()
     device = 1
     def do_work(s_port):
         nonlocal device
@@ -203,7 +204,7 @@ def fxupload_action(args):
     work_per_device(args, do_work)
 
 def fxbackup_action(args):
-    outfile = args.output_file if args.output_file else time.strftime("fx-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    outfile = args.output_file if args.output_file else utils.get_fx_backup_filename()
     device = 1
     def do_work(s_port):
         nonlocal device
@@ -216,7 +217,7 @@ def fxbackup_action(args):
     work_per_device(args, do_work)
 
 def eeprom_backup_action(args):
-    outfile = args.output_file if args.output_file else time.strftime("eeprom-backup-%Y%m%d-%H%M%S.bin", time.localtime())
+    outfile = args.output_file if args.output_file else utils.get_eeprom_backup_filename()
     device = 1
     def do_work(s_port):
         nonlocal device
