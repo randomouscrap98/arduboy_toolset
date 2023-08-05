@@ -32,8 +32,8 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-pyinstaller --name arduboy_toolset --icon="icon.ico" main_gui.py --onefile --windowed
-pyinstaller --name arduboy_toolset --icon="icon.ico" main_cli.py
+pyinstaller --name arduboy_toolset --icon="appresource/icon.ico" main_gui.py --onefile --windowed
+pyinstaller --name arduboy_toolset --icon="appresource/icon.ico" main_cli.py
 mv dist/arduboy_tooset/arduboy_toolset.exe dist/arduboy_toolset/arduboy_toolset_cli.exe
 mv dist/arduboy_toolset.exe dist/arduboy_toolset/
 ```

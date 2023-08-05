@@ -1,9 +1,3 @@
-# My stuff!
-*.hex
-*.bin
-*.arduboy
-ignore/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -165,3 +159,11 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+
+# My stuff!
+*.hex
+*.bin
+*.arduboy
+ignore/
+!arduboy_toolset_cli.spec
+!arduboy_toolset.spec
