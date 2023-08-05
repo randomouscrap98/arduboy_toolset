@@ -96,13 +96,13 @@ def get_connected_devices(log = True, bootloader_only = False):
 
 # Find a single arduboy device, and force it to use the bootloader. Note: 
 # MAY disconnect and reboot your arduboy device!
-def find_single():
+def find_single(enter_bootloader = True):
     devices = get_connected_devices()
     if len(devices) == 0:
         raise Exception("No Arduboys found!")
     # Assume first device is what you want
     device = devices[0]
-    if not device.has_bootloader:
+    if enter_bootloader and not device.has_bootloader:
         logging.info(f"Attempting to reset device {device}")
         s_port = Serial(device.port,1200)
         s_port.close()
