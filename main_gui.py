@@ -1,7 +1,18 @@
+import logging
 import os
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel
 from PyQt5 import QtGui
+
+def main():
+
+    # Some initial setup
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Run the UI if no arguments are passed
+    (app, window) = make_app()
+    window.show()
+    sys.exit(app.exec_())
 
 
 def make_app():
@@ -20,3 +31,7 @@ def make_app():
 
 
     return (app, window)
+
+
+if __name__ == "__main__":
+    main()

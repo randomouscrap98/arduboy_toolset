@@ -1,10 +1,13 @@
 import argparse
 import logging
 import pprint
+import sys
 import time
+import traceback
 import arduboy.device
 import arduboy.file
 import arduboy.serial
+import constants
 
 ACTIONS = [
     "scan",
@@ -16,25 +19,21 @@ ACTIONS = [
     "fxupload"
 ]
 
-VERSION = "0.0.1"
 GRACEFULSTOPSECONDS = 0.3 # Why though? Was 3: reduced to 0.3
+SHOWTRACE = False # Although this is capitalized like a constant, the value is set from the argument list
 
+# Main entry point!
+def main():
+    global SHOWTRACE
 
-def create_parser():
-    parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy using Mr.Blinky\'s original code')
-    parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
-    parser.add_argument("-i", "--input_file", help="Input file for given command")
-    parser.add_argument("-o", "--output_file", help="Output file for given command")
-    parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
-    parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
-    parser.add_argument("--pagenum", type=int, help="Set starting pagenumber (where appropriate, such as fx cart)")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
-    parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
-    parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (where applicable)")
-    parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (where applicable)")
-    return parser
+    # Some initial setup
+    sys.excepthook = custom_excepthook
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def run(args):
+    parser = create_parser()
+    args = parser.parse_args()
+    SHOWTRACE = args.debug
+
     if args.action == "scan":
         scan_action(args)
     elif args.action == "upload":
@@ -51,6 +50,29 @@ def run(args):
         eeprom_erase_action(args)
     else:
         print(f"Unknown command {args.action}")
+
+
+# Custom exception handler to make error information less ugly for most users
+def custom_excepthook(exc_type, exc_value, exc_traceback):
+    print(" ** UNHANDLED EXCEPTION: " + str(exc_value)) # .args[0])
+    if SHOWTRACE:
+        print(f"Type: {exc_type}")
+        print(f"Traceback: ")
+        traceback.print_tb(exc_traceback)
+
+def create_parser():
+    parser = argparse.ArgumentParser(prog="arduboy_toolset", description='Tools for working with Arduboy using Mr.Blinky\'s original code')
+    parser.add_argument("action", choices=ACTIONS, help="Tool/action to perform")
+    parser.add_argument("-i", "--input_file", help="Input file for given command")
+    parser.add_argument("-o", "--output_file", help="Output file for given command")
+    parser.add_argument("-m", "--multi", action="store_true", help="Enable multi-device-mode (where applicable)")
+    parser.add_argument("-t", "--trim", action="store_true", help="Trim backups where applicable (usually fx data)")
+    parser.add_argument("--pagenum", type=int, help="Set starting pagenumber (where appropriate, such as fx cart)")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {constants.VERSION}")
+    parser.add_argument("--debug", action="store_true", help="Enable extra debugging output (useful for error handling)")
+    parser.add_argument("--SSD1309", action="store_true", help="Enable patching for SSD1309 displays (where applicable)")
+    parser.add_argument("--microled", action="store_true", help="Enable patching for Arduino Micro LED polarity (where applicable)")
+    return parser
 
 
 # Whether single or multi is supplied, return a list of bootloader-ready device(s).
@@ -212,3 +234,6 @@ def graceful_stop(s_port):
     print(f"<<< Exiting bootloader on {s_port.port}...")
     arduboy.serial.exit_bootloader(s_port)
     time.sleep(GRACEFULSTOPSECONDS)
+
+if __name__ == "__main__":
+    main()
