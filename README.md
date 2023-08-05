@@ -32,18 +32,19 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-pyinstaller --name arduboy_toolset --icon="appresource/icon.ico" main_gui.py --onefile --windowed
-pyinstaller --name arduboy_toolset --icon="appresource/icon.ico" main_cli.py
-mv dist/arduboy_tooset/arduboy_toolset.exe dist/arduboy_toolset/arduboy_toolset_cli.exe
-mv dist/arduboy_toolset.exe dist/arduboy_toolset/
+pyinstaller arduboy_toolset_cli.spec
+pyinstaller arduboy_toolset.spec
+mv dist/arduboy_toolset_cli dist/arduboy_toolset
+mv dist/arduboy_tooset/arduboy_toolset dist/arduboy_toolset/
 ```
 
 Notes: 
-- adding `--onefile` makes the startup slower, but easier to distribute maybe, hence why I do it 
-  for the GUI
-- adding `--windowed` removes the console; since the GUI part is supposed to be for beginners, I 
-  figured it's better to have it gone. This is the sole reason I couldn't have the app be a dual
-  CLI + GUI app, even though I'm using something like python
+- The GUI is a "onefile" app, it will startup slower but you can take that single file
+  and put it anywhere.
+- The GUI has the console removed; this is the main reason for having a separate GUI
+  and CLI application
+- The CLI application, to increase startup speed (because of how it might be used),
+  requires all files in that folder (other than the GUI)
 - The icon HAS to be a .ico file for windows
 
 ## Plans
