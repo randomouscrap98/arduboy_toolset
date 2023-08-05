@@ -27,7 +27,10 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-pyinstaller --onefile --name arduboy_toolset main.py
+pyinstaller --name arduboy_toolset --icon="icon.ico" main.py
+# Note: - adding --onefile makes the startup slower, but easier to distribute maybe.
+#       - adding --windowed removes the console, but then... what about the console part of the app
+#       - The icon HAS to be a .ico file for windows
 ```
 
 ## Plans

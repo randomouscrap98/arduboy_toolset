@@ -27,6 +27,7 @@ def main():
     args = parser.parse_args()
     SHOWTRACE = args.debug
     cli.run(args)
+    print("", flush=True)
 
 # Custom exception handler to make error information less ugly for most users
 def custom_excepthook(exc_type, exc_value, exc_traceback):
