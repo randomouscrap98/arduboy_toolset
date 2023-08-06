@@ -8,7 +8,7 @@ import arduboy.serial
 import utils
 import gui_utils
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
-from PyQt5.QtWidgets import QMessageBox, QAction
+from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
@@ -183,30 +183,38 @@ class ActionTable(QTabWidget):
         utilities_layout = QVBoxLayout()
 
         # Add widgets to sketch tab 
-        uploadsketchgroup = QGroupBox("Upload Sketch")
         self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
         self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
-        gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", gui_utils.SUCCESSCOLOR)
+        uploadsketchgroup, templay = gui_utils.make_file_action("Upload Sketch", self.upload_sketch_picker, self.upload_sketch_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        # temp = QWidget()
+        # temp.setStyleSheet("padding: 0")
+        # templay = QHBoxLayout()
+        self.su_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
+        self.su_microled_cb = QCheckBox("Patch for Micro LED polarity")
+        # self.su_microled_cb.setStyleSheet("margin-left: 10px")
+        templay.addWidget(self.su_ssd1309_cb)
+        templay.addWidget(self.su_microled_cb)
+        # temp.setLayout(templay)
+        # layout.addWidget(temp)
+        # layout.addWidget(self.ssd1309_cb)
+        # layout.addWidget(self.microled_cb)
 
-        backupsketchgroup = QGroupBox("Backup Sketch")
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_sketch_button = QPushButton("Backup")
         self.backup_sketch_button.clicked.connect(self.do_backupsketch)
-        gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", gui_utils.BACKUPCOLOR)
+        backupsketchgroup, layout = gui_utils.make_file_action("Backup Sketch", self.backup_sketch_picker, self.backup_sketch_button, "⬇️", gui_utils.BACKUPCOLOR)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
         # Add widgets to fx tab 
-        uploadfxgroup = QGroupBox("Upload Flashcart")
         self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
         self.upload_fx_button = QPushButton("Upload")
-        gui_utils.add_file_action(self.upload_fx_picker, self.upload_fx_button, uploadfxgroup, "⬆️", gui_utils.SUCCESSCOLOR)
+        uploadfxgroup, layout = gui_utils.make_file_action("Upload Flashcart", self.upload_fx_picker, self.upload_fx_button, "⬆️", gui_utils.SUCCESSCOLOR)
 
-        backupfxgroup = QGroupBox("Backup Flashcart")
         self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
         self.backup_fx_button = QPushButton("Backup")
-        gui_utils.add_file_action(self.backup_fx_picker, self.backup_fx_button, backupfxgroup, "⬇️", gui_utils.BACKUPCOLOR)
+        backupfxgroup, layout = gui_utils.make_file_action("Backup Flashcart", self.backup_fx_picker, self.backup_fx_button, "⬇️", gui_utils.BACKUPCOLOR)
 
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
         warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
@@ -214,19 +222,16 @@ class ActionTable(QTabWidget):
         gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
 
         # Add widgets to eeprom tab 
-        uploadeepromgroup = QGroupBox("Upload EEPROM")
         self.upload_eeprom_button = QPushButton("Upload")
         self.upload_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        gui_utils.add_file_action(self.upload_eeprom_picker, self.upload_eeprom_button, uploadeepromgroup, "⬆️", gui_utils.SUCCESSCOLOR)
+        uploadeepromgroup, layout = gui_utils.make_file_action("Upload EEPROM", self.upload_eeprom_picker, self.upload_eeprom_button, "⬆️", gui_utils.SUCCESSCOLOR)
 
-        backupeepromgroup = QGroupBox("Backup EEPROM")
         self.backup_eeprom_button = QPushButton("Backup")
         self.backup_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
-        gui_utils.add_file_action(self.backup_eeprom_picker, self.backup_eeprom_button, backupeepromgroup, "⬇️", gui_utils.BACKUPCOLOR)
+        backupeepromgroup, layout = gui_utils.make_file_action("Backup EEPROM", self.backup_eeprom_picker, self.backup_eeprom_button, "⬇️", gui_utils.BACKUPCOLOR)
 
-        eraseeepromgroup = QGroupBox("Erase EEPROM")
         self.erase_eeprom_button = QPushButton("ERASE")
-        gui_utils.add_file_action(None, self.erase_eeprom_button, eraseeepromgroup, "❎", gui_utils.ERRORCOLOR)
+        eraseeepromgroup, layout = gui_utils.make_file_action("Erase EEPROM", None, self.erase_eeprom_button, "❎", gui_utils.ERRORCOLOR)
 
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
@@ -260,7 +265,14 @@ class ActionTable(QTabWidget):
             repstatus("Checking file...")
             records = arduboy.file.read_arduhex(filepath)
             parsed = arduboy.file.parse_arduhex(records)
-            # TODO: Get the extra patches in here!!
+            if self.su_ssd1309_cb.isChecked():
+                if parsed.patch_ssd1309():
+                    logging.info("Patched upload for SSD1309")
+                else:
+                    logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
+            if self.su_microled_cb.isChecked():
+                parsed.patch_microled()
+                logging.info("Patched upload for Arduino Micro LED polarity")
             logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
             s_port = device.connect_serial()
             if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):

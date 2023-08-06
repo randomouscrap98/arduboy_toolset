@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox
+from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import utils
 import logging
@@ -63,7 +63,10 @@ def make_button_bigger(button):
     button.setStyleSheet(f"padding: {padding}px {padding * 2}px")
 
 
-def add_file_action(picker, button, container, symbol = None, symbol_color = None):
+def make_file_action(title: str, picker, button, symbol = None, symbol_color = None):
+    group = QGroupBox(title)
+    file_action_parent = QWidget()
+    # file_action_parent.setStyleSheet("padding: 0; margin: 0")
     innerlayout = QHBoxLayout()
     if symbol:
         symbol = QLabel(symbol)
@@ -80,7 +83,12 @@ def add_file_action(picker, button, container, symbol = None, symbol_color = Non
     innerlayout.addWidget(button)
     innerlayout.setStretchFactor(picker, 1)
     innerlayout.setStretchFactor(button, 0)
-    container.setLayout(innerlayout)
+    file_action_parent.setLayout(innerlayout)
+    group_layout = QVBoxLayout()
+    group_layout.addWidget(file_action_parent)
+    group.setLayout(group_layout)
+    group.setStyleSheet("QCheckBox { margin-left: 20px; margin-bottom: 5px }")
+    return (group, group_layout)
 
 def add_children_nostretch(layout, children):
     for c in children:
