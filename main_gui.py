@@ -187,23 +187,17 @@ class ActionTable(QTabWidget):
         self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
         uploadsketchgroup, templay = gui_utils.make_file_action("Upload Sketch", self.upload_sketch_picker, self.upload_sketch_button, "⬆️", gui_utils.SUCCESSCOLOR)
-        # temp = QWidget()
-        # temp.setStyleSheet("padding: 0")
-        # templay = QHBoxLayout()
         self.su_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
         self.su_microled_cb = QCheckBox("Patch for Micro LED polarity")
-        # self.su_microled_cb.setStyleSheet("margin-left: 10px")
         templay.addWidget(self.su_ssd1309_cb)
         templay.addWidget(self.su_microled_cb)
-        # temp.setLayout(templay)
-        # layout.addWidget(temp)
-        # layout.addWidget(self.ssd1309_cb)
-        # layout.addWidget(self.microled_cb)
 
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_sketch_button = QPushButton("Backup")
         self.backup_sketch_button.clicked.connect(self.do_backupsketch)
         backupsketchgroup, layout = gui_utils.make_file_action("Backup Sketch", self.backup_sketch_picker, self.backup_sketch_button, "⬇️", gui_utils.BACKUPCOLOR)
+        self.bu_includebootloader_cb = QCheckBox("Include bootloader in backup")
+        layout.addWidget(self.bu_includebootloader_cb)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
@@ -222,15 +216,18 @@ class ActionTable(QTabWidget):
         gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
 
         # Add widgets to eeprom tab 
-        self.upload_eeprom_button = QPushButton("Upload")
         self.upload_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        uploadeepromgroup, layout = gui_utils.make_file_action("Upload EEPROM", self.upload_eeprom_picker, self.upload_eeprom_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        self.upload_eeprom_button = QPushButton("Restore")
+        self.upload_eeprom_button.clicked.connect(self.do_uploadeeprom)
+        uploadeepromgroup, layout = gui_utils.make_file_action("Restore EEPROM", self.upload_eeprom_picker, self.upload_eeprom_button, "⬆️", gui_utils.SUCCESSCOLOR)
 
-        self.backup_eeprom_button = QPushButton("Backup")
         self.backup_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
+        self.backup_eeprom_button = QPushButton("Backup")
+        self.backup_eeprom_button.clicked.connect(self.do_backupeeprom)
         backupeepromgroup, layout = gui_utils.make_file_action("Backup EEPROM", self.backup_eeprom_picker, self.backup_eeprom_button, "⬇️", gui_utils.BACKUPCOLOR)
 
         self.erase_eeprom_button = QPushButton("ERASE")
+        self.erase_eeprom_button.clicked.connect(self.do_eraseeeprom)
         eraseeepromgroup, layout = gui_utils.make_file_action("Erase EEPROM", None, self.erase_eeprom_button, "❎", gui_utils.ERRORCOLOR)
 
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
@@ -292,7 +289,7 @@ class ActionTable(QTabWidget):
         def do_work(device, repprog, repstatus):
             repstatus("Reading sketch...")
             s_port = device.connect_serial()
-            sketchdata = arduboy.serial.backup_sketch(s_port, False)
+            sketchdata = arduboy.serial.backup_sketch(s_port, self.bu_includebootloader_cb.isChecked())
             repstatus("Writing sketch to filesystem...")
             with open (filepath,"wb") as f:
                 f.write(sketchdata)
@@ -300,7 +297,53 @@ class ActionTable(QTabWidget):
 
         gui_utils.do_progress_work(do_work, "Backup Sketch")
 
+    def do_uploadeeprom(self): 
+        filepath = self.upload_eeprom_picker.check_filepath(self) 
+        if not filepath: return
 
+        def do_work(device, repprog, repstatus):
+            repstatus("Restoring EEPROM from file...")
+            with open (filepath,"rb") as f:
+                eepromdata = bytearray(f.read())
+            s_port = device.connect_serial()
+            logging.info(f"Restoring eeprom from {filepath} into {device}")
+            arduboy.serial.write_eeprom(eepromdata, s_port)
+            arduboy.serial.exit_bootloader(s_port) # Eh, might as well do bootloader here too
+
+        gui_utils.do_progress_work(do_work, "Restore EEPROM")
+
+    def do_backupeeprom(self): 
+        filepath = self.backup_eeprom_picker.check_filepath(self) 
+        if not filepath: return
+
+        def do_work(device, repprog, repstatus):
+            repstatus("Saving EEPROM to file...")
+            s_port = device.connect_serial()
+            logging.info(f"Backing up eeprom from {device} into {filepath}")
+            eepromdata = arduboy.serial.read_eeprom(s_port)
+            with open (filepath,"wb") as f:
+                f.write(eepromdata)
+            arduboy.serial.exit_normal(s_port) 
+
+        gui_utils.do_progress_work(do_work, "Backup EEPROM")
+
+    def do_eraseeeprom(self): 
+        confirmation = QMessageBox.question(
+            self, "ERASE EEPROM",
+            f"EEPROM is a 1KB area for save data. Are you SURE you want to erase EEPROM?", 
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if confirmation != QMessageBox.Yes:
+            return
+
+        def do_work(device, repprog, repstatus):
+            repstatus("ERASING EEPROM...")
+            s_port = device.connect_serial()
+            logging.info(f"Erasing eeprom in {device}")
+            arduboy.serial.erase_eeprom(s_port)
+            arduboy.serial.exit_bootloader(s_port) 
+
+        gui_utils.do_progress_work(do_work, "ERASE EEPROM")
 
 if __name__ == "__main__":
     main()

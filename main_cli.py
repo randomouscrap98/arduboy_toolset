@@ -237,13 +237,13 @@ def eeprom_restore_action(args):
     def do_work(s_port):
         logging.info(f"Restoring eeprom from {infile} into {s_port.port}")
         arduboy.serial.write_eeprom(eepromdata, s_port)
-    work_per_device(args, do_work)
+    work_per_device(args, do_work, True) # Since this is save data, probably should reset or something
 
 def eeprom_erase_action(args):
     def do_work(s_port):
         logging.info(f"Erasing eeprom in {s_port.port}")
         arduboy.serial.erase_eeprom(s_port)
-    work_per_device(args, do_work)
+    work_per_device(args, do_work, True) # Since this is save data, probably should reset or something
 
 # -------------------------
 #    HANDLING NONSENSE!
