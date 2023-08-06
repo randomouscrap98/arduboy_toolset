@@ -48,6 +48,7 @@ Notes:
 - The icon HAS to be a .ico file for windows
 
 ## Plans
-- Get releases for linux, windows, and macOS (I don't have a mac yet though)
-- Get a relatively robust GUI that has most of the options from the command line
-- Create a more manageable cart builder (personal: not meant to replace existing cart system at all)
+- Get releases for macOS (I don't have a mac yet though)
+- Create a basic cart builder (personal: not meant to replace existing cart system at all)
+- Add some of the cool extra features still left from Mr.Blinky's tools (like image display, development FX stuff, etc)
+- Maybe spruce up the UI a bit?
