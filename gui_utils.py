@@ -159,9 +159,11 @@ class FilePicker(QWidget):
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
             if confirmation == QMessageBox.Yes:
-                return filepath
+                os.remove(filepath)
             else:
-                raise Exception("Cancelled operation!")
+                return None
+
+        return filepath
 
 
 

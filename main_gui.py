@@ -192,6 +192,7 @@ class ActionTable(QTabWidget):
         backupsketchgroup = QGroupBox("Backup Sketch")
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_sketch_button = QPushButton("Backup")
+        self.backup_sketch_button.clicked.connect(self.do_backupsketch)
         gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
@@ -251,8 +252,9 @@ class ActionTable(QTabWidget):
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
     
-    def do_uploadsketch(self): # , device: arduboy.device.ArduboyDevice, repprog, repstatus):
-        filepath = self.upload_sketch_picker.check_filepath(self) # gui_utils.(self.upload_sketch_picker)
+    def do_uploadsketch(self): 
+        filepath = self.upload_sketch_picker.check_filepath(self) 
+        if not filepath: return
 
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
@@ -267,9 +269,24 @@ class ActionTable(QTabWidget):
             arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
             repstatus("Verifying sketch...")
             arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
-            arduboy.serial.exit_bootloader(s_port)
+            arduboy.serial.exit_bootloader(s_port) # NOTE! THIS MIGHT BE THE ONLY PLACE WE EXIT THE BOOTLOADER!
 
         gui_utils.do_progress_work(do_work, "Upload Sketch")
+
+    def do_backupsketch(self): 
+        filepath = self.backup_sketch_picker.check_filepath(self) 
+        if not filepath: return
+
+        def do_work(device, repprog, repstatus):
+            repstatus("Reading sketch...")
+            s_port = device.connect_serial()
+            sketchdata = arduboy.serial.backup_sketch(s_port, False)
+            repstatus("Writing sketch to filesystem...")
+            with open (filepath,"wb") as f:
+                f.write(sketchdata)
+            arduboy.serial.exit_normal(s_port)
+
+        gui_utils.do_progress_work(do_work, "Backup Sketch")
 
 
 
