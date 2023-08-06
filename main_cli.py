@@ -176,6 +176,7 @@ def sketchbackup_action(args):
         real_outfile = outfile if device == 1 else f"{device}-{outfile}"
         device += 1
         sketchdata = arduboy.serial.backup_sketch(s_port, args.include_bootloader)
+        logging.info(f"Saving sketch backup ({len(sketchdata)} bytes) to {real_outfile}")
         with open (real_outfile,"wb") as f:
             f.write(sketchdata)
     work_per_device(args, do_work)
