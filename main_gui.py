@@ -10,11 +10,6 @@ from PyQt5.QtWidgets import QMessageBox, QAction
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
-SUBDUEDCOLOR = "rgba(128,128,128,0.75)"
-SUCCESSCOLOR = "#30c249"
-ERRORCOLOR = "#c23030"
-BACKUPCOLOR = "#308dc2"
-
 def main():
 
     # Set the custom exception hook. Do this ASAP!!
@@ -125,7 +120,7 @@ class ConnectionInfo(QWidget):
 
         self.info_label = QLabel("Info")
         gui_utils.set_font_size(self.info_label, 8)
-        self.info_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
+        self.info_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
         text_layout.addWidget(self.info_label)
 
         text_container.setLayout(text_layout)
@@ -150,15 +145,15 @@ class ConnectionInfo(QWidget):
             try:
                 device = arduboy.device.find_single(enter_bootloader=False)
                 self.status_label.setText("Connected!")
-                self.info_label.setText(f"{device.name} - {device.vidpid}")
+                self.info_label.setText(device.display_name())
                 self.status_picture.setText("✅")
-                self.status_picture.setStyleSheet(f"color: {SUCCESSCOLOR}")
+                self.status_picture.setStyleSheet(f"color: {gui_utils.SUCCESSCOLOR}")
                 self.device_connected_report.emit()
             except:
                 self.status_label.setText("Searching for Arduboy" + "." * ((self.update_count % 3) + 1))
                 self.info_label.setText("Make sure Arduboy is connected + turned on")
                 self.status_picture.setText("⏳")
-                self.status_picture.setStyleSheet(f"color: {SUBDUEDCOLOR}")
+                self.status_picture.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
                 self.device_disconnected_report.emit()
 
 
@@ -189,12 +184,13 @@ class ActionTable(QTabWidget):
         uploadsketchgroup = QGroupBox("Upload Sketch")
         self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
-        gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", SUCCESSCOLOR)
+        self.upload_sketch_button.clicked.connect(lambda: gui_utils.do_progress_work(self.uploadsketch_work, "Upload Sketch"))
+        gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", gui_utils.SUCCESSCOLOR)
 
         backupsketchgroup = QGroupBox("Backup Sketch")
         self.backup_sketch_button = QPushButton("Backup")
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
-        gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", BACKUPCOLOR)
+        gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
@@ -202,15 +198,15 @@ class ActionTable(QTabWidget):
         uploadfxgroup = QGroupBox("Upload Flashcart")
         self.upload_fx_button = QPushButton("Upload")
         self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        gui_utils.add_file_action(self.upload_fx_picker, self.upload_fx_button, uploadfxgroup, "⬆️", SUCCESSCOLOR)
+        gui_utils.add_file_action(self.upload_fx_picker, self.upload_fx_button, uploadfxgroup, "⬆️", gui_utils.SUCCESSCOLOR)
 
         backupfxgroup = QGroupBox("Backup Flashcart")
         self.backup_fx_button = QPushButton("Backup")
         self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
-        gui_utils.add_file_action(self.backup_fx_picker, self.backup_fx_button, backupfxgroup, "⬇️", BACKUPCOLOR)
+        gui_utils.add_file_action(self.backup_fx_picker, self.backup_fx_button, backupfxgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
-        warninglabel.setStyleSheet(f"color: {SUBDUEDCOLOR}; padding: 10px")
+        warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
 
         gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
 
@@ -218,16 +214,16 @@ class ActionTable(QTabWidget):
         uploadeepromgroup = QGroupBox("Upload EEPROM")
         self.upload_eeprom_button = QPushButton("Upload")
         self.upload_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        gui_utils.add_file_action(self.upload_eeprom_picker, self.upload_eeprom_button, uploadeepromgroup, "⬆️", SUCCESSCOLOR)
+        gui_utils.add_file_action(self.upload_eeprom_picker, self.upload_eeprom_button, uploadeepromgroup, "⬆️", gui_utils.SUCCESSCOLOR)
 
         backupeepromgroup = QGroupBox("Backup EEPROM")
         self.backup_eeprom_button = QPushButton("Backup")
         self.backup_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
-        gui_utils.add_file_action(self.backup_eeprom_picker, self.backup_eeprom_button, backupeepromgroup, "⬇️", BACKUPCOLOR)
+        gui_utils.add_file_action(self.backup_eeprom_picker, self.backup_eeprom_button, backupeepromgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         eraseeepromgroup = QGroupBox("Erase EEPROM")
         self.erase_eeprom_button = QPushButton("ERASE")
-        gui_utils.add_file_action(None, self.erase_eeprom_button, eraseeepromgroup, "❎", ERRORCOLOR)
+        gui_utils.add_file_action(None, self.erase_eeprom_button, eraseeepromgroup, "❎", gui_utils.ERRORCOLOR)
 
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
@@ -241,8 +237,9 @@ class ActionTable(QTabWidget):
         tab2.setLayout(fx_layout)
         tab3.setLayout(eeprom_layout)
         tab4.setLayout(utilities_layout)
-    
 
+    # Set the status of the table entries based on the device connected status. Sets them directly,
+    # this is not a signal (you can use it IN a signal...)
     def set_device_connected(self, connected):
         self.upload_sketch_button.setEnabled(connected)
         self.backup_sketch_button.setEnabled(connected)
@@ -251,7 +248,20 @@ class ActionTable(QTabWidget):
         self.upload_eeprom_button.setEnabled(connected)
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
-
+    
+    def uploadsketch_work(self, device: arduboy.device.ArduboyDevice, repprog, repstatus):
+        repstatus("Checking file...")
+        filepath = gui_utils.check_open_filepath(self.upload_sketch_picker)
+        records = arduboy.file.read_arduhex(filepath)
+        parsed = arduboy.file.parse_arduhex(records)
+        logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
+        s_port = device.connect_serial()
+        if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
+            raise Exception("Upload will likely corrupt the bootloader (device is caterina + sketch too large).")
+        repstatus("Flashing sketch...")
+        arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
+        repstatus("Verifying sketch...")
+        arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
 
 
 if __name__ == "__main__":

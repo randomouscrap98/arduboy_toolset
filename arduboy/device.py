@@ -65,6 +65,9 @@ class ArduboyDevice:
         if self.has_bootloader:
             result += "[bootld]"
         return result
+    
+    def display_name(self):
+        return f"{self.name} - {self.vidpid}"
 
     # Determine whether if, at this very moment, this device is connected to the system. 
     # NOT whether the serial port is open!
