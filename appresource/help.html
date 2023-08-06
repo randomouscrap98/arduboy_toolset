@@ -1,0 +1,38 @@
+<h1>Arduboy Toolset</h1>
+
+<p>
+    Arduboy toolset lets you upload + backup <b>sketches</b>, <b>flashcart data</b>, and <b>EEPROM</b>.
+</p>
+
+<h2>Sketches</h2>
+
+<p>
+    Sketches are compiled singular programs, usually with a <b>.hex</b> extension. Sometimes a hex file will
+    be embedded inside a <b>.zip</b> or <b>.arduboy</b> file. All three are accepted for upload to Arduboy.
+    Note that Arduboy can only hold one sketch at a time, so uploading will overwrite whatever is currently
+    there. 
+</p>
+
+<h2>Flashcart</h2>
+
+<p>
+    Arduboy FX and others with the "flashcart" have a special bootloader that boots before the sketch
+    to allow you to choose one of many games on the additional flash memory (usually 16MB). The bootloader 
+    will flash the game to the "sketch" area and boot into it, just like this tool does when you upload a 
+    sketch.
+</p>
+
+<p> 
+    You can generate flashcart <b>.bin</b> files by using the 
+    <a href="http://www.bloggingadeadhorse.com/cart/Cart.html">Cart Builder</a> website. The bin
+    file you download from there can be directly flashed to your Arduboy using the Flashcart upload 
+    portion of this tool
+</p>
+
+<h2>EEPROM</h2>
+
+<p>
+    EEPROM is a small 1024 byte area made specifically for save game data. All games have to share the 
+    same space for saves, so they often overwrite each other. You can backup + restore this data
+    using this tool
+</p>

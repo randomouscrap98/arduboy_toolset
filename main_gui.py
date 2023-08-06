@@ -5,9 +5,10 @@ import constants
 import arduboy.device
 import utils
 import gui_utils
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QLineEdit, QGroupBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
+from PyQt5.QtWidgets import QMessageBox, QAction
 from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
 SUBDUEDCOLOR = "rgba(128,128,128,0.75)"
 SUCCESSCOLOR = "#30c249"
@@ -54,6 +55,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
         self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
 
+        # Create the top menu
+        menu_bar = self.menuBar()
+
+        # Create an action for opening the help window
+        open_help_action = QAction("Help", self)
+        open_help_action.triggered.connect(self.open_help_window)
+        menu_bar.addAction(open_help_action)
+
         # Create a vertical layout
         layout = QVBoxLayout()
 
@@ -76,6 +85,10 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
+
+    def open_help_window(self):
+        self.help_window = gui_utils.HtmlWindow("Arduboy Toolset Help", "help.html")
+        self.help_window.show()
 
 
 class ConnectionInfo(QWidget):
@@ -151,15 +164,18 @@ class ActionTable(QTabWidget):
         tab1 = QWidget()
         tab2 = QWidget()
         tab3 = QWidget()
+        tab4 = QWidget()
         
         self.addTab(tab1, "Sketch")
         self.addTab(tab2, "Flashcart")
-        self.addTab(tab3, "Utilities")
+        self.addTab(tab3, "EEPROM")
+        self.addTab(tab4, "Utilities")
 
         # Create layouts for each tab
         sketch_layout = QVBoxLayout()
         fx_layout = QVBoxLayout()
-        layout3 = QVBoxLayout()
+        eeprom_layout = QVBoxLayout()
+        utilities_layout = QVBoxLayout()
 
         # Add widgets to sketch tab 
         uploadsketchgroup = QGroupBox("Upload Sketch")
@@ -190,16 +206,33 @@ class ActionTable(QTabWidget):
 
         gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
 
+        # Add widgets to eeprom tab 
+        uploadeepromgroup = QGroupBox("Upload EEPROM")
+        self.upload_eeprom_button = QPushButton("Upload")
+        self.upload_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        gui_utils.add_file_action(self.upload_eeprom_picker, self.upload_eeprom_button, uploadeepromgroup, "⬆️", SUCCESSCOLOR)
+
+        backupeepromgroup = QGroupBox("Backup EEPROM")
+        self.backup_eeprom_button = QPushButton("Backup")
+        self.backup_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
+        gui_utils.add_file_action(self.backup_eeprom_picker, self.backup_eeprom_button, backupeepromgroup, "⬇️", BACKUPCOLOR)
+
+        eraseeepromgroup = QGroupBox("Erase EEPROM")
+        self.erase_eeprom_button = QPushButton("ERASE")
+        gui_utils.add_file_action(None, self.erase_eeprom_button, eraseeepromgroup, "❎", ERRORCOLOR)
+
+        gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
+
         # Add widgets to tab3
-        label3 = QLabel("This is Tab 3")
-        button3 = QPushButton("Button in Tab 3")
-        layout3.addWidget(label3)
-        layout3.addWidget(button3)
+        label = QLabel("Coming later I hope?")
+        label.setAlignment(Qt.AlignCenter)
+        utilities_layout.addWidget(label)
 
         # Set layouts for each tab
         tab1.setLayout(sketch_layout)
         tab2.setLayout(fx_layout)
-        tab3.setLayout(layout3)
+        tab3.setLayout(eeprom_layout)
+        tab4.setLayout(utilities_layout)
     
 
     def set_device_connected(self, connected):
@@ -207,6 +240,9 @@ class ActionTable(QTabWidget):
         self.backup_sketch_button.setEnabled(connected)
         self.upload_fx_button.setEnabled(connected)
         self.backup_fx_button.setEnabled(connected)
+        self.upload_eeprom_button.setEnabled(connected)
+        self.backup_eeprom_button.setEnabled(connected)
+        self.erase_eeprom_button.setEnabled(connected)
 
 
 

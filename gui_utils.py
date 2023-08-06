@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel
+from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser
 import utils
 import logging
 
@@ -64,6 +64,8 @@ def add_file_action(picker, button, container, symbol = None, symbol_color = Non
         innerlayout.addWidget(symbol)
         innerlayout.setStretchFactor(symbol, 0)
     make_button_bigger(button)
+    if picker is None:
+        picker = QWidget()
     innerlayout.addWidget(picker)
     innerlayout.addWidget(button)
     innerlayout.setStretchFactor(picker, 1)
@@ -117,6 +119,18 @@ class FilePicker(QWidget):
             file_path, _ = QFileDialog.getOpenFileName(self, "Choose File", default_name, self.file_filter, options=options)
         self.filetext.setText(file_path)
 
+
+class HtmlWindow(QTextBrowser):
+    def __init__(self, title, resource):
+        super().__init__()
+        with open(utils.resource_file(resource), "r") as f:
+            basehtml = f.read()
+            buffer = '<p style="color:rgba(0,0,0,0)"><center>---</center></p>'
+            self.setHtml('<style>p, h1, h2, h3 { margin: 15px; }</style>' + buffer + basehtml + buffer)
+        self.setWindowTitle(title)
+        self.resize(500,500)
+        self.setOpenExternalLinks(True)
+        # self.setStyleSheet("padding: 10px")
 
 # class BigButton(QWidget):
 #     def __init__(self, text, left_symbol = None, right_symbol = None, size_mod = 1.5, symbol_color = None):
