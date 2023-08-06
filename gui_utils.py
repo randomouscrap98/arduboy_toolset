@@ -53,6 +53,7 @@ def make_button_bigger(button):
     padding = newsize * 0.75
     button.setStyleSheet(f"padding: {padding}px {padding * 2}px")
 
+
 def add_file_action(picker, button, container, symbol = None, symbol_color = None):
     innerlayout = QHBoxLayout()
     if symbol:
@@ -79,6 +80,7 @@ def add_children_nostretch(layout, children):
     spacer = QWidget()
     layout.addWidget(spacer)
     layout.setStretchFactor(spacer, 1)
+
 
 class FilePicker(QWidget):
     def __init__(self, file_filter = "All Files (*)", save_new_file = False, default_name_generator = None):
@@ -130,34 +132,3 @@ class HtmlWindow(QTextBrowser):
         self.setWindowTitle(title)
         self.resize(500,500)
         self.setOpenExternalLinks(True)
-        # self.setStyleSheet("padding: 10px")
-
-# class BigButton(QWidget):
-#     def __init__(self, text, left_symbol = None, right_symbol = None, size_mod = 1.5, symbol_color = None):
-#         super().__init__()
-#         layout = QHBoxLayout()
-# 
-#         if left_symbol:
-#             BigButton.create_symbol(left_symbol, layout, symbol_color, size_mod * 1.5)
-# 
-#         self.button = QPushButton(text)
-#         mod_font_size(self.button, size_mod)
-#         self.button.setStyleSheet("padding: 10px") # A constant? IDK about that...
-#         layout.addWidget(self.button)
-#         # layout.setStretchFactor(self.button, 1)
-# 
-#         if right_symbol:
-#             BigButton.create_symbol(right_symbol, layout, symbol_color, size_mod * 1.5)
-# 
-#         self.setLayout(layout)
-#     
-#     def create_symbol(text, layout, color = None, size_mod = 1):
-#         symbol = QLabel(text)
-#         set_emoji_font(symbol)
-#         mod_font_size(symbol, size_mod)
-#         if color:
-#             symbol.setStyleSheet(f"color: {color}")
-#         layout.addWidget(symbol)
-#         # layout.setStretchFactor(symbol, 0)
-#         return symbol
-# 

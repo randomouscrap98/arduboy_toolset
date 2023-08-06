@@ -63,6 +63,10 @@ class MainWindow(QMainWindow):
         open_help_action.triggered.connect(self.open_help_window)
         menu_bar.addAction(open_help_action)
 
+        open_about_action = QAction("About", self)
+        open_about_action.triggered.connect(self.open_about_window)
+        menu_bar.addAction(open_about_action)
+
         # Create a vertical layout
         layout = QVBoxLayout()
 
@@ -89,6 +93,10 @@ class MainWindow(QMainWindow):
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Toolset Help", "help.html")
         self.help_window.show()
+
+    def open_about_window(self):
+        self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
+        self.about_window.show()
 
 
 class ConnectionInfo(QWidget):
