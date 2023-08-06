@@ -3,6 +3,8 @@ import os
 import sys
 import constants
 import arduboy.device
+import arduboy.file
+import arduboy.serial
 import utils
 import gui_utils
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
@@ -182,27 +184,27 @@ class ActionTable(QTabWidget):
 
         # Add widgets to sketch tab 
         uploadsketchgroup = QGroupBox("Upload Sketch")
-        self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
-        self.upload_sketch_button.clicked.connect(lambda: gui_utils.do_progress_work(self.uploadsketch_work, "Upload Sketch"))
+        self.upload_sketch_button = QPushButton("Upload")
+        self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
         gui_utils.add_file_action(self.upload_sketch_picker, self.upload_sketch_button, uploadsketchgroup, "⬆️", gui_utils.SUCCESSCOLOR)
 
         backupsketchgroup = QGroupBox("Backup Sketch")
-        self.backup_sketch_button = QPushButton("Backup")
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
+        self.backup_sketch_button = QPushButton("Backup")
         gui_utils.add_file_action(self.backup_sketch_picker, self.backup_sketch_button, backupsketchgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
         # Add widgets to fx tab 
         uploadfxgroup = QGroupBox("Upload Flashcart")
-        self.upload_fx_button = QPushButton("Upload")
         self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        self.upload_fx_button = QPushButton("Upload")
         gui_utils.add_file_action(self.upload_fx_picker, self.upload_fx_button, uploadfxgroup, "⬆️", gui_utils.SUCCESSCOLOR)
 
         backupfxgroup = QGroupBox("Backup Flashcart")
-        self.backup_fx_button = QPushButton("Backup")
         self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
+        self.backup_fx_button = QPushButton("Backup")
         gui_utils.add_file_action(self.backup_fx_picker, self.backup_fx_button, backupfxgroup, "⬇️", gui_utils.BACKUPCOLOR)
 
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
@@ -249,19 +251,26 @@ class ActionTable(QTabWidget):
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
     
-    def uploadsketch_work(self, device: arduboy.device.ArduboyDevice, repprog, repstatus):
-        repstatus("Checking file...")
-        filepath = gui_utils.check_open_filepath(self.upload_sketch_picker)
-        records = arduboy.file.read_arduhex(filepath)
-        parsed = arduboy.file.parse_arduhex(records)
-        logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
-        s_port = device.connect_serial()
-        if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
-            raise Exception("Upload will likely corrupt the bootloader (device is caterina + sketch too large).")
-        repstatus("Flashing sketch...")
-        arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
-        repstatus("Verifying sketch...")
-        arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
+    def do_uploadsketch(self): # , device: arduboy.device.ArduboyDevice, repprog, repstatus):
+        filepath = self.upload_sketch_picker.check_filepath(self) # gui_utils.(self.upload_sketch_picker)
+
+        def do_work(device, repprog, repstatus):
+            repstatus("Checking file...")
+            records = arduboy.file.read_arduhex(filepath)
+            parsed = arduboy.file.parse_arduhex(records)
+            # TODO: Get the extra patches in here!!
+            logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
+            s_port = device.connect_serial()
+            if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
+                raise Exception("Upload will likely corrupt the bootloader (device is caterina + sketch too large).")
+            repstatus("Flashing sketch...")
+            arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
+            repstatus("Verifying sketch...")
+            arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
+            arduboy.serial.exit_bootloader(s_port)
+
+        gui_utils.do_progress_work(do_work, "Upload Sketch")
+
 
 
 if __name__ == "__main__":

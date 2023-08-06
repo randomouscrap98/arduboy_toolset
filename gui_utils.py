@@ -131,28 +131,38 @@ class FilePicker(QWidget):
         self.filetext.setText(file_path)
 
 
-def check_open_filepath(input: FilePicker):
-    filepath = input.get_chosen_file()
-    if not filepath:
-        raise Exception("No file chosen!")
-    if not os.path.is_file(filepath):
-        raise Exception("File not found!")
-    return filepath
-
-def check_save_filepath(input: FilePicker, parent):
-    filepath = input.get_chosen_file()
-    if not filepath:
-        raise Exception("No file chosen!")
-    if os.path.is_file(filepath):
-        confirmation = QMessageBox.question(
-            parent, "Overwrite file",
-            f"File already exists. Are you sure you want to overwrite this file: {filepath}?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
-        if confirmation == QMessageBox.Yes:
-            return filepath
+    # Verify filepath. May throw exceptions, and may open dialogs. This should be called on a UI thread!!!
+    def check_filepath(self, parent):
+        if self.save_new_file:
+            return self._check_save_filepath(parent)
         else:
-            raise Exception("Cancelled operation!")
+            return self._check_open_filepath()
+
+    # Internal check filepath, only really valid for not save_new_file
+    def _check_open_filepath(self):
+        filepath = self.get_chosen_file()
+        if not filepath:
+            raise Exception("No file chosen!")
+        if not os.path.isfile(filepath):
+            raise Exception("File not found!")
+        return filepath
+
+    # Internal check filepath, only really valid for save_new_file
+    def _check_save_filepath(self, parent):
+        filepath = self.get_chosen_file()
+        if not filepath:
+            raise Exception("No file chosen!")
+        if os.path.isfile(filepath):
+            confirmation = QMessageBox.question(
+                parent, "Overwrite file",
+                f"File already exists. Are you sure you want to overwrite this file: {filepath}?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+            if confirmation == QMessageBox.Yes:
+                return filepath
+            else:
+                raise Exception("Cancelled operation!")
+
 
 
 class HtmlWindow(QTextBrowser):
@@ -168,23 +178,24 @@ class HtmlWindow(QTextBrowser):
 
 
 class ProgressWindow(QDialog):
-    def __init__(self, title, device):
+    def __init__(self, title, device = None):
         super().__init__()
         layout = QVBoxLayout()
 
         self.setWindowTitle(title)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint & ~Qt.WindowMaximizeButtonHint)
-        self.resize(300, 200)
+        self.resize(400, 200)
+        self.error_state = False
 
         self.status_label = QLabel("Waiting...")
         self.status_label.setAlignment(Qt.AlignCenter)
         mod_font_size(self.status_label, 2)
         layout.addWidget(self.status_label)
 
-        label = QLabel(device)
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
-        layout.addWidget(label)
+        self.device_label = QLabel(device if device else "~")
+        self.device_label.setAlignment(Qt.AlignCenter)
+        self.device_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
+        layout.addWidget(self.device_label)
 
         self.progress_bar = QProgressBar()
         layout.addWidget(self.progress_bar)
@@ -196,41 +207,69 @@ class ProgressWindow(QDialog):
 
         self.setLayout(layout)
     
+    def set_device(self, device):
+        self.device_label.setText(device)
+
     def set_status(self, status):
         self.status_label.setText(status)
 
     def set_complete(self):
-        self.status_label.setText(f"{self.windowTitle()}: Complete!")
-        self.progress_bar.setValue(100)
+        # self.status_label.setText(f"{self.windowTitle()}: Complete!")
+        # self.progress_bar.setValue(100)
+        result = "Failed" if self.error_state else "Complete"
+        self.status_label.setText(f"{self.windowTitle()}: {result}!")
+        self.progress_bar.setValue(0 if self.error_state else 100)
         self.ok_button.show()
     
     def report_progress(self, current, max):
         self.progress_bar.setValue(int(current / max * 100))
+    
+    def report_error(self, ex: Exception):
+        self.error_state = True
+        QMessageBox.critical(self, f"Error during '{self.windowTitle()}'", str(ex), QMessageBox.Ok)
+        self.accept()
+    
+    # # Confirms have to be done with the parent in mind (I was having trouble otherwise), so they
+    # # MUST not be done in a separate thread! As such, this function should be connected to a signal
+    # def do_confirm(self, title, text):
+    #     confirmation = QMessageBox.question(
+    #         self, title, text, #"Overwrite file",
+    #         #f"File already exists. Are you sure you want to overwrite this file: {filepath}?",
+    #         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+    #     return confirmation == QMessageBox.Yes
+
+
+class ProgressWorkerThread(QThread):
+    update_progress = pyqtSignal(int, int)
+    update_status = pyqtSignal(str)
+    update_device = pyqtSignal(str)
+    report_error = pyqtSignal(Exception)
+
+    def __init__(self, work):
+        super().__init__()
+        self.work = work
+
+    def run(self):
+        try:
+            self.update_status.emit("Waiting for bootloader...")
+            device = arduboy.device.find_single()
+            self.update_device.emit(device.display_name())
+            self.work(device, lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
+        except Exception as ex:
+            self.report_error.emit(ex)
 
 
 # Perform the given work, which can report both progress and status updates through two lambdas,
 # within a dialog made for reporting progress. The dialog cannot be exited, since I think exiting
 # in the middle of flashing tasks is like... really bad?
 def do_progress_work(work, title):
-    try:
-        device = arduboy.device.find_single()
-    except Exception as ex:
-        QMessageBox.critical(None, "Can't find device", str(ex), QMessageBox.Ok)
+    dialog = ProgressWindow(title) # , device.display_name())
 
-    dialog = ProgressWindow(title, device.display_name())
-
-    class WorkerThread(QThread):
-        update_progress = pyqtSignal(int, int)
-        update_status = pyqtSignal(str)
-        def run(self):
-            try:
-                work(device, lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
-            except Exception as ex:
-                QMessageBox.critical(dialog, f"Error during '{title}'", str(ex), QMessageBox.Ok)
-
-    worker_thread = WorkerThread()
+    worker_thread = ProgressWorkerThread(work)
     worker_thread.update_progress.connect(dialog.report_progress)
     worker_thread.update_status.connect(dialog.set_status)
+    worker_thread.update_device.connect(dialog.set_device)
+    worker_thread.report_error.connect(dialog.report_error)
     worker_thread.finished.connect(dialog.set_complete)
     worker_thread.start()
 
