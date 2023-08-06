@@ -196,19 +196,26 @@ class ActionTable(QTabWidget):
         self.backup_sketch_button = QPushButton("Backup")
         self.backup_sketch_button.clicked.connect(self.do_backupsketch)
         backupsketchgroup, layout = gui_utils.make_file_action("Backup Sketch", self.backup_sketch_picker, self.backup_sketch_button, "⬇️", gui_utils.BACKUPCOLOR)
-        self.bu_includebootloader_cb = QCheckBox("Include bootloader in backup")
-        layout.addWidget(self.bu_includebootloader_cb)
+        self.sb_includebootloader_cb = QCheckBox("Include bootloader in backup")
+        layout.addWidget(self.sb_includebootloader_cb)
 
         gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
 
         # Add widgets to fx tab 
         self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
         self.upload_fx_button = QPushButton("Upload")
+        self.upload_fx_button.clicked.connect(self.do_uploadfx)
         uploadfxgroup, layout = gui_utils.make_file_action("Upload Flashcart", self.upload_fx_picker, self.upload_fx_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        self.fxu_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
+        layout.addWidget(self.fxu_ssd1309_cb)
 
         self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
         self.backup_fx_button = QPushButton("Backup")
+        self.backup_fx_button.clicked.connect(self.do_backupfx)
         backupfxgroup, layout = gui_utils.make_file_action("Backup Flashcart", self.backup_fx_picker, self.backup_fx_button, "⬇️", gui_utils.BACKUPCOLOR)
+        self.fxb_trim = QCheckBox("Trim flashcart (safe)")
+        self.fxb_trim.setChecked(True)
+        layout.addWidget(self.fxb_trim)
 
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
         warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
@@ -289,13 +296,49 @@ class ActionTable(QTabWidget):
         def do_work(device, repprog, repstatus):
             repstatus("Reading sketch...")
             s_port = device.connect_serial()
-            sketchdata = arduboy.serial.backup_sketch(s_port, self.bu_includebootloader_cb.isChecked())
+            sketchdata = arduboy.serial.backup_sketch(s_port, self.sb_includebootloader_cb.isChecked())
             repstatus("Writing sketch to filesystem...")
             with open (filepath,"wb") as f:
                 f.write(sketchdata)
             arduboy.serial.exit_normal(s_port)
 
         gui_utils.do_progress_work(do_work, "Backup Sketch")
+
+    def do_uploadfx(self): 
+        filepath = self.upload_fx_picker.check_filepath(self) 
+        if not filepath: return
+
+        def do_work(device, repprog, repstatus):
+            repstatus("Reading FX bin file...")
+            flashbytes = arduboy.file.read_fx_cart(filepath)
+            if self.fxu_ssd1309_cb.isChecked():
+                count = arduboy.file.patch_all_ssd1309(flashbytes)
+                if count:
+                    logging.info(f"Patched {count} programs in cart for SSD1309")
+                else:
+                    logging.warning("Flagged for SSD1309 patching but not a single LCD boot program found! Not patched!")
+            s_port = device.connect_serial()
+            # TODO: Let users set the page number?
+            repstatus("Uploading FX bin file...")
+            arduboy.serial.flash_fx(flashbytes, 0, s_port, True, repprog)
+            arduboy.serial.exit_normal(s_port) 
+
+        gui_utils.do_progress_work(do_work, "Upload FX Flash")
+
+    def do_backupfx(self): 
+        filepath = self.backup_fx_picker.check_filepath(self) 
+        if not filepath: return
+
+        def do_work(device, repprog, repstatus):
+            repstatus("Saving FX Flash to file...")
+            s_port = device.connect_serial()
+            arduboy.serial.backup_fx(s_port, filepath, repprog)
+            if self.fxb_trim.isChecked():
+                repstatus("Trimming FX file...")
+                arduboy.file.trim_fx_cart_file(filepath)
+            arduboy.serial.exit_normal(s_port) 
+
+        gui_utils.do_progress_work(do_work, "Backup FX Flash")
 
     def do_uploadeeprom(self): 
         filepath = self.upload_eeprom_picker.check_filepath(self) 
@@ -344,6 +387,7 @@ class ActionTable(QTabWidget):
             arduboy.serial.exit_bootloader(s_port) 
 
         gui_utils.do_progress_work(do_work, "ERASE EEPROM")
+
 
 if __name__ == "__main__":
     main()
