@@ -118,7 +118,7 @@ class MainWindow(QMainWindow):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
         if file_path:
-            new_window = crate_gui.CrateWindow(file_path)
+            new_window = crate_gui.CrateWindow(file_path, newcart = True)
             self.cart_windows.append(new_window)
             new_window.show()
 
@@ -134,7 +134,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'help_window'):
             self.help_window.close()
         for cw in self.cart_windows:
-            cw.close()
+            try:
+                cw.close()
+            except Exception as ex:
+                logging.error(f"Error when closing cart window: {ex}")
 
 
 class ConnectionInfo(QWidget):
