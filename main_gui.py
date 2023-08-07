@@ -9,8 +9,9 @@ import arduboy.fxcart
 import arduboy.utils
 import utils
 import gui_utils
+import crate_gui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
-from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox
+from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
         self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
+        self.cart_windows = []
 
         # Create the top menu
         menu_bar = self.menuBar()
@@ -60,12 +62,17 @@ class MainWindow(QMainWindow):
         file_menu = menu_bar.addMenu("File")
 
         new_cart_action = QAction("New Cart", self)
-        new_cart_action.triggered.connect(self.open_help_window)
+        new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(new_cart_action)
 
         open_cart_action = QAction("Open Cart (.bin)", self)
-        open_cart_action.triggered.connect(self.open_help_window)
+        open_cart_action.triggered.connect(self.open_opencart)
         file_menu.addAction(open_cart_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
 
         # Create an action for opening the help window
         open_help_action = QAction("Help", self)
@@ -106,6 +113,28 @@ class MainWindow(QMainWindow):
     def open_about_window(self):
         self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
         self.about_window.show()
+    
+    def open_newcart(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
+        if file_path:
+            new_window = crate_gui.CrateWindow(file_path)
+            self.cart_windows.append(new_window)
+            new_window.show()
+
+    def open_opencart(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Choose Cart File", "", constants.BIN_FILEFILTER, options=options)
+        if file_path:
+            new_window = crate_gui.CrateWindow(file_path)
+            self.cart_windows.append(new_window)
+            new_window.show()
+    
+    def closeEvent(self, event) -> None:
+        if hasattr(self, 'help_window'):
+            self.help_window.close()
+        for cw in self.cart_windows:
+            cw.close()
 
 
 class ConnectionInfo(QWidget):
@@ -347,7 +376,7 @@ class ActionTable(QTabWidget):
             arduboy.serial.backup_fx(s_port, filepath, repprog)
             if self.fxb_trim.isChecked():
                 repstatus("Trimming FX file...")
-                arduboy.fxcart.trim(filepath)
+                arduboy.fxcart.trim_file(filepath)
             arduboy.serial.exit_normal(s_port) 
 
         gui_utils.do_progress_work(do_work, "Backup FX Flash")
