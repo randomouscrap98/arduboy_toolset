@@ -1,7 +1,7 @@
 
 import os
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 SCRIPTDIR = os.path.dirname(os.path.abspath(__file__))
 
 HEX_FILEFILTER = "All Supported Files (*.hex);;All Files (*)"

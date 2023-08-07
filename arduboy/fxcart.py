@@ -1,17 +1,19 @@
-# NOTE: a lot of this code is taken from
+# NOTE: a lot of this code is adapted (with heavy modifications) from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities
 
 import logging
 import arduboy.device
 import arduboy.utils
 import struct
+# import sqlite3
 
 from arduboy.constants import *
 from dataclasses import dataclass, field
 from PIL import Image
 
 
-HEADER_START_BYTES = bytearray("ARDUBOY".encode())
+HEADER_START_STRING = "ARDUBOY"
+HEADER_START_BYTES = bytearray(HEADER_START_STRING.encode())
 
 HEADER_LENGTH = 256          # The flashcart slot header length in bytes
 TITLE_IMAGE_LENGTH = 1024    # The flashcart slot title image length in bytes
@@ -29,13 +31,6 @@ class FxParsedSlot:
     program_hex: str
     data_raw: bytearray
 
-    # def parse_slot(slotbytes):
-    #     slotsize = len(slotbytes)
-    #     category = slotbytes[CATEGORY_HEADER_INDEX]
-    #     image_raw = slotbytes[HEADER_LENGTH:HEADER_LENGTH+TITLE_IMAGE_LENGTH]
-    #     program_raw = slotbytes[HEADER_LENGTH+TITLE_IMAGE_LENGTH:HEADER_LENGTH+TITLE_IMAGE_LENGTH+slotbytes[PROGRAM_SIZE_HEADER_INDEX]*128]
-    #     data_raw = slotbytes[HEADER_LENGTH+TITLE_IMAGE_LENGTH+slotbytes[PROGRAM_SIZE_HEADER_INDEX]*128:slotByteSize]
-
 
 # Read and pad the fx data from the given file and return the bytearray
 def read(filename):
@@ -44,6 +39,9 @@ def read(filename):
         flashdata = bytearray(f.read())
     return arduboy.utils.pad_data(flashdata, FX_PAGESIZE)
 
+
+def default_header():
+    return bytearray(HEADER_START_STRING.encode() + (b'\xFF' * (HEADER_LENGTH - len(HEADER_START_STRING))))
 
 # Get whether the data in the given position is an FX slot
 def is_slot(fulldata, index):
@@ -107,7 +105,6 @@ def trim_file(infile, outfile = None):
         ofile.write(trimmedBinData)
 
 
-
 # Given an entire FX binary, parse absolutely everything out of it (in slot format)
 def parse(fulldata, report_progress):
 
@@ -134,3 +131,19 @@ def parse(fulldata, report_progress):
     logging.info(f"Fully parsed {(len(result))} program sections")
 
     return result
+
+
+# Compile the given parsed data of an arduboy cart back into bytes
+def compile(parsed_records, report_progress):
+    pass
+
+# # Create a database to store programs
+# def make_database(filepath):
+#     with sqlite3.connect(filepath) as con:
+#         cursor = con.cursor()
+#         cursor.execute("""
+#             CREATE TABLE IF NOT EXISTS categories(
+#                 
+#             )
+#                       """)
+# 

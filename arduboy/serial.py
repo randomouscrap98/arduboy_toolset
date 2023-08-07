@@ -1,7 +1,9 @@
 # Given a connected serial port, exit the bootloader
 import logging
 import time
-from arduboy.device import MANUFACTURERS,FXBLOCKSIZE,FXPAGES_PER_BLOCK,FXPAGESIZE
+
+from arduboy.constants import *
+from arduboy.device import MANUFACTURERS
 from dataclasses import dataclass
 
 # Mr.Blinky's scripts had some time for exiting. I assumed it was to read the screen in 
@@ -162,9 +164,9 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
     start=time.time()
 
     # when starting partially in a block, preserve the beginning of old block data
-    if pagenumber % FXPAGES_PER_BLOCK:
-        blocklen  = pagenumber % FXPAGES_PER_BLOCK * FXPAGESIZE
-        blockaddr = pagenumber // FXPAGES_PER_BLOCK * FXPAGES_PER_BLOCK
+    if pagenumber % FX_PAGES_PER_BLOCK:
+        blocklen  = pagenumber % FX_PAGES_PER_BLOCK * FX_PAGESIZE
+        blockaddr = pagenumber // FX_PAGES_PER_BLOCK * FX_PAGES_PER_BLOCK
         #read partial block data start
         s_port.write(bytearray([ord("A"), blockaddr >> 8, blockaddr & 0xFF]))
         s_port.read(1)
@@ -173,9 +175,9 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
         pagenumber = blockaddr
       
     # when ending partially in a block, preserve the ending of old block data
-    if len(flashdata) % FXBLOCKSIZE:
-        blocklen = FXBLOCKSIZE - len(flashdata) % FXBLOCKSIZE
-        blockaddr = pagenumber + len(flashdata) // FXPAGESIZE
+    if len(flashdata) % FX_BLOCKSIZE:
+        blocklen = FX_BLOCKSIZE - len(flashdata) % FX_BLOCKSIZE
+        blockaddr = pagenumber + len(flashdata) // FX_PAGESIZE
         #read partial block data end
         s_port.write(bytearray([ord("A"), blockaddr >> 8, blockaddr & 0xFF]))
         s_port.read(1)
@@ -183,7 +185,7 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
         flashdata += s_port.read(blocklen)
 
     ## write to flash cart ##
-    blocks = len(flashdata) // FXBLOCKSIZE
+    blocks = len(flashdata) // FX_BLOCKSIZE
     logging.info("Flashing {} blocks to FX in port {}".format(blocks, s_port.port))
 
     for block in range (blocks):
@@ -192,13 +194,13 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
         else:  
             s_port.write(b"x\xC0") #RGB LED OFF, buttons disabled
         s_port.read(1)
-        blockaddr = pagenumber + block * FXBLOCKSIZE // FXPAGESIZE
-        blocklen = FXBLOCKSIZE
+        blockaddr = pagenumber + block * FX_BLOCKSIZE // FX_PAGESIZE
+        blocklen = FX_BLOCKSIZE
         #write block 
         s_port.write(bytearray([ord("A"), blockaddr >> 8, blockaddr & 0xFF]))
         s_port.read(1)
         s_port.write(bytearray([ord("B"), (blocklen >> 8) & 0xFF, blocklen & 0xFF,ord("C")]))
-        s_port.write(flashdata[block * FXBLOCKSIZE : block * FXBLOCKSIZE + blocklen])
+        s_port.write(flashdata[block * FX_BLOCKSIZE : block * FX_BLOCKSIZE + blocklen])
         s_port.read(1)
         if verify:
             s_port.write(b"x\xC1") #RGB BLUE RED, buttons disabled
@@ -206,7 +208,7 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
             s_port.write(bytearray([ord("A"), blockaddr >> 8, blockaddr & 0xFF]))
             s_port.read(1)
             s_port.write(bytearray([ord("g"), (blocklen >> 8) & 0xFF, blocklen & 0xFF,ord("C")]))
-            if s_port.read(blocklen) != flashdata[block * FXBLOCKSIZE : block * FXBLOCKSIZE + blocklen]:
+            if s_port.read(blocklen) != flashdata[block * FX_BLOCKSIZE : block * FX_BLOCKSIZE + blocklen]:
                 raise Exception("FX verify failed at address {:04X}. Upload unsuccessful.".format(blockaddr))
         if report_progress:
             report_progress(block + 1, blocks)
@@ -214,6 +216,7 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
     s_port.write(b"x\x40")#RGB LED off, buttons enabled
     s_port.read(1)
     logging.info("Wrote {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
+
 
 # Read FX data and dump to the given file. Can report progress same as arduhex functions. 
 # This is once again different than the arduhex function in that it writes directly to a file.
@@ -225,7 +228,7 @@ def backup_fx(s_port, filename, report_progress = None):
 
     start=time.time()
     
-    blocks = jedec_info.capacity // FXBLOCKSIZE
+    blocks = jedec_info.capacity // FX_BLOCKSIZE
     logging.info(f"Reading entire FX in port {s_port.port} into file {filename}")
 
     # Just like original function, it writes directly to the file given.
@@ -237,13 +240,13 @@ def backup_fx(s_port, filename, report_progress = None):
                 s_port.write(b"x\xC1") #RGB BLUE RED, buttons disabled
             s_port.read(1)      
 
-            blockaddr = block * FXBLOCKSIZE // FXPAGESIZE
+            blockaddr = block * FX_BLOCKSIZE // FX_PAGESIZE
 
             s_port.write("A".encode())
             s_port.write(bytearray([blockaddr >> 8, blockaddr & 0xFF]))
             s_port.read(1)
 
-            blocklen = FXBLOCKSIZE
+            blocklen = FX_BLOCKSIZE
 
             s_port.write("g".encode())
             s_port.write(bytearray([(blocklen >> 8) & 0xFF, blocklen & 0xFF]))
