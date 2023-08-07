@@ -145,14 +145,16 @@ def patch_menubuttons(program):
 # Convert a block of bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData):
     byteLength = len(byteData)
-    pixels = bytearray(8192)
+    if byteLength != SCREEN_BYTES:
+        raise Exception(f"Image binary not right size! Expected {SCREEN_BYTES} got {byteLength}")
+    pixels = bytearray(SCREEN_WIDTH * SCREEN_HEIGHT)
     for b in range(0, byteLength):
         for i in range(0, 8):
-            yPos = b//128*8+i
-            xPos = b%128
-            pixels[yPos * 128 + xPos] = 255 * bytebit(byteData[b], i)
+            yPos = b//SCREEN_WIDTH*8+i
+            xPos = b%SCREEN_WIDTH
+            pixels[yPos * SCREEN_WIDTH + xPos] = 255 * bytebit(byteData[b], i)
 
-    img = Image.frombytes("L", (128, 64), bytes(pixels))
+    img = Image.frombytes("L", (SCREEN_WIDTH, SCREEN_HEIGHT), bytes(pixels))
 
     return img
 
@@ -202,11 +204,11 @@ def bin_to_hexrecords(byteData):
 def pilimage_to_bin(image: Image):
     binimg = image.convert("1")
     width, height  = binimg.size
-    if (width != 128) or (height != 64) :
-        if height // (width // 128) != 64:
+    if (width != SCREEN_WIDTH) or (height != SCREEN_HEIGHT) :
+        if height // (width // SCREEN_WIDTH) != SCREEN_HEIGHT:
             raise Exception("Image dimensions incorrect! Must be a multiple of 128x64")
         else:
-            binimg = binimg.resize((128,64), Image.NEAREST)
+            binimg = binimg.resize((SCREEN_WIDTH,SCREEN_HEIGHT), Image.NEAREST)
             width, height  = binimg.size
     pixels = list(binimg.getdata())
     bytes = bytearray(int((height // 8) * width))

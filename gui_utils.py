@@ -66,7 +66,6 @@ def make_button_bigger(button):
 def make_file_action(title: str, picker, button, symbol = None, symbol_color = None):
     group = QGroupBox(title)
     file_action_parent = QWidget()
-    # file_action_parent.setStyleSheet("padding: 0; margin: 0")
     innerlayout = QHBoxLayout()
     if symbol:
         symbol = QLabel(symbol)
@@ -83,11 +82,12 @@ def make_file_action(title: str, picker, button, symbol = None, symbol_color = N
     innerlayout.addWidget(button)
     innerlayout.setStretchFactor(picker, 1)
     innerlayout.setStretchFactor(button, 0)
+    innerlayout.setContentsMargins(0,0,0,0)
     file_action_parent.setLayout(innerlayout)
     group_layout = QVBoxLayout()
     group_layout.addWidget(file_action_parent)
     group.setLayout(group_layout)
-    group.setStyleSheet("QCheckBox { margin-left: 20px; margin-bottom: 5px }")
+    group.setStyleSheet("QCheckBox { margin-left: 8px; margin-bottom: 5px; }")
     return (group, group_layout)
 
 def add_children_nostretch(layout, children):
@@ -98,6 +98,21 @@ def add_children_nostretch(layout, children):
     layout.addWidget(spacer)
     layout.setStretchFactor(spacer, 1)
 
+def new_selflabeled_edit(text, contents = None):
+    if contents:
+        field = QLineEdit(contents)
+    else:
+        field = QLineEdit()
+    field.setPlaceholderText(text)
+    field.setToolTip(text)
+    return field
+
+def emoji_button(text, tooltip):
+    button = QPushButton(text)
+    button.setToolTip(tooltip)
+    button.setFixedSize(30,30)
+    set_emoji_font(button)
+    return button
 
 class FilePicker(QWidget):
     def __init__(self, file_filter = "All Files (*)", save_new_file = False, default_name_generator = None):
