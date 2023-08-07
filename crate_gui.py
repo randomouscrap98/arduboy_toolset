@@ -25,33 +25,86 @@ from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 # cratebuilder automatically.
 
 class CrateWindow(QMainWindow):
-    def __init__(self, filepath, newcart = False):
+    def __init__(self):
         super().__init__()
 
-        self.filepath = filepath
+        self.filepath = None
         self.resize(800, 600)
-        self.set_modified(False)
 
+        self.create_menu()
+
+        # # If this is something we're supposed to load, gotta go load the data! We should NOT reuse
+        # # the progress widget, since it's made for something very different!
+        # if not newcart:
+        #     def do_work(repprog, repstatus):
+        #         for i in range(10):
+        #             time.sleep(0.2)
+        #             repprog(i, 10)
+        #     dialog = gui_utils.ProgressWindow(f"Parsing {os.path.basename(self.filepath)}", simple = True)
+        #     worker_thread = gui_utils.ProgressWorkerThread(do_work, simple = True)
+        #     worker_thread.connect(dialog)
+        #     worker_thread.start()
+        #     dialog.exec_()
+        #     if dialog.error_state:
+        #         self.deleteLater()
+        
+        # centralwidget = QWidget()
+        # layout = QVBoxLayout()
+
+        list_widget = QListWidget(self)
+        for i in range(1, 11):
+            complex_widget = SlotWidget() # ComplexWidget(f"Item {i}")
+            item = QListWidgetItem()
+            list_widget.addItem(item)
+            list_widget.setItemWidget(item, complex_widget)
+            item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+            item.setSizeHint(complex_widget.sizeHint())
+        # self.item = SlotWidget()
+
+        # layout.addWidget(list_widget)
+        # centralwidget.setLayout(layout)
+        self.setCentralWidget(list_widget)
+        self.set_modified(False)
+        
+    def create_menu(self):
         # Create the top menu
         menu_bar = self.menuBar()
 
         file_menu = menu_bar.addMenu("File")
 
-        new_action = QAction("New Game", self)
+        new_action = QAction("New Cart", self)
         # new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(new_action)
 
-        save_action = QAction("Save flashcart", self)
+        open_action = QAction("Open Cart", self)
+        # new_cart_action.triggered.connect(self.open_newcart)
+        file_menu.addAction(open_action)
+
+        open_read_action = QAction("Open From Arduboy", self)
+        # open_cart_action.triggered.connect(self.open_opencart)
+        file_menu.addAction(open_read_action)
+
+        save_action = QAction("Save Cart", self)
         save_action.triggered.connect(self.save)
         file_menu.addAction(save_action)
 
-        save_as_action = QAction("Save flashcart as", self)
-        # open_cart_action.triggered.connect(self.open_opencart)
+        save_as_action = QAction("Save Cart as", self)
+        save_as_action.triggered.connect(self.save_as)
         file_menu.addAction(save_as_action)
 
-        save_as_action = QAction("Flash to Arduboy", self)
+        file_menu.addSeparator()
+
+        add_action = QAction("Add Game", self)
+        # new_cart_action.triggered.connect(self.open_newcart)
+        file_menu.addAction(add_action)
+
+        file_menu.addSeparator()
+
+        flash_action = QAction("Flash to Arduboy", self)
         # open_cart_action.triggered.connect(self.open_opencart)
-        file_menu.addAction(save_as_action)
+        file_menu.addAction(flash_action)
+
+        file_menu.addSeparator()
 
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
@@ -63,48 +116,26 @@ class CrateWindow(QMainWindow):
         open_help_action.triggered.connect(self.open_help_window)
         menu_bar.addAction(open_help_action)
 
-
-        # If this is something we're supposed to load, gotta go load the data! We should NOT reuse
-        # the progress widget, since it's made for something very different!
-        if not newcart:
-            def do_work(repprog, repstatus):
-                for i in range(10):
-                    time.sleep(0.2)
-                    repprog(i, 10)
-            dialog = gui_utils.ProgressWindow(f"Parsing {os.path.basename(self.filepath)}", simple = True)
-            worker_thread = gui_utils.ProgressWorkerThread(do_work, simple = True)
-            worker_thread.connect(dialog)
-            worker_thread.start()
-            dialog.exec_()
-            if dialog.error_state:
-                self.deleteLater()
-        
-        centralwidget = QWidget()
-
-        layout = QVBoxLayout()
-        list_widget = QListWidget(self)
-        for i in range(1, 11):
-            complex_widget = SlotWidget() # ComplexWidget(f"Item {i}")
-            item = QListWidgetItem()
-            list_widget.addItem(item)
-            list_widget.setItemWidget(item, complex_widget)
-            item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
-            item.setSizeHint(complex_widget.sizeHint())
-        # self.item = SlotWidget()
-
-        layout.addWidget(list_widget)
-        centralwidget.setLayout(layout)
-        self.setCentralWidget(centralwidget)
-        
     
     def set_modified(self, modded = True):
         self.modified = modded
-        title = f"Cart Editor - {self.filepath}"
-        if modded:
-            title = f"[!] {title}"
+        self.update_title()
+    
+    def update_title(self):
+        title = f"Cart Editor" #  - {self.filepath}"
+        if self.filepath:
+            title = f"{title} - {self.filepath}"
+            if self.modified:
+                title = f"[!] {title}"
+        else:
+            title = f"{title} - New"
         self.setWindowTitle(title)
+
     
     def save(self):
+        pass
+
+    def save_as(self):
         pass
 
     def closeEvent(self, event) -> None:
@@ -112,13 +143,16 @@ class CrateWindow(QMainWindow):
             reply = QMessageBox.question(
                 self,
                 "Unsaved Changes",
-                f"There are unsaved changes to {self.filepath}. Do you want to save your work before closing?",
+                f"There are unsaved changes! Do you want to save your work before closing?",
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 QMessageBox.Save
             )
 
             if reply == QMessageBox.Save:
-                self.save()
+                if self.filepath:
+                    self.save()
+                else:
+                    self.save_as()
             elif reply == QMessageBox.Cancel:
                 event.ignore()  # Ignore the close event
                 return
@@ -255,6 +289,6 @@ if __name__ == "__main__":
 
     gui_utils.try_create_emoji_font()
 
-    window = CrateWindow(os.path.join(constants.SCRIPTDIR, "newcart.bin"), newcart=True)
+    window = CrateWindow() # os.path.join(constants.SCRIPTDIR, "newcart.bin"), newcart=True)
     window.show()
     sys.exit(app.exec_())

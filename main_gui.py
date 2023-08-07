@@ -54,34 +54,9 @@ class MainWindow(QMainWindow):
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
         self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
-        self.cart_windows = []
+        self.cart_windows = [] # we store them but do nothing with them, they are independent?
 
-        # Create the top menu
-        menu_bar = self.menuBar()
-
-        file_menu = menu_bar.addMenu("File")
-
-        new_cart_action = QAction("New Cart", self)
-        new_cart_action.triggered.connect(self.open_newcart)
-        file_menu.addAction(new_cart_action)
-
-        open_cart_action = QAction("Open Cart (.bin)", self)
-        open_cart_action.triggered.connect(self.open_opencart)
-        file_menu.addAction(open_cart_action)
-
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-
-        # Create an action for opening the help window
-        open_help_action = QAction("Help", self)
-        open_help_action.triggered.connect(self.open_help_window)
-        menu_bar.addAction(open_help_action)
-
-        open_about_action = QAction("About", self)
-        open_about_action.triggered.connect(self.open_about_window)
-        menu_bar.addAction(open_about_action)
+        self.create_menu()
 
         # Create a vertical layout
         layout = QVBoxLayout()
@@ -105,6 +80,35 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
+    
+    def create_menu(self):
+        # Create the top menu
+        menu_bar = self.menuBar()
+
+        file_menu = menu_bar.addMenu("File")
+
+        new_cart_action = QAction("Cart Builder", self)
+        new_cart_action.triggered.connect(self.open_newcart)
+        file_menu.addAction(new_cart_action)
+
+        # open_cart_action = QAction("Open Cart (.bin)", self)
+        # open_cart_action.triggered.connect(self.open_opencart)
+        # file_menu.addAction(open_cart_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # ----------------------
+        # Create an action for opening the help window
+        open_help_action = QAction("Help", self)
+        open_help_action.triggered.connect(self.open_help_window)
+        menu_bar.addAction(open_help_action)
+
+        open_about_action = QAction("About", self)
+        open_about_action.triggered.connect(self.open_about_window)
+        menu_bar.addAction(open_about_action)
+
 
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Toolset Help", "help.html")
@@ -115,29 +119,32 @@ class MainWindow(QMainWindow):
         self.about_window.show()
     
     def open_newcart(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
-        if file_path:
-            new_window = crate_gui.CrateWindow(file_path, newcart = True)
-            self.cart_windows.append(new_window)
-            new_window.show()
+        new_window = crate_gui.CrateWindow() # file_path, newcart = True)
+        self.cart_windows.append(new_window)
+        new_window.show()
+        # options = QFileDialog.Options()
+        # file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
+        # if file_path:
+        #     new_window = crate_gui.CrateWindow(file_path, newcart = True)
+        #     self.cart_windows.append(new_window)
+        #     new_window.show()
 
-    def open_opencart(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Choose Cart File", "", constants.BIN_FILEFILTER, options=options)
-        if file_path:
-            new_window = crate_gui.CrateWindow(file_path)
-            self.cart_windows.append(new_window)
-            new_window.show()
+    # def open_opencart(self):
+    #     options = QFileDialog.Options()
+    #     file_path, _ = QFileDialog.getOpenFileName(self, "Choose Cart File", "", constants.BIN_FILEFILTER, options=options)
+    #     if file_path:
+    #         new_window = crate_gui.CrateWindow(file_path)
+    #         self.cart_windows.append(new_window)
+    #         new_window.show()
     
     def closeEvent(self, event) -> None:
         if hasattr(self, 'help_window'):
             self.help_window.close()
-        for cw in self.cart_windows:
-            try:
-                cw.close()
-            except Exception as ex:
-                logging.error(f"Error when closing cart window: {ex}")
+        # for cw in self.cart_windows:
+        #     try:
+        #         cw.close()
+        #     except Exception as ex:
+        #         logging.error(f"Error when closing cart window: {ex}")
 
 
 class ConnectionInfo(QWidget):
