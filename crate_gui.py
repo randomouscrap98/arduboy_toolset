@@ -18,13 +18,51 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
 
-class CrateWindow(QWidget):
+# TODO: change system so you can open, new, etc. directly from inside the crate builder.
+# Crate builder should be able to load flash from arduboy, edit, then reflash.
+# Main window shouldn't have new crate or open crate, just "Crate Builder". Maybe
+# remove file menu? Crate Builder can be in Utilities. Let a command flag open 
+# cratebuilder automatically.
+
+class CrateWindow(QMainWindow):
     def __init__(self, filepath, newcart = False):
         super().__init__()
 
         self.filepath = filepath
         self.resize(800, 600)
         self.set_modified(False)
+
+        # Create the top menu
+        menu_bar = self.menuBar()
+
+        file_menu = menu_bar.addMenu("File")
+
+        new_action = QAction("New Game", self)
+        # new_cart_action.triggered.connect(self.open_newcart)
+        file_menu.addAction(new_action)
+
+        save_action = QAction("Save flashcart", self)
+        save_action.triggered.connect(self.save)
+        file_menu.addAction(save_action)
+
+        save_as_action = QAction("Save flashcart as", self)
+        # open_cart_action.triggered.connect(self.open_opencart)
+        file_menu.addAction(save_as_action)
+
+        save_as_action = QAction("Flash to Arduboy", self)
+        # open_cart_action.triggered.connect(self.open_opencart)
+        file_menu.addAction(save_as_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+
+        # Create an action for opening the help window
+        open_help_action = QAction("Help", self)
+        open_help_action.triggered.connect(self.open_help_window)
+        menu_bar.addAction(open_help_action)
+
 
         # If this is something we're supposed to load, gotta go load the data! We should NOT reuse
         # the progress widget, since it's made for something very different!
@@ -41,6 +79,7 @@ class CrateWindow(QWidget):
             if dialog.error_state:
                 self.deleteLater()
         
+        centralwidget = QWidget()
 
         layout = QVBoxLayout()
         list_widget = QListWidget(self)
@@ -54,7 +93,8 @@ class CrateWindow(QWidget):
         # self.item = SlotWidget()
 
         layout.addWidget(list_widget)
-        self.setLayout(layout)
+        centralwidget.setLayout(layout)
+        self.setCentralWidget(centralwidget)
         
     
     def set_modified(self, modded = True):
@@ -89,6 +129,14 @@ class CrateWindow(QWidget):
 
         event.accept()  # Allow the close event to proceed
 
+    def open_help_window(self):
+        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
+        self.help_window.show()
+
+    def closeEvent(self, event) -> None:
+        if hasattr(self, 'help_window'):
+            self.help_window.close()
+
 
 class SlotWidget(QWidget):
     def __init__(self):
@@ -115,10 +163,17 @@ class SlotWidget(QWidget):
         self.save = gui_utils.emoji_button("💾", "Set save .bin")
         datalayout.addWidget(self.save)
 
+        datalayout.setContentsMargins(0,0,0,0)
         datawidget.setLayout(datalayout)
         leftlayout.addWidget(datawidget)
 
+        self.sizes = QLabel("0  |  0  |  0")
+        self.sizes.setAlignment(Qt.AlignCenter)
+        gui_utils.mod_font_size(self.sizes, 0.85)
+        leftlayout.addWidget(self.sizes)
+
         # leftlayout.setSpacing(0)
+        # leftlayout.setSpacing(1)
         leftlayout.setContentsMargins(0,0,0,0)
         leftwidget.setLayout(leftlayout)
         toplayout.addWidget(leftwidget)
