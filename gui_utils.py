@@ -106,10 +106,14 @@ class FilePicker(QWidget):
         self.save_new_file = save_new_file
         self.default_name_generator = default_name_generator
 
+        self.setAcceptDrops(True)
+
         layout = QHBoxLayout()
 
         # File picker is like a web file picker, a textbox you can mess with + a choose button.
         self.filetext = QLineEdit()
+        # self.filetext.setDragEnabled(True)  # Enable drag-and-drop
+        # self.filetext.setAcceptDrops(True)  # Enable drop event
         layout.addWidget(self.filetext)
 
         self.filechoose = QPushButton("Save File" if save_new_file else "Open File")
@@ -120,6 +124,17 @@ class FilePicker(QWidget):
         layout.setStretchFactor(self.filechoose, 0)
 
         self.setLayout(layout)
+    
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+    
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            self.filetext.setText(url.toLocalFile())  # Display file path in QLineEdit
     
     # Retrieve the chosen file. Not an event or anything, just call this to get whatever text is
     # in the textbox, regardless of how it was entered

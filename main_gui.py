@@ -218,7 +218,7 @@ class ActionTable(QTabWidget):
         self.addTab(tab1, "Sketch")
         self.addTab(tab2, "Flashcart")
         self.addTab(tab3, "EEPROM")
-        # self.addTab(tab4, "Utilities")
+        self.addTab(tab4, "Utilities")
 
         # Create layouts for each tab
         sketch_layout = QVBoxLayout()
@@ -283,16 +283,16 @@ class ActionTable(QTabWidget):
 
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
-        # # Add widgets to tab3
-        # label = QLabel("Coming later I hope?")
-        # label.setAlignment(Qt.AlignCenter)
-        # utilities_layout.addWidget(label)
+        # Add widgets to tab4
+        label = QLabel("Coming later I hope?")
+        label.setAlignment(Qt.AlignCenter)
+        utilities_layout.addWidget(label)
 
         # Set layouts for each tab
         tab1.setLayout(sketch_layout)
         tab2.setLayout(fx_layout)
         tab3.setLayout(eeprom_layout)
-        # tab4.setLayout(utilities_layout)
+        tab4.setLayout(utilities_layout)
 
     # Set the status of the table entries based on the device connected status. Sets them directly,
     # this is not a signal (you can use it IN a signal...)
