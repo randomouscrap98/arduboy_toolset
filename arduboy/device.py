@@ -7,11 +7,6 @@ from dataclasses import dataclass
 from serial.tools.list_ports  import comports
 from serial import Serial
 
-FLASHSIZE = 32768         # Size of the onboard flash (default chip whatever, atmega etc)
-FXPAGESIZE = 256
-FXBLOCKSIZE = 65536
-FXPAGES_PER_BLOCK = FXBLOCKSIZE // FXPAGESIZE
-FXMAX_PAGES = 65536     # This times page size is 16MB, as expected
 
 DEVICES = [
     #Arduboy Leonardo

@@ -3,8 +3,10 @@ import os
 import sys
 import constants
 import arduboy.device
-import arduboy.file
+import arduboy.arduhex
 import arduboy.serial
+import arduboy.fxcart
+import arduboy.utils
 import utils
 import gui_utils
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
@@ -267,8 +269,8 @@ class ActionTable(QTabWidget):
 
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
-            records = arduboy.file.read_arduhex(filepath)
-            parsed = arduboy.file.parse_arduhex(records)
+            records = arduboy.arduhex.read(filepath)
+            parsed = arduboy.arduhex.parse(records)
             if self.su_ssd1309_cb.isChecked():
                 if parsed.patch_ssd1309():
                     logging.info("Patched upload for SSD1309")
@@ -310,9 +312,9 @@ class ActionTable(QTabWidget):
 
         def do_work(device, repprog, repstatus):
             repstatus("Reading FX bin file...")
-            flashbytes = arduboy.file.read_fx_cart(filepath)
+            flashbytes = arduboy.fxcart.read(filepath)
             if self.fxu_ssd1309_cb.isChecked():
-                count = arduboy.file.patch_all_ssd1309(flashbytes)
+                count = arduboy.utils.patch_all_ssd1309(flashbytes)
                 if count:
                     logging.info(f"Patched {count} programs in cart for SSD1309")
                 else:
@@ -335,7 +337,7 @@ class ActionTable(QTabWidget):
             arduboy.serial.backup_fx(s_port, filepath, repprog)
             if self.fxb_trim.isChecked():
                 repstatus("Trimming FX file...")
-                arduboy.file.trim_fx_cart_file(filepath)
+                arduboy.fxcart.trim(filepath)
             arduboy.serial.exit_normal(s_port) 
 
         gui_utils.do_progress_work(do_work, "Backup FX Flash")

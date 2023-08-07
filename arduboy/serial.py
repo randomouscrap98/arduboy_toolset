@@ -82,6 +82,7 @@ def flash_arduhex(arduhex, s_port, report_progress: None):
             if report_progress:
                 report_progress(flash_page, arduhex.flash_page_count)
 
+# Read the sketch off arduboy. 
 def backup_sketch(s_port, include_bootloader = False):
     logging.info("Reading sketch...")
     s_port.write(b"A\x00\x00")

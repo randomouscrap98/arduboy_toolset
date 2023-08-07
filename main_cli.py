@@ -2,11 +2,12 @@ import argparse
 import logging
 import pprint
 import sys
-import time
 import traceback
 import arduboy.device
-import arduboy.file
 import arduboy.serial
+import arduboy.arduhex
+import arduboy.utils
+import arduboy.fxcart
 import constants
 import utils
 
@@ -147,8 +148,8 @@ def scan_action(args):
 
 def sketchupload_action(args):
     infile = get_required_input(args)
-    records = arduboy.file.read_arduhex(infile)
-    parsed = arduboy.file.parse_arduhex(records)
+    records = arduboy.arduhex.read(infile)
+    parsed = arduboy.arduhex.parse(records)
     if args.SSD1309:
         if parsed.patch_ssd1309():
             logging.info("Patched upload for SSD1309")
@@ -183,9 +184,9 @@ def sketchbackup_action(args):
 
 def fxupload_action(args):
     infile = get_required_input(args)
-    flashbytes = arduboy.file.read_fx_cart(infile)
+    flashbytes = arduboy.fxcart.read(infile)
     if args.SSD1309:
-        count = arduboy.file.patch_all_ssd1309(flashbytes)
+        count = arduboy.utils.patch_all_ssd1309(flashbytes)
         if count:
             logging.info(f"Patched {count} programs in cart for SSD1309")
         else:
@@ -214,7 +215,7 @@ def fxbackup_action(args):
         device += 1
         arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
         if args.trim:
-            arduboy.file.trim_fx_cart_file(real_outfile)
+            arduboy.fxcart.trim_file(real_outfile)
     work_per_device(args, do_work)
 
 def eeprom_backup_action(args):
