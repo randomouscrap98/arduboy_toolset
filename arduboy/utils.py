@@ -160,10 +160,35 @@ def bin_to_pilimage(byteData):
 
     return img
 
-# Convert a block of bytes (should be pre-filled with the correct data) to a "records" format
-# compatible with the arduhex functions (just an array of strings). Taken almost directly from 
+# Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
+def pilimage_to_bin(image: Image):
+    binimg = image.convert("1")
+    width, height  = binimg.size
+    if (width != SCREEN_WIDTH) or (height != SCREEN_HEIGHT) :
+        if height // (width // SCREEN_WIDTH) != SCREEN_HEIGHT:
+            raise Exception("Image dimensions incorrect! Must be a multiple of 128x64")
+        else:
+            binimg = binimg.resize((SCREEN_WIDTH,SCREEN_HEIGHT), Image.NEAREST)
+            width, height  = binimg.size
+    pixels = list(binimg.getdata())
+    bytes = bytearray(int((height // 8) * width))
+    i = 0
+    b = 0
+    for y in range (0,height,8):
+        for x in range (0,width):
+            for p in range (0,8):
+                b = b >> 1  
+                if pixels[(y + p) * width + x] > 0:
+                    b |= 0x80
+            bytes[i] = b
+            i += 1
+    return bytes
+    
+
+# Convert a block of bytes (should be pre-filled with the correct data) to a single "arduhex" 
+# string. Taken almost directly from 
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-decompiler.py
-def bin_to_hexrecords(byteData):
+def bin_to_arduhex(byteData):
     byteLength = len(byteData)
 
     hexData = []
@@ -193,44 +218,20 @@ def bin_to_hexrecords(byteData):
         hexLine += int_to_hex(256-lineSum%256, 2)
         hexData.append(hexLine)
 
-    return hexData
-    # fullHexString = ""
-    # for hexLine in range(0, len(hexData)):
-    #     fullHexString += hexData[hexLine]
-    #     if hexLine != len(hexData)-1:
-    #         fullHexString += "\n"
+    fullHexString = ""
+    for hexLine in range(0, len(hexData)):
+        fullHexString += hexData[hexLine]
+        if hexLine != len(hexData)-1:
+            fullHexString += "\n"
 
-    # return fullHexString
+    return fullHexString
 
-# Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
-def pilimage_to_bin(image: Image):
-    binimg = image.convert("1")
-    width, height  = binimg.size
-    if (width != SCREEN_WIDTH) or (height != SCREEN_HEIGHT) :
-        if height // (width // SCREEN_WIDTH) != SCREEN_HEIGHT:
-            raise Exception("Image dimensions incorrect! Must be a multiple of 128x64")
-        else:
-            binimg = binimg.resize((SCREEN_WIDTH,SCREEN_HEIGHT), Image.NEAREST)
-            width, height  = binimg.size
-    pixels = list(binimg.getdata())
-    bytes = bytearray(int((height // 8) * width))
-    i = 0
-    b = 0
-    for y in range (0,height,8):
-        for x in range (0,width):
-            for p in range (0,8):
-                b = b >> 1  
-                if pixels[(y + p) * width + x] > 0:
-                    b |= 0x80
-            bytes[i] = b
-            i += 1
-    return bytes
-    
-# Convert an in-memory hex "records" array into pure bytes. We cheat and just use the results of
+# Convert an in-memory arduhex strin into pure bytes. We cheat and just use the results of
 # full parsing from arduhex!
-def hexrecords_to_bin(records):
-    result = arduboy.arduhex.parse(records)
+def arduhex_to_bin(arduhex_str):
+    result = arduboy.arduhex.parse(arduboy.arduhex.ArduboyParsed("", rawhex=arduhex_str))
     return result.flash_data
+
 
 def new_parsed_slot_from_category(title, info = "", image = None, category_id = 0):
     return arduboy.fxcart.FxParsedSlot(
@@ -244,12 +245,12 @@ def new_parsed_slot_from_category(title, info = "", image = None, category_id = 
     # sha256(bytearray()).digest(),
 
 # Given a parsed arduhex file, generate a reasonable slot file
-def new_parsed_slot_from_arduhex(parsed: arduboy.arduhex.ArduhexParsed, title, info = "", image = None):
+def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed):
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
-        image,
+        parsed.image,
         parsed.records,
-        bytearray(), # For now, no data taken from parsed. Probably can from .arduboy files
-        bytearray(), # Same for save data
-        arduboy.fxcart.FxSlotMeta(title, "", "", info)
+        parsed.data_raw,
+        parsed.save_raw,
+        arduboy.fxcart.FxSlotMeta(parsed.title, parsed.version, parsed.developer, parsed.info)
     )

@@ -6,13 +6,23 @@ import zipfile
 from arduboy.constants import *
 from typing import List
 from dataclasses import dataclass, field
+from PIL import Image
 
 # Represents maximum data pulled from SOME kind of sketch file
 @dataclass
 class ArduboyParsed:
     original_filename: str
     rawhex: str = field(default="")
-    # Add other possible fields pulled from Arduboy files
+
+    # I believe all of this could be stored in a .arduboy file.
+    # TODO: go research the format of arduboy zip files!
+    title: str = field(default="")
+    version: str = field(default="")
+    developer: str = field(default="")
+    info: str = field(default="")
+    image: Image = field(default=None)
+    data_raw: bytearray = field(default_factory=lambda:bytearray())
+    save_raw: bytearray = field(default_factory=lambda:bytearray())
 
     def __str__(self) -> str:
         return f"{self.original_filename}"
