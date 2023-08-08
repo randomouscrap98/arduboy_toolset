@@ -38,25 +38,13 @@ class FxSlotMeta:
 class FxParsedSlot:
     category: int
     image: Image
-    program_hexrecords: list 
+    program_hex: str
     data_raw: bytearray
     save_raw: bytearray
-    progdata_hash: bytearray
     meta: FxSlotMeta
 
-def new_parsed_slot_from_category(title, info, image, category_id):
-    return FxParsedSlot(
-        category_id,
-        image,
-        list(),
-        bytearray(),
-        bytearray(),
-        sha256(bytearray()).digest(),
-        FxSlotMeta(title, "", "", info)
-    )
-
-def new_parsed_slot_from_arduhex(filepath):
-    pass
+    # def progdata_hash(self):
+    #     sha256(self.p self.data_raw)
 
 # Read and pad the fx data from the given file and return the bytearray
 def read(filename):

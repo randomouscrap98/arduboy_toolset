@@ -148,8 +148,8 @@ def scan_action(args):
 
 def sketchupload_action(args):
     infile = get_required_input(args)
-    records = arduboy.arduhex.read(infile)
-    parsed = arduboy.arduhex.parse(records)
+    pard = arduboy.arduhex.read(infile)
+    parsed = arduboy.arduhex.parse(pard)
     if args.SSD1309:
         if parsed.patch_ssd1309():
             logging.info("Patched upload for SSD1309")

@@ -1,5 +1,7 @@
+from hashlib import sha256
 import logging
 import arduboy.arduhex
+import arduboy.fxcart
 
 from arduboy.constants import *
 from PIL import Image
@@ -229,3 +231,25 @@ def pilimage_to_bin(image: Image):
 def hexrecords_to_bin(records):
     result = arduboy.arduhex.parse(records)
     return result.flash_data
+
+def new_parsed_slot_from_category(title, info = "", image = None, category_id = 0):
+    return arduboy.fxcart.FxParsedSlot(
+        category_id,
+        image,
+        list(),
+        bytearray(),
+        bytearray(),
+        arduboy.fxcart.FxSlotMeta(title, "", "", info)
+    )
+    # sha256(bytearray()).digest(),
+
+# Given a parsed arduhex file, generate a reasonable slot file
+def new_parsed_slot_from_arduhex(parsed: arduboy.arduhex.ArduhexParsed, title, info = "", image = None):
+    return arduboy.fxcart.FxParsedSlot(
+        0, # Might not matter
+        image,
+        parsed.records,
+        bytearray(), # For now, no data taken from parsed. Probably can from .arduboy files
+        bytearray(), # Same for save data
+        arduboy.fxcart.FxSlotMeta(title, "", "", info)
+    )

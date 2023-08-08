@@ -7,17 +7,30 @@ from arduboy.constants import *
 from typing import List
 from dataclasses import dataclass, field
 
+# Represents maximum data pulled from SOME kind of sketch file
+@dataclass
+class ArduboyParsed:
+    original_filename: str
+    rawhex: str = field(default="")
+    # Add other possible fields pulled from Arduboy files
+
+    def __str__(self) -> str:
+        return f"{self.original_filename}"
+
 # Represents a parsed arduboy hex file. Not sure if it's really necessary tbh...
 @dataclass 
 class ArduhexParsed:
+    arduboy_data: ArduboyParsed
     flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
     flash_page_count: int = field(default=0)
     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
     overwrites_caterina: bool = field(default=False)
 
 
-# Read so-called "records" (lines) from the given arduboy or hex file. No parsing or verification is done yet.
-def read(filepath):
+# Read raw data from the arduboy or hex file. Return an intermediate representation
+# which has as much data as possible filed in.
+def read(filepath) -> ArduboyParsed:
+    result = ArduboyParsed(os.path.splitext(os.path.basename(filepath))[0])
     try:
         # First, we try to open the file as a zip. This apparently handles both .zip and .arduboy
         # files; this is how Mr.Blink's arduboy python utilities works (mostly)
@@ -32,18 +45,20 @@ def read(filepath):
                         # The arduboy utilities opens with just "r", no binary flags set.
                         logging.debug(f"Reading hex file {extract_file} (taken from archive into temp file, validating later)")
                         with open(extract_file,"r") as f:
-                            return f.readlines()
+                            result.rawhex = f.read()
     except:
         logging.debug(f"Reading potential hex file {filepath} (validating later)")
         with open(filepath,"r") as f:
-            return f.readlines()
+            result.rawhex = f.read()
+    return result
 
-# Parse relevant information out of the arduboy file's "records" (the result of read).
+# Parse pages and data relevant for flashing out of the parsed arduboy file
 # Throws an exception if the records can't be validated. Taken almost verbatim from 
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
-def parse(records):
-    logging.debug(f"Parsing hex file with {len(records)} records")
-    result = ArduhexParsed()
+def parse(arduboy_data: ArduboyParsed):
+    logging.debug(f"Parsing arduboy data {arduboy_data}")
+    result = ArduhexParsed(arduboy_data)
+    records = arduboy_data.rawhex.splitlines()
     flash_addr = 0
     for rcd in records :
         # Assuming this is some kind of end symbol

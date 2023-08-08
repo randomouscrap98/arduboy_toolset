@@ -318,8 +318,8 @@ class ActionTable(QTabWidget):
 
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
-            records = arduboy.arduhex.read(filepath)
-            parsed = arduboy.arduhex.parse(records)
+            pard = arduboy.arduhex.read(filepath)
+            parsed = arduboy.arduhex.parse(pard)
             if self.su_ssd1309_cb.isChecked():
                 if parsed.patch_ssd1309():
                     logging.info("Patched upload for SSD1309")
