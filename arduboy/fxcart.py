@@ -38,14 +38,14 @@ class FxSlotMeta:
 class FxParsedSlot:
     category: int
     image: Image
-    program_hex: str
+    program_raw: bytearray
     data_raw: bytearray
     save_raw: bytearray
     meta: FxSlotMeta
 
     # For now, category calculation is simple: when there's no program
     def is_category(self):
-        return len(self.program_hex) == 0
+        return len(self.program_raw) == 0
 
     # def progdata_hash(self):
     #     sha256(self.p self.data_raw)
@@ -144,7 +144,8 @@ def parse(fulldata, report_progress):
         result.append(FxParsedSlot(
             category_raw, 
             arduboy.utils.bin_to_pilimage(image_raw), 
-            arduboy.utils.bin_to_hexrecords(program_raw), 
+            program_raw, # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
+            #arduboy.utils.bin_to_hexrecords(program_raw), 
             datapart_raw
         ))
 

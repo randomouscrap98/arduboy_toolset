@@ -226,11 +226,37 @@ def bin_to_arduhex(byteData):
 
     return fullHexString
 
-# Convert an in-memory arduhex strin into pure bytes. We cheat and just use the results of
-# full parsing from arduhex!
+# Convert an in-memory arduhex string into pure bytes for writing to a flashcart. Note
+# that this is STRICTLY different than parsing an arduhex string for dumping to serial!
+# TODO: Some of this "arduhex" parsing code needs to be refactored! It's confusing why
+# one would produce a "trimmed" binary and the other a "parsed object" with information
+# ABOUT trimming but the data not trimmed!!
 def arduhex_to_bin(arduhex_str):
-    result = arduboy.arduhex.parse(arduboy.arduhex.ArduboyParsed("", rawhex=arduhex_str))
-    return result.flash_data
+    # result = arduboy.arduhex.parse(arduboy.arduhex.ArduboyParsed("", rawhex=arduhex_str))
+    # return result.flash_data
+    records = arduhex_str.splitlines()
+    bytes = bytearray(b'\xFF' * 29 * 1024)
+    flash_end = 0
+    for rcd in records :
+        if rcd[0] == ":" :
+            rcd_len  = int(rcd[1:3],16)
+            rcd_typ  = int(rcd[7:9],16)
+            rcd_addr = int(rcd[3:7],16)
+            checksum = int(rcd[9+rcd_len*2:11+rcd_len*2],16)
+            if (rcd_typ == 0) and (rcd_len > 0) :
+                flash_addr = rcd_addr
+                for i in range(1,9+rcd_len*2, 2) :
+                    byte = int(rcd[i:i+2],16)
+                    checksum += byte
+                    if i >= 9:
+                        bytes[flash_addr] = byte
+                        flash_addr += 1
+                if flash_addr > flash_end:
+                    flash_end = flash_addr
+                if checksum  & 0xFF != 0 :
+                    raise Exception(f"Hex file contains errors! Checksum fail: {checksum}")
+    flash_end = (flash_end + 255) & 0xFF00
+    return bytes[0:flash_end]
 
 
 def new_parsed_slot_from_category(title, info = "", image = None, category_id = 0):
@@ -249,7 +275,7 @@ def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed):
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
         parsed.image,
-        parsed.rawhex,
+        arduhex_to_bin(parsed.rawhex), # The three main slot data fields are all stored raw in FxParsedSlot, including program.
         parsed.data_raw,
         parsed.save_raw,
         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)

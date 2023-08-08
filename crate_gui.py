@@ -18,7 +18,19 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
 
-# TODO: Let a command flag open cratebuilder automatically.
+# TODO: 
+# - Let a command flag open cratebuilder automatically.
+# - DON'T set a default image, so users know to set a new image by clicking
+# - Add verification steps to cart builder to ensure there is always a category at the start.
+# - Add some way to move entire categories around
+# - See if there always needs to be a main category (probably not)
+# - Add explanation to help about why the list is shown the way it is
+# - Add ability to set image
+# - Add storage for all the data in SlotWidget
+# - Add way to turn slotwidget into fx slot data
+# - Add some way for data mods to update the numbers shown in slot meta
+# - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
+# - Figure out if you can get title images out of arduboy files
 
 class CrateWindow(QMainWindow):
     def __init__(self):
@@ -48,13 +60,6 @@ class CrateWindow(QMainWindow):
         # layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
-        # for i in range(1, 11):
-        #     complex_widget = SlotWidget(arduboy.utils.new_parsed_slot_from_category("Something")) # ComplexWidget(f"Item {i}")
-        #     item = QListWidgetItem()
-        #     self.list_widget.addItem(item)
-        #     self.list_widget.setItemWidget(item, complex_widget)
-        #     # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
-        #     item.setSizeHint(complex_widget.sizeHint())
         
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -159,6 +164,7 @@ class CrateWindow(QMainWindow):
         self.list_widget.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
         self.list_widget.setCurrentItem(item)
+        widget.onchange.connect(lambda: self.set_modified(True))
         self.set_modified(True)
         # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
     
@@ -252,21 +258,18 @@ class CrateWindow(QMainWindow):
             # User did not choose an action, do not exit.
             event.ignore()
     
-    # def keyPressEvent(self, event):
-    #     if event.key() == Qt.Key_Delete:
-    #         selected_items = self.list_widget.selectedItems()
-    #         for item in selected_items:
-    #             row = self.list_widget.row(item)
-    #             self.list_widget.takeItem(row)
-
 
 class SlotWidget(QWidget):
+    onchange = pyqtSignal()
+    
+    # A slot must always have SOME parsed data associated with it!
     def __init__(self, parsed: arduboy.fxcart.FxParsedSlot):
         super().__init__()
 
         # !! BIG NOTE: widgets should not be able to change "modes", so we set up lots 
         # of mode-specific stuff in the constructor! IE a category cannot become a program etc
 
+        self.parsed = parsed
         toplayout = QHBoxLayout()
 
         # ---------------------------
@@ -280,11 +283,15 @@ class SlotWidget(QWidget):
             self.image.set_image(parsed.image)
         leftlayout.addWidget(self.image)
 
+        # Create it now, use it later
+        self.meta_label = QLabel()
+
         if not parsed.is_category():
             datalayout = QHBoxLayout()
             datawidget = QWidget()
 
             self.program = gui_utils.emoji_button("💻", "Set program .hex")
+            self.program
             datalayout.addWidget(self.program)
             self.data = gui_utils.emoji_button("🧰", "Set data .bin")
             datalayout.addWidget(self.data)
@@ -295,17 +302,15 @@ class SlotWidget(QWidget):
             datawidget.setLayout(datalayout)
             leftlayout.addWidget(datawidget)
 
-            self.meta_label = QLabel("0  |  0  |  0")
-
         # This is a category then
         else:
             leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
-            self.meta_label = QLabel("Category ↓")
             self.meta_label.setStyleSheet("font-weight: bold; margin-bottom: 5px")
 
         self.meta_label.setAlignment(Qt.AlignCenter)
         gui_utils.mod_font_size(self.meta_label, 0.85)
         leftlayout.addWidget(self.meta_label)
+        self.update_metalabel()
 
         leftlayout.setContentsMargins(0,0,0,0)
         leftwidget.setLayout(leftlayout)
@@ -319,18 +324,19 @@ class SlotWidget(QWidget):
         fieldsparent = QWidget()
 
         fields = []
-        self.title = gui_utils.new_selflabeled_edit("Title")
-        self.title.setText(parsed.meta.title)
+        self.title = gui_utils.new_selflabeled_edit("Title", parsed.meta.title)
+        self.title.textChanged.connect(lambda t: self.do_meta_change(t, "title"))
         fields.append(self.title)
         if not parsed.is_category():
-            self.version = gui_utils.new_selflabeled_edit("Version")
-            self.version.setText(parsed.meta.version)
+            self.version = gui_utils.new_selflabeled_edit("Version", parsed.meta.version)
+            self.version.textChanged.connect(lambda t: self.do_meta_change(t, "version"))
             fields.append(self.version)
-            self.author = gui_utils.new_selflabeled_edit("Author")
-            self.author.setText(parsed.meta.developer)
+            self.author = gui_utils.new_selflabeled_edit("Author", parsed.meta.developer)
+            self.author.textChanged.connect(lambda t: self.do_meta_change(t, "developer"))
             fields.append(self.author)
-        self.info = gui_utils.new_selflabeled_edit("Info")
-        self.info.setText(parsed.meta.info)
+        self.info = gui_utils.new_selflabeled_edit("Info", parsed.meta.info)
+        self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
+        self.info.setMaxLength(150) # Max total length of meta in header is 199, this limit is just a warning
         fields.append(self.info)
         
         if parsed.is_category():
@@ -346,8 +352,22 @@ class SlotWidget(QWidget):
 
         self.setLayout(toplayout)
 
-        # if parsed.is_category():
-        #    self.setStyleSheet("background: rgba(255,255,0,0.2)")
+    # Update the metadata label for this unit with whatever new information is stored locally
+    def update_metalabel(self):
+        if self.parsed.is_category():
+            self.meta_label.setText("Category ↓")
+        else:
+            self.meta_label.setText(f"{len(self.parsed.program_raw)}  |  {len(self.parsed.data_raw)}  |  {len(self.parsed.save_raw)}")
+    
+    # Perform a simple meta field change. 
+    def do_meta_change(self, new_text, field):
+        setattr(self.parsed.meta, field, new_text) # .title = new_text
+        self.onchange.emit()
+
+    # # A bunch of similar functions for each text field. Could probably do this better...
+    # def title_changed(self, new_text):
+    #     self.parsed.meta.title = new_text
+    #     self.onchange.emit()
 
 
 class TitleImageWidget(QLabel):
