@@ -1,6 +1,7 @@
 # NOTE: a lot of this code is adapted (with heavy modifications) from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities
 
+from hashlib import sha256
 import logging
 import arduboy.device
 import arduboy.utils
@@ -23,14 +24,39 @@ CATEGORY_HEADER_INDEX = 7        # Index into slot header for category (1 byte)
 SLOT_SIZE_HEADER_INDEX = 12      # Index into header for slot size. (2 bytes)
 PROGRAM_SIZE_HEADER_INDEX = 14   # Index into header for program size (1 byte)
 
+# Each slot has a "string" section of the header which stores up to 4 
+# pieces of data. Although categories will only have (title, info), and
+# any section may be truncated since only 199 characters are saved.
+@dataclass
+class FxSlotMeta:
+    title: str
+    version: str
+    developer: str
+    info: str
 
 @dataclass
 class FxParsedSlot:
     category: int
     image: Image
-    program_hex: str
+    program_hexrecords: list 
     data_raw: bytearray
+    save_raw: bytearray
+    progdata_hash: bytearray
+    meta: FxSlotMeta
 
+def new_parsed_slot_from_category(title, info, image, category_id):
+    return FxParsedSlot(
+        category_id,
+        image,
+        list(),
+        bytearray(),
+        bytearray(),
+        sha256(bytearray()).digest(),
+        FxSlotMeta(title, "", "", info)
+    )
+
+def new_parsed_slot_from_arduhex(filepath):
+    pass
 
 # Read and pad the fx data from the given file and return the bytearray
 def read(filename):
@@ -121,8 +147,14 @@ def parse(fulldata, report_progress):
         image_raw = get_title_image_raw(fulldata, dindex)
         program_raw = get_program_raw(fulldata, dindex)
         datapart_raw = get_datapart_raw(fulldata, dindex)
+        # TODO: get save data if it exists! Also, get the hash and extra data!
 
-        result.append(FxParsedSlot(category_raw, arduboy.utils.bin_to_pilimage(image_raw), arduboy.utils.bin_to_hexfile(program_raw), datapart_raw))
+        result.append(FxParsedSlot(
+            category_raw, 
+            arduboy.utils.bin_to_pilimage(image_raw), 
+            arduboy.utils.bin_to_hexrecords(program_raw), 
+            datapart_raw
+        ))
 
         dindex += slotsize
 

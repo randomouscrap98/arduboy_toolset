@@ -13,16 +13,12 @@ import gui_utils
 
 from arduboy.constants import *
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
-from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QListWidgetItem, QListWidget
+from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
 
-# TODO: change system so you can open, new, etc. directly from inside the crate builder.
-# Crate builder should be able to load flash from arduboy, edit, then reflash.
-# Main window shouldn't have new crate or open crate, just "Crate Builder". Maybe
-# remove file menu? Crate Builder can be in Utilities. Let a command flag open 
-# cratebuilder automatically.
+# TODO: Let a command flag open cratebuilder automatically.
 
 class CrateWindow(QMainWindow):
     def __init__(self):
@@ -51,19 +47,22 @@ class CrateWindow(QMainWindow):
         # centralwidget = QWidget()
         # layout = QVBoxLayout()
 
-        list_widget = QListWidget(self)
+        self.list_widget = QListWidget(self)
         for i in range(1, 11):
             complex_widget = SlotWidget() # ComplexWidget(f"Item {i}")
             item = QListWidgetItem()
-            list_widget.addItem(item)
-            list_widget.setItemWidget(item, complex_widget)
-            item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+            self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, complex_widget)
+            # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
             item.setSizeHint(complex_widget.sizeHint())
+        
+        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
+        self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
         # self.item = SlotWidget()
 
         # layout.addWidget(list_widget)
         # centralwidget.setLayout(layout)
-        self.setCentralWidget(list_widget)
+        self.setCentralWidget(self.list_widget)
         self.set_modified(False)
         
     def create_menu(self):
@@ -73,14 +72,14 @@ class CrateWindow(QMainWindow):
         file_menu = menu_bar.addMenu("File")
 
         new_action = QAction("New Cart", self)
-        # new_cart_action.triggered.connect(self.open_newcart)
+        new_action.triggered.connect(self.newcart)
         file_menu.addAction(new_action)
 
         open_action = QAction("Open Cart", self)
         # new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(open_action)
 
-        open_read_action = QAction("Open From Arduboy", self)
+        open_read_action = QAction("Load From Arduboy", self)
         # open_cart_action.triggered.connect(self.open_opencart)
         file_menu.addAction(open_read_action)
 
@@ -98,6 +97,10 @@ class CrateWindow(QMainWindow):
         # new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(add_action)
 
+        add_cat_action = QAction("Add Category", self)
+        # new_cart_action.triggered.connect(self.open_newcart)
+        file_menu.addAction(add_cat_action)
+
         file_menu.addSeparator()
 
         flash_action = QAction("Flash to Arduboy", self)
@@ -110,7 +113,7 @@ class CrateWindow(QMainWindow):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
-
+        # -------------------------------
         # Create an action for opening the help window
         open_help_action = QAction("Help", self)
         open_help_action.triggered.connect(self.open_help_window)
@@ -131,49 +134,76 @@ class CrateWindow(QMainWindow):
             title = f"{title} - New"
         self.setWindowTitle(title)
 
+    # TODO: gather the dang data into the ready binary!
+    def get_current_as_raw(self):
+        return bytearray()
     
+    # All saves are basically the same at the end of the day, this is what they do. This removes
+    # modification state and sets current document to whatever you give
+    def do_self_save(self, filepath):
+        rawdata = self.get_current_as_raw()
+        with open(filepath, "wb") as f:
+            f.write(rawdata)
+        self.filepath = filepath
+        self.set_modified(False)
+
+    # Save current file without dialog if possible. If no previous file, have to open a new one
     def save(self):
-        pass
+        if not self.filepath:
+            self.save_as()
+        else:
+            self.do_self_save(self.filepath)
 
+    # Save current file with a dialog, set new file as filepath, remove modification.
     def save_as(self):
-        pass
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
+        if file_path:
+            self.do_self_save(file_path)
 
-    def closeEvent(self, event) -> None:
+    def newcart(self):
+        self.safely_discard_changes()
+        # TODO: clear the list and whatever!
+    
+    # Returns whether the user went through with an action. If false, you should not 
+    # continue your discard!
+    def safely_discard_changes(self):
         if self.modified:
             reply = QMessageBox.question(
                 self,
                 "Unsaved Changes",
-                f"There are unsaved changes! Do you want to save your work before closing?",
+                f"There are unsaved changes! Do you want to save your work?",
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 QMessageBox.Save
             )
 
             if reply == QMessageBox.Save:
-                if self.filepath:
-                    self.save()
-                else:
-                    self.save_as()
-            elif reply == QMessageBox.Cancel:
-                event.ignore()  # Ignore the close event
-                return
+                self.save()
+            
+            # Caller needs to know if the user chose some action that allows them to continue
+            return reply != QMessageBox.Cancel
 
+        return True
+
+
+    def closeEvent(self, event) -> None:
+        if self.safely_discard_changes():
             # Clear out some junk, we have a lot of parsed resources and junk!
-            if reply != QMessageBox.Cancel:
-                self.modified = False
-
-        event.accept()  # Allow the close event to proceed
+            self.modified = False
+            if hasattr(self, 'help_window'):
+                self.help_window.close()
+            event.accept()
+        else:
+            # User did not choose an action, do not exit.
+            event.ignore()
 
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
         self.help_window.show()
 
-    def closeEvent(self, event) -> None:
-        if hasattr(self, 'help_window'):
-            self.help_window.close()
-
 
 class SlotWidget(QWidget):
-    def __init__(self):
+    def __init__(self, parsed: arduboy.fxcart.FxParsedSlot):
         super().__init__()
 
         toplayout = QHBoxLayout()
@@ -187,27 +217,31 @@ class SlotWidget(QWidget):
         self.image = TitleImageWidget()
         leftlayout.addWidget(self.image)
 
-        datalayout = QHBoxLayout()
-        datawidget = QWidget()
+        if parsed.program_hex:
+            datalayout = QHBoxLayout()
+            datawidget = QWidget()
 
-        self.program = gui_utils.emoji_button("💻", "Set program .hex")
-        datalayout.addWidget(self.program)
-        self.data = gui_utils.emoji_button("🧰", "Set data .bin")
-        datalayout.addWidget(self.data)
-        self.save = gui_utils.emoji_button("💾", "Set save .bin")
-        datalayout.addWidget(self.save)
+            self.program = gui_utils.emoji_button("💻", "Set program .hex")
+            datalayout.addWidget(self.program)
+            self.data = gui_utils.emoji_button("🧰", "Set data .bin")
+            datalayout.addWidget(self.data)
+            self.save = gui_utils.emoji_button("💾", "Set save .bin")
+            datalayout.addWidget(self.save)
 
-        datalayout.setContentsMargins(0,0,0,0)
-        datawidget.setLayout(datalayout)
-        leftlayout.addWidget(datawidget)
+            datalayout.setContentsMargins(0,0,0,0)
+            datawidget.setLayout(datalayout)
+            leftlayout.addWidget(datawidget)
 
-        self.sizes = QLabel("0  |  0  |  0")
-        self.sizes.setAlignment(Qt.AlignCenter)
-        gui_utils.mod_font_size(self.sizes, 0.85)
-        leftlayout.addWidget(self.sizes)
+            self.meta_label = QLabel("0  |  0  |  0")
 
-        # leftlayout.setSpacing(0)
-        # leftlayout.setSpacing(1)
+        # This is a category then
+        else:
+            self.meta_label = QLabel("Category")
+
+        self.meta_label.setAlignment(Qt.AlignCenter)
+        gui_utils.mod_font_size(self.meta_label, 0.85)
+        leftlayout.addWidget(self.meta_label)
+
         leftlayout.setContentsMargins(0,0,0,0)
         leftwidget.setLayout(leftlayout)
         toplayout.addWidget(leftwidget)

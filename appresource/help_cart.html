@@ -10,9 +10,20 @@
 </p>
 
 <ul>
-    <li>Back up the flashcart on your Arduboy first (you can use Arduboy Toolset or any other backup app)</li>
-    <li>Open the .bin file in the <b>Cart Editor</b></li>
-    <li>Use the <b>Cart Editor</b>to add or modify the games in the cart</li>
-    <li>Save the .bin file</li>
-    <li>Upload the new .bin file to your Arduboy (you can use Arduboy Toolset or any other upload app)</li>
+    <li>Open the flashcart off the Arduboy using the <b>File</b> menu in <u>Cart Editor</u>. It will take some time</li>
+    <li>Use the <u>Cart Editor</u>to add or modify the games in the cart</li>
+    <li>Flash the updated cart back to the Arduboy once again using the <b>File</b> menu.</li>
 </ul>
+
+<p>
+    If any games use the FX save feature, you will need to do this "direct" modification every time. It first loads
+    the FX flashcart data into memory, so modifications are done locally (and can be saved to the filesystem) before
+    being written back. Or, you could work strictly on backups, just keep in mind you'll lose any save games that 
+    are stored on the FX chip (most games currently don't do this)
+</p>
+
+<h2>Cart List</h2>
+
+<p>
+    <!--Talk about how the list is structured and what the buttons mean-->
+</p>

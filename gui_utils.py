@@ -127,8 +127,6 @@ class FilePicker(QWidget):
 
         # File picker is like a web file picker, a textbox you can mess with + a choose button.
         self.filetext = QLineEdit()
-        # self.filetext.setDragEnabled(True)  # Enable drag-and-drop
-        # self.filetext.setAcceptDrops(True)  # Enable drop event
         layout.addWidget(self.filetext)
 
         self.filechoose = QPushButton("Save File" if save_new_file else "Open File")
