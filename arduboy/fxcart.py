@@ -43,6 +43,10 @@ class FxParsedSlot:
     save_raw: bytearray
     meta: FxSlotMeta
 
+    # For now, category calculation is simple: when there's no program
+    def is_category(self):
+        return len(self.program_hex) == 0
+
     # def progdata_hash(self):
     #     sha256(self.p self.data_raw)
 

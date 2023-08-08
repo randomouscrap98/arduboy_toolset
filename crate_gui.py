@@ -49,7 +49,7 @@ class CrateWindow(QMainWindow):
 
         self.list_widget = QListWidget(self)
         for i in range(1, 11):
-            complex_widget = SlotWidget() # ComplexWidget(f"Item {i}")
+            complex_widget = SlotWidget(arduboy.utils.new_parsed_slot_from_category("Something")) # ComplexWidget(f"Item {i}")
             item = QListWidgetItem()
             self.list_widget.addItem(item)
             self.list_widget.setItemWidget(item, complex_widget)
@@ -206,6 +206,9 @@ class SlotWidget(QWidget):
     def __init__(self, parsed: arduboy.fxcart.FxParsedSlot):
         super().__init__()
 
+        # !! BIG NOTE: widgets should not be able to change "modes", so we set up lots 
+        # of mode-specific stuff in the constructor! IE a category cannot become a program etc
+
         toplayout = QHBoxLayout()
 
         # ---------------------------
@@ -215,9 +218,11 @@ class SlotWidget(QWidget):
         leftwidget = QWidget()
 
         self.image = TitleImageWidget()
+        if parsed.image:
+            self.image.set_image(parsed.image)
         leftlayout.addWidget(self.image)
 
-        if parsed.program_hex:
+        if not parsed.is_category():
             datalayout = QHBoxLayout()
             datawidget = QWidget()
 
@@ -236,7 +241,9 @@ class SlotWidget(QWidget):
 
         # This is a category then
         else:
-            self.meta_label = QLabel("Category")
+            leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
+            self.meta_label = QLabel("Category ↓")
+            self.meta_label.setStyleSheet("font-weight: bold; margin-bottom: 5px")
 
         self.meta_label.setAlignment(Qt.AlignCenter)
         gui_utils.mod_font_size(self.meta_label, 0.85)
@@ -253,24 +260,36 @@ class SlotWidget(QWidget):
         fieldlayout = QVBoxLayout()
         fieldsparent = QWidget()
 
+        fields = []
         self.title = gui_utils.new_selflabeled_edit("Title")
-        fieldlayout.addWidget(self.title)
-        self.version = gui_utils.new_selflabeled_edit("Version")
-        fieldlayout.addWidget(self.version)
-        self.author = gui_utils.new_selflabeled_edit("Author")
-        fieldlayout.addWidget(self.author)
+        self.title.setText(parsed.meta.title)
+        fields.append(self.title)
+        if not parsed.is_category():
+            self.version = gui_utils.new_selflabeled_edit("Version")
+            self.version.setText(parsed.meta.version)
+            fields.append(self.version)
+            self.author = gui_utils.new_selflabeled_edit("Author")
+            self.author.setText(parsed.meta.developer)
+            fields.append(self.author)
         self.info = gui_utils.new_selflabeled_edit("Info")
-        fieldlayout.addWidget(self.info)
+        self.info.setText(parsed.meta.info)
+        fields.append(self.info)
+        
+        if parsed.is_category():
+            gui_utils.add_children_nostretch(fieldlayout, fields)
+        else:
+            for f in fields:
+                fieldlayout.addWidget(f)
 
         fieldlayout.setContentsMargins(0,0,0,0)
-        # fieldlayout.setSpacing(0)
         fieldsparent.setLayout(fieldlayout)
 
         toplayout.addWidget(fieldsparent)
-        # toplayout.setSpacing(0)
 
         self.setLayout(toplayout)
-        # self.setStyleSheet("margin: 0; padding: 0")
+
+        # if parsed.is_category():
+        #    self.setStyleSheet("background: rgba(255,255,0,0.2)")
 
 
 class TitleImageWidget(QLabel):
