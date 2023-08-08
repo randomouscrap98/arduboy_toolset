@@ -249,8 +249,8 @@ def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed):
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
         parsed.image,
-        parsed.records,
+        parsed.rawhex,
         parsed.data_raw,
         parsed.save_raw,
-        arduboy.fxcart.FxSlotMeta(parsed.title, parsed.version, parsed.developer, parsed.info)
+        arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
     )

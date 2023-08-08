@@ -48,13 +48,13 @@ class CrateWindow(QMainWindow):
         # layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
-        for i in range(1, 11):
-            complex_widget = SlotWidget(arduboy.utils.new_parsed_slot_from_category("Something")) # ComplexWidget(f"Item {i}")
-            item = QListWidgetItem()
-            self.list_widget.addItem(item)
-            self.list_widget.setItemWidget(item, complex_widget)
-            # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
-            item.setSizeHint(complex_widget.sizeHint())
+        # for i in range(1, 11):
+        #     complex_widget = SlotWidget(arduboy.utils.new_parsed_slot_from_category("Something")) # ComplexWidget(f"Item {i}")
+        #     item = QListWidgetItem()
+        #     self.list_widget.addItem(item)
+        #     self.list_widget.setItemWidget(item, complex_widget)
+        #     # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+        #     item.setSizeHint(complex_widget.sizeHint())
         
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -72,38 +72,51 @@ class CrateWindow(QMainWindow):
         file_menu = menu_bar.addMenu("File")
 
         new_action = QAction("New Cart", self)
+        new_action.setShortcut("Ctrl+N")
         new_action.triggered.connect(self.newcart)
         file_menu.addAction(new_action)
 
         open_action = QAction("Open Cart", self)
+        open_action.setShortcut("Ctrl+O")
         # new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(open_action)
 
         open_read_action = QAction("Load From Arduboy", self)
+        open_read_action.setShortcut("Ctrl+Alt+L")
         # open_cart_action.triggered.connect(self.open_opencart)
         file_menu.addAction(open_read_action)
 
         save_action = QAction("Save Cart", self)
+        save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save)
         file_menu.addAction(save_action)
 
         save_as_action = QAction("Save Cart as", self)
+        save_as_action.setShortcut("Ctrl+Alt+S")
         save_as_action.triggered.connect(self.save_as)
         file_menu.addAction(save_as_action)
 
         file_menu.addSeparator()
 
         add_action = QAction("Add Game", self)
-        # new_cart_action.triggered.connect(self.open_newcart)
+        add_action.setShortcut("Ctrl+G")
+        add_action.triggered.connect(self.add_game)
         file_menu.addAction(add_action)
 
         add_cat_action = QAction("Add Category", self)
-        # new_cart_action.triggered.connect(self.open_newcart)
+        add_cat_action.setShortcut("Ctrl+T")
+        add_cat_action.triggered.connect(self.add_category)
         file_menu.addAction(add_cat_action)
+
+        del_action = QAction("Delete Selected", self)
+        del_action.setShortcut(Qt.Key_Delete)
+        del_action.triggered.connect(self.delete_selected)
+        file_menu.addAction(del_action)
 
         file_menu.addSeparator()
 
         flash_action = QAction("Flash to Arduboy", self)
+        flash_action.setShortcut("Ctrl+Alt+F")
         # open_cart_action.triggered.connect(self.open_opencart)
         file_menu.addAction(flash_action)
 
@@ -125,14 +138,42 @@ class CrateWindow(QMainWindow):
         self.update_title()
     
     def update_title(self):
-        title = f"Cart Editor" #  - {self.filepath}"
+        title = f"Cart Editor"
         if self.filepath:
             title = f"{title} - {self.filepath}"
-            if self.modified:
-                title = f"[!] {title}"
         else:
             title = f"{title} - New"
+        if self.modified:
+            title = f"[!] {title}"
         self.setWindowTitle(title)
+
+    # Insert a new slot widget (already setup) at the appropriate location
+    def insert_slotwidget(self, widget):
+        item = QListWidgetItem()
+        selected_item = self.list_widget.currentItem()
+        if selected_item:
+            row = self.list_widget.row(selected_item)
+            self.list_widget.insertItem(row + 1, item)
+        else:
+            self.list_widget.addItem(item)
+        self.list_widget.setItemWidget(item, widget)
+        item.setSizeHint(widget.sizeHint())
+        self.list_widget.setCurrentItem(item)
+        self.set_modified(True)
+        # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+    
+    def add_category(self):
+        # Need to generate default images at some point!! You have the font!
+        newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
+        self.insert_slotwidget(newcat)
+
+    def add_game(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
+        if file_path:
+            parsed = arduboy.arduhex.read(file_path)
+            newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
+            self.insert_slotwidget(newgame)
 
     # TODO: gather the dang data into the ready binary!
     def get_current_as_raw(self):
@@ -150,9 +191,10 @@ class CrateWindow(QMainWindow):
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def save(self):
         if not self.filepath:
-            self.save_as()
+            return self.save_as()
         else:
             self.do_self_save(self.filepath)
+            return True
 
     # Save current file with a dialog, set new file as filepath, remove modification.
     def save_as(self):
@@ -160,10 +202,14 @@ class CrateWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
         if file_path:
             self.do_self_save(file_path)
+            return True
+        return False
 
     def newcart(self):
-        self.safely_discard_changes()
-        # TODO: clear the list and whatever!
+        if self.safely_discard_changes():
+            self.list_widget.clear()
+            self.set_modified(False)
+            # TODO: might need some other data cleanup!!
     
     # Returns whether the user went through with an action. If false, you should not 
     # continue your discard!
@@ -178,13 +224,22 @@ class CrateWindow(QMainWindow):
             )
 
             if reply == QMessageBox.Save:
-                self.save()
+                return self.save() # The user still did not make a decision if they didn't save
             
             # Caller needs to know if the user chose some action that allows them to continue
             return reply != QMessageBox.Cancel
 
         return True
 
+    def open_help_window(self):
+        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
+        self.help_window.show()
+    
+    def delete_selected(self):
+        selected_items = self.list_widget.selectedItems()
+        for item in selected_items:
+            row = self.list_widget.row(item)
+            self.list_widget.takeItem(row)
 
     def closeEvent(self, event) -> None:
         if self.safely_discard_changes():
@@ -196,10 +251,13 @@ class CrateWindow(QMainWindow):
         else:
             # User did not choose an action, do not exit.
             event.ignore()
-
-    def open_help_window(self):
-        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
-        self.help_window.show()
+    
+    # def keyPressEvent(self, event):
+    #     if event.key() == Qt.Key_Delete:
+    #         selected_items = self.list_widget.selectedItems()
+    #         for item in selected_items:
+    #             row = self.list_widget.row(item)
+    #             self.list_widget.takeItem(row)
 
 
 class SlotWidget(QWidget):
@@ -302,7 +360,7 @@ class TitleImageWidget(QLabel):
         self.set_image(None)
         self.setAlignment(Qt.AlignCenter)
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.setStyleSheet("background-color: #777")
+        self.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
     
     def set_image(self, pil_image):
         if pil_image is not None:
