@@ -135,19 +135,24 @@ class CrateWindow(QMainWindow):
         self.setWindowTitle(title)
 
     # Insert a new slot widget (already setup) at the appropriate location
-    def insert_slotwidget(self, widget):
+    def insert_slotwidget(self, widget, mass_insert = False):
         item = QListWidgetItem()
-        selected_item = self.list_widget.currentItem()
-        if selected_item:
-            row = self.list_widget.row(selected_item)
-            self.list_widget.insertItem(row + 1, item)
+        if not mass_insert:
+            selected_item = self.list_widget.currentItem()
+            if selected_item:
+                row = self.list_widget.row(selected_item)
+                self.list_widget.insertItem(row + 1, item)
+            else:
+                self.list_widget.addItem(item)
         else:
             self.list_widget.addItem(item)
         self.list_widget.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
         self.list_widget.setCurrentItem(item)
         widget.onchange.connect(lambda: self.set_modified(True))
-        self.set_modified(True)
+        if not mass_insert:
+            self.set_modified(True)
+    
         # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
     
     # TODO: gather the dang data into the ready binary!
@@ -169,7 +174,7 @@ class CrateWindow(QMainWindow):
         # TODO: might need some other data cleanup!!
 
     # Load the given binary data into the window, clearing out whatever was there before
-    def loadcart(self, bindata):
+    def loadcart(self, bindata, filepath = None):
         parsed = None
         # IDK how long it takes to parse, just throw up a loading window just in case anyway
         def do_work(repprog, repstatus):
@@ -179,7 +184,10 @@ class CrateWindow(QMainWindow):
         if parsed:
             self.clear()
             for slot in parsed:
-                self.insert_slotwidget(SlotWidget(parsed))
+                self.insert_slotwidget(SlotWidget(slot), mass_insert=True)
+            if filepath:
+                self.filepath = filepath
+            self.set_modified(False)
     
     # -----------------------------------
     #    ACTIONS FROM MENU / SHORTCUTS
@@ -194,7 +202,7 @@ class CrateWindow(QMainWindow):
             filepath, _ = QFileDialog.getOpenFileName(self, "Open Flashcart File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
             if filepath:
                 bindata = arduboy.fxcart.read(filepath)
-                self.loadcart(bindata)
+                self.loadcart(bindata, filepath)
 
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def action_save(self):

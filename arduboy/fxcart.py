@@ -25,8 +25,12 @@ PREVIOUS_PAGE_HEADER_INDEX = 8      # "" previous slot page (2 bytes)
 NEXT_PAGE_HEADER_INDEX = 10         # "" next slot page (2 bytes)
 SLOT_SIZE_HEADER_INDEX = 12         # "" slot size. (2 bytes)
 PROGRAM_SIZE_HEADER_INDEX = 14      # "" program size (1 byte)
+PROGRAMPAGE_HEADER_INDEX = 15       # "" starting page of program (2 bytes)
 DATAPAGE_HEADER_INDEX = 17          # "" starting page of data (2 bytes)
 SAVEPAGE_HEADER_INDEX = 19          # "" starting page of save (2 bytes)
+META_HEADER_INDEX = 57              # "" metadata
+
+META_HEADER_SIZE = 199              # Length of the metadata section
 
 # Each slot has a "string" section of the header which stores up to 4 
 # pieces of data. Although categories will only have (title, info), and
@@ -82,6 +86,9 @@ def get_2byte_value(fulldata, index):
 # Get the size IN BYTES of the fx slot! The index should be the start of the slot!
 def get_slot_size_bytes(fulldata, index):
     return get_2byte_value(fulldata, index + SLOT_SIZE_HEADER_INDEX) * FX_PAGESIZE
+
+def get_program_page(fulldata, index):
+    return get_2byte_value(fulldata, index + PROGRAMPAGE_HEADER_INDEX)
 
 def get_data_page(fulldata, index):
     return get_2byte_value(fulldata, index + DATAPAGE_HEADER_INDEX)
@@ -142,6 +149,19 @@ def get_savepart_raw(fulldata, index):
     else:
         return fulldata[spage*FX_PAGESIZE:get_slot_size_bytes(fulldata, index)]
 
+def get_meta_parsed(fulldata, index):
+    meta = fulldata[index+META_HEADER_INDEX:index+META_HEADER_INDEX+META_HEADER_SIZE]
+    ppage = get_program_page(fulldata, index)
+    values = meta.split(b'\x00')
+    def mval(index):
+        return values[index].decode('utf-8', 'ignore') if index < len(values) else ""
+    if ppage == 0xFFFF:
+        # This is a category, the values are title and info
+        return FxSlotMeta(mval(0), "", "", mval(1))
+    else:
+        # This is a program, the values are in order
+        return FxSlotMeta(mval(0), mval(1), mval(2), mval(3))
+    
 
 # Trim the given fx cart data
 def trim(fullBinaryData):
@@ -184,21 +204,15 @@ def parse(fulldata, report_progress):
             break
 
         slotsize = get_slot_size_bytes(fulldata, dindex)
-        category_raw = get_category(fulldata, dindex)
-        image_raw = get_title_image_raw(fulldata, dindex)
-        program_raw = get_program_raw(fulldata, dindex)
-        datapart_raw = get_datapart_raw(fulldata, dindex)
-        savepart_raw = get_datapart_raw(fulldata, dindex)
-        # TODO: get save data if it exists! Also, get the hash and extra data!
 
         result.append(FxParsedSlot(
-            category_raw, 
-            image_raw,
-            #arduboy.utils.bin_to_pilimage(image_raw), 
-            program_raw, # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
+            get_category(fulldata, dindex), 
+            get_title_image_raw(fulldata, dindex),
+            get_program_raw(fulldata, dindex), # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
             #arduboy.utils.bin_to_hexrecords(program_raw), 
-            datapart_raw,
-            savepart_raw
+            get_datapart_raw(fulldata, dindex),
+            get_savepart_raw(fulldata, dindex),
+            get_meta_parsed(fulldata, dindex)
         ))
 
         dindex += slotsize
