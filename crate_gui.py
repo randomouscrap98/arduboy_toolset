@@ -291,11 +291,13 @@ class SlotWidget(QWidget):
             datawidget = QWidget()
 
             self.program = gui_utils.emoji_button("💻", "Set program .hex")
-            self.program
+            self.program.clicked.connect(self.select_program)
             datalayout.addWidget(self.program)
             self.data = gui_utils.emoji_button("🧰", "Set data .bin")
+            self.data.clicked.connect(self.select_data)
             datalayout.addWidget(self.data)
             self.save = gui_utils.emoji_button("💾", "Set save .bin")
+            self.save.clicked.connect(self.select_save)
             datalayout.addWidget(self.save)
 
             datalayout.setContentsMargins(0,0,0,0)
@@ -359,15 +361,38 @@ class SlotWidget(QWidget):
         else:
             self.meta_label.setText(f"{len(self.parsed.program_raw)}  |  {len(self.parsed.data_raw)}  |  {len(self.parsed.save_raw)}")
     
-    # Perform a simple meta field change. 
+    # Perform a simple meta field change. This is unfortunately DIFFERENT than the metalabel!
     def do_meta_change(self, new_text, field):
         setattr(self.parsed.meta, field, new_text) # .title = new_text
         self.onchange.emit()
 
-    # # A bunch of similar functions for each text field. Could probably do this better...
-    # def title_changed(self, new_text):
-    #     self.parsed.meta.title = new_text
-    #     self.onchange.emit()
+    def get_slot_data(self):
+        return self.parsed
+    
+    def select_program(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=QFileDialog.Options())
+        if file_path:
+            # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
+            parsed = arduboy.arduhex.read(file_path)
+            self.parsed.data_raw = arduboy.utils.arduhex_to_bin(parsed.rawhex)
+            self.update_metalabel()
+            self.onchange.emit()
+
+    def select_data(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+        if file_path:
+            with open(file_path, "rb") as f:
+                self.parsed.data_raw = f.read()
+            self.update_metalabel()
+            self.onchange.emit()
+
+    def select_save(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Save File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+        if file_path:
+            with open(file_path, "rb") as f:
+                self.parsed.save_raw = f.read()
+            self.update_metalabel()
+            self.onchange.emit()
 
 
 class TitleImageWidget(QLabel):

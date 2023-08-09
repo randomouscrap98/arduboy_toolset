@@ -228,6 +228,7 @@ def bin_to_arduhex(byteData):
 
 # Convert an in-memory arduhex string into pure bytes for writing to a flashcart. Note
 # that this is STRICTLY different than parsing an arduhex string for dumping to serial!
+# Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
 # TODO: Some of this "arduhex" parsing code needs to be refactored! It's confusing why
 # one would produce a "trimmed" binary and the other a "parsed object" with information
 # ABOUT trimming but the data not trimmed!!
