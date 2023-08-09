@@ -24,10 +24,11 @@ CATEGORY_HEADER_INDEX = 7           # "Index into slot header for" category (1 b
 PREVIOUS_PAGE_HEADER_INDEX = 8      # "" previous slot page (2 bytes)
 NEXT_PAGE_HEADER_INDEX = 10         # "" next slot page (2 bytes)
 SLOT_SIZE_HEADER_INDEX = 12         # "" slot size. (2 bytes)
-PROGRAM_SIZE_HEADER_INDEX = 14      # "" program size (1 byte)
+PROGRAM_SIZE_HEADER_INDEX = 14      # "" program size (1 byte, factor of 128)
 PROGRAMPAGE_HEADER_INDEX = 15       # "" starting page of program (2 bytes)
 DATAPAGE_HEADER_INDEX = 17          # "" starting page of data (2 bytes)
 SAVEPAGE_HEADER_INDEX = 19          # "" starting page of save (2 bytes)
+DATA_SIZE_HEADER_INDEX = 21         # "" data segment size (2 bytes, factor of 256)
 META_HEADER_INDEX = 57              # "" metadata
 
 META_HEADER_SIZE = 199              # Length of the metadata section

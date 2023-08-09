@@ -30,11 +30,14 @@ from PIL import Image
 # - Add total game count? And category?
 
 class CrateWindow(QMainWindow):
+    _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
+
     def __init__(self):
         super().__init__()
 
         self.filepath = None
         self.resize(800, 600)
+        self._add_slot_signal.connect(self.add_slot)
 
         self.create_menu()
 
@@ -171,6 +174,14 @@ class CrateWindow(QMainWindow):
         self.list_widget.clear()
         self.set_modified(False)
         # TODO: might need some other data cleanup!!
+    
+    def add_slot(self, slot, clear = False):
+        if clear:
+            self.clear()
+        widget = SlotWidget(slot)
+        item = self.setup_slotwidget_item(widget)
+        self.list_widget.addItem(item)
+        self.list_widget.setItemWidget(item, widget) 
 
     # Load the given binary data into the window, clearing out whatever was there before
     def loadcart(self, bindata, filepath = None):
@@ -179,22 +190,21 @@ class CrateWindow(QMainWindow):
         def do_work(repprog, repstatus):
             nonlocal parsed
             parsed = arduboy.fxcart.parse(bindata, repprog)
+            repstatus("Rendering items")
+            count = 0
+            rest = 1
+            for slot in parsed:
+                self._add_slot_signal.emit(slot, count == 0)
+                count += 1
+                repprog(count, len(parsed))
+                # This is a hack. The UI does not update unless this is here. An exponentially decreasing thread sleep
+                if count == rest:
+                    time.sleep(0.05)
+                    rest = rest << 1
         gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
-        if parsed:
-            self.clear()
-            self.list_widget.setUpdatesEnabled(False)
-            # widgets = [ SlotWidget(slot) for slot in parsed ]
-            # items = [ self.setup_slotwidget_item(widget) for widget in widgets ]
-            # self.list_widget.addItems(items)
-            for slot in parsed: # i in range(0, len(items)):
-                widget = SlotWidget(slot)
-                item = self.setup_slotwidget_item(widget)
-                self.list_widget.addItem(item)
-                self.list_widget.setItemWidget(item, widget) # items[i], widgets[i])
-            self.list_widget.setUpdatesEnabled(True)
-            if filepath:
-                self.filepath = filepath
-            self.set_modified(False)
+        if filepath:
+            self.filepath = filepath
+        self.set_modified(False)
     
     # -----------------------------------
     #    ACTIONS FROM MENU / SHORTCUTS
