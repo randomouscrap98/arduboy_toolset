@@ -134,26 +134,25 @@ class CrateWindow(QMainWindow):
             title = f"[!] {title}"
         self.setWindowTitle(title)
 
-    # Insert a new slot widget (already setup) at the appropriate location
-    def insert_slotwidget(self, widget, mass_insert = False):
+    def setup_slotwidget_item(self, widget):
         item = QListWidgetItem()
-        if not mass_insert:
-            selected_item = self.list_widget.currentItem()
-            if selected_item:
-                row = self.list_widget.row(selected_item)
-                self.list_widget.insertItem(row + 1, item)
-            else:
-                self.list_widget.addItem(item)
+        # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+        item.setSizeHint(widget.sizeHint())
+        widget.onchange.connect(lambda: self.set_modified(True))
+        return item
+
+    # Insert a new slot widget (already setup) at the appropriate location
+    def insert_slotwidget(self, widget):
+        item = self.setup_slotwidget_item(widget)
+        selected_item = self.list_widget.currentItem()
+        if selected_item:
+            row = self.list_widget.row(selected_item)
+            self.list_widget.insertItem(row + 1, item)
         else:
             self.list_widget.addItem(item)
         self.list_widget.setItemWidget(item, widget)
-        item.setSizeHint(widget.sizeHint())
         self.list_widget.setCurrentItem(item)
-        widget.onchange.connect(lambda: self.set_modified(True))
-        if not mass_insert:
-            self.set_modified(True)
-    
-        # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+        self.set_modified(True)
     
     # TODO: gather the dang data into the ready binary!
     def get_current_as_raw(self):
@@ -183,8 +182,16 @@ class CrateWindow(QMainWindow):
         gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
         if parsed:
             self.clear()
-            for slot in parsed:
-                self.insert_slotwidget(SlotWidget(slot), mass_insert=True)
+            self.list_widget.setUpdatesEnabled(False)
+            # widgets = [ SlotWidget(slot) for slot in parsed ]
+            # items = [ self.setup_slotwidget_item(widget) for widget in widgets ]
+            # self.list_widget.addItems(items)
+            for slot in parsed: # i in range(0, len(items)):
+                widget = SlotWidget(slot)
+                item = self.setup_slotwidget_item(widget)
+                self.list_widget.addItem(item)
+                self.list_widget.setItemWidget(item, widget) # items[i], widgets[i])
+            self.list_widget.setUpdatesEnabled(True)
             if filepath:
                 self.filepath = filepath
             self.set_modified(False)
@@ -370,6 +377,7 @@ class SlotWidget(QWidget):
         fieldsparent.setLayout(fieldlayout)
 
         toplayout.addWidget(fieldsparent)
+        # toplayout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
 
         self.setLayout(toplayout)
 
