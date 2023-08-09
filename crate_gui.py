@@ -21,17 +21,13 @@ from PIL import Image
 
 # TODO: 
 # - Let a command flag open cratebuilder automatically.
-# - DON'T set a default image, so users know to set a new image by clicking
 # - Add verification steps to cart builder to ensure there is always a category at the start.
 # - Add some way to move entire categories around
 # - See if there always needs to be a main category (probably not)
 # - Add explanation to help about why the list is shown the way it is
-# - Add ability to set image
-# - Add storage for all the data in SlotWidget
-# - Add way to turn slotwidget into fx slot data
-# - Add some way for data mods to update the numbers shown in slot meta
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
+# - Add total game count? And category?
 
 class CrateWindow(QMainWindow):
     def __init__(self):
@@ -42,21 +38,6 @@ class CrateWindow(QMainWindow):
 
         self.create_menu()
 
-        # # If this is something we're supposed to load, gotta go load the data! We should NOT reuse
-        # # the progress widget, since it's made for something very different!
-        # if not newcart:
-        #     def do_work(repprog, repstatus):
-        #         for i in range(10):
-        #             time.sleep(0.2)
-        #             repprog(i, 10)
-        #     dialog = gui_utils.ProgressWindow(f"Parsing {os.path.basename(self.filepath)}", simple = True)
-        #     worker_thread = gui_utils.ProgressWorkerThread(do_work, simple = True)
-        #     worker_thread.connect(dialog)
-        #     worker_thread.start()
-        #     dialog.exec_()
-        #     if dialog.error_state:
-        #         self.deleteLater()
-        
         # centralwidget = QWidget()
         # layout = QVBoxLayout()
 
@@ -79,12 +60,12 @@ class CrateWindow(QMainWindow):
 
         new_action = QAction("New Cart", self)
         new_action.setShortcut("Ctrl+N")
-        new_action.triggered.connect(self.newcart)
+        new_action.triggered.connect(self.action_newcart)
         file_menu.addAction(new_action)
 
         open_action = QAction("Open Cart", self)
         open_action.setShortcut("Ctrl+O")
-        # new_cart_action.triggered.connect(self.open_newcart)
+        open_action.triggered.connect(self.action_opencart)
         file_menu.addAction(open_action)
 
         open_read_action = QAction("Load From Arduboy", self)
@@ -94,29 +75,29 @@ class CrateWindow(QMainWindow):
 
         save_action = QAction("Save Cart", self)
         save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(self.save)
+        save_action.triggered.connect(self.action_save)
         file_menu.addAction(save_action)
 
         save_as_action = QAction("Save Cart as", self)
         save_as_action.setShortcut("Ctrl+Alt+S")
-        save_as_action.triggered.connect(self.save_as)
+        save_as_action.triggered.connect(self.action_save_as)
         file_menu.addAction(save_as_action)
 
         file_menu.addSeparator()
 
         add_action = QAction("Add Game", self)
         add_action.setShortcut("Ctrl+G")
-        add_action.triggered.connect(self.add_game)
+        add_action.triggered.connect(self.action_add_game)
         file_menu.addAction(add_action)
 
         add_cat_action = QAction("Add Category", self)
         add_cat_action.setShortcut("Ctrl+T")
-        add_cat_action.triggered.connect(self.add_category)
+        add_cat_action.triggered.connect(self.action_add_category)
         file_menu.addAction(add_cat_action)
 
         del_action = QAction("Delete Selected", self)
         del_action.setShortcut(Qt.Key_Delete)
-        del_action.triggered.connect(self.delete_selected)
+        del_action.triggered.connect(self.action_delete_selected)
         file_menu.addAction(del_action)
 
         file_menu.addSeparator()
@@ -169,19 +150,6 @@ class CrateWindow(QMainWindow):
         self.set_modified(True)
         # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
     
-    def add_category(self):
-        # Need to generate default images at some point!! You have the font!
-        newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
-        self.insert_slotwidget(newcat)
-
-    def add_game(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
-        if file_path:
-            parsed = arduboy.arduhex.read(file_path)
-            newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
-            self.insert_slotwidget(newgame)
-
     # TODO: gather the dang data into the ready binary!
     def get_current_as_raw(self):
         return bytearray()
@@ -195,28 +163,79 @@ class CrateWindow(QMainWindow):
         self.filepath = filepath
         self.set_modified(False)
 
+    def clear(self):
+        self.list_widget.clear()
+        self.set_modified(False)
+        # TODO: might need some other data cleanup!!
+
+    # Load the given binary data into the window, clearing out whatever was there before
+    def loadcart(self, bindata):
+        parsed = None
+        # IDK how long it takes to parse, just throw up a loading window just in case anyway
+        def do_work(repprog, repstatus):
+            nonlocal parsed
+            parsed = arduboy.fxcart.parse(bindata, repprog)
+        gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
+        if parsed:
+            self.clear()
+            for slot in parsed:
+                self.insert_slotwidget(SlotWidget(parsed))
+    
+    # -----------------------------------
+    #    ACTIONS FROM MENU / SHORTCUTS
+    # -----------------------------------
+    
+    def action_newcart(self):
+        if self.safely_discard_changes():
+            self.clear()
+
+    def action_opencart(self):
+        if self.safely_discard_changes():
+            filepath, _ = QFileDialog.getOpenFileName(self, "Open Flashcart File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+            if filepath:
+                bindata = arduboy.fxcart.read(filepath)
+                self.loadcart(bindata)
+
     # Save current file without dialog if possible. If no previous file, have to open a new one
-    def save(self):
+    def action_save(self):
         if not self.filepath:
-            return self.save_as()
+            return self.action_save_as()
         else:
             self.do_self_save(self.filepath)
             return True
 
     # Save current file with a dialog, set new file as filepath, remove modification.
-    def save_as(self):
+    def action_save_as(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
-        if file_path:
-            self.do_self_save(file_path)
+        filepath, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
+        if filepath:
+            self.do_self_save(filepath)
             return True
         return False
 
-    def newcart(self):
-        if self.safely_discard_changes():
-            self.list_widget.clear()
-            self.set_modified(False)
-            # TODO: might need some other data cleanup!!
+    def action_add_category(self):
+        # Need to generate default images at some point!! You have the font!
+        newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
+        self.insert_slotwidget(newcat)
+
+    def action_add_game(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
+        if file_path:
+            parsed = arduboy.arduhex.read(file_path)
+            newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
+            self.insert_slotwidget(newgame)
+    
+    def action_delete_selected(self):
+        selected_items = self.list_widget.selectedItems()
+        for item in selected_items:
+            row = self.list_widget.row(item)
+            self.list_widget.takeItem(row)
+
+    def open_help_window(self):
+        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
+        self.help_window.show()
+    
     
     # Returns whether the user went through with an action. If false, you should not 
     # continue your discard!
@@ -237,16 +256,6 @@ class CrateWindow(QMainWindow):
             return reply != QMessageBox.Cancel
 
         return True
-
-    def open_help_window(self):
-        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
-        self.help_window.show()
-    
-    def delete_selected(self):
-        selected_items = self.list_widget.selectedItems()
-        for item in selected_items:
-            row = self.list_widget.row(item)
-            self.list_widget.takeItem(row)
 
     def closeEvent(self, event) -> None:
         if self.safely_discard_changes():

@@ -20,9 +20,13 @@ HEADER_LENGTH = 256          # The flashcart slot header length in bytes
 TITLE_IMAGE_LENGTH = 1024    # The flashcart slot title image length in bytes
 HEADER_PROGRAM_FACTOR = 128  # Multiply the flashcart slot program length by this
 
-CATEGORY_HEADER_INDEX = 7        # Index into slot header for category (1 byte)
-SLOT_SIZE_HEADER_INDEX = 12      # Index into header for slot size. (2 bytes)
-PROGRAM_SIZE_HEADER_INDEX = 14   # Index into header for program size (1 byte)
+CATEGORY_HEADER_INDEX = 7           # "Index into slot header for" category (1 byte)
+PREVIOUS_PAGE_HEADER_INDEX = 8      # "" previous slot page (2 bytes)
+NEXT_PAGE_HEADER_INDEX = 10         # "" next slot page (2 bytes)
+SLOT_SIZE_HEADER_INDEX = 12         # "" slot size. (2 bytes)
+PROGRAM_SIZE_HEADER_INDEX = 14      # "" program size (1 byte)
+DATAPAGE_HEADER_INDEX = 17          # "" starting page of data (2 bytes)
+SAVEPAGE_HEADER_INDEX = 19          # "" starting page of save (2 bytes)
 
 # Each slot has a "string" section of the header which stores up to 4 
 # pieces of data. Although categories will only have (title, info), and
@@ -60,6 +64,9 @@ def read(filename):
         flashdata = bytearray(f.read())
     return arduboy.utils.pad_data(flashdata, FX_PAGESIZE)
 
+# ----------------------
+#    HEADER PARSING
+# ----------------------
 
 def default_header():
     return bytearray(HEADER_START_STRING.encode() + (b'\xFF' * (HEADER_LENGTH - len(HEADER_START_STRING))))
@@ -68,10 +75,19 @@ def default_header():
 def is_slot(fulldata, index):
     return HEADER_START_BYTES == fulldata[index:index+len(HEADER_START_BYTES)]
 
+# Get 2 consecutive bytes and return as 1 value (big endian). Several header values use this
+def get_2byte_value(fulldata, index):
+    return struct.unpack(">H", fulldata[index: index + 2])[0]
+
 # Get the size IN BYTES of the fx slot! The index should be the start of the slot!
 def get_slot_size_bytes(fulldata, index):
-    # Get 2 consecutive bytes and return as 1 value (big endian)
-    return struct.unpack(">H", fulldata[index + SLOT_SIZE_HEADER_INDEX : index + SLOT_SIZE_HEADER_INDEX + 2])[0] * FX_PAGESIZE 
+    return get_2byte_value(fulldata, index + SLOT_SIZE_HEADER_INDEX) * FX_PAGESIZE
+
+def get_data_page(fulldata, index):
+    return get_2byte_value(fulldata, index + DATAPAGE_HEADER_INDEX)
+
+def get_save_page(fulldata, index):
+    return get_2byte_value(fulldata, index + SAVEPAGE_HEADER_INDEX)
 
 # Get the size in bytes of the program data! The index should be the start of the slot! May not be the exact size!
 def get_program_size_bytes(fulldata, index):
@@ -93,8 +109,38 @@ def get_program_raw(fulldata, index):
 
 # Get the "extra data" which might be packed with a sketch (for FX-enabled programs!)
 def get_datapart_raw(fulldata, index):
-    # Data apparently goes right to the end of the slot!
-    return fulldata[index + HEADER_LENGTH + TITLE_IMAGE_LENGTH + get_program_size_bytes(fulldata, index) : get_slot_size_bytes(fulldata, index)]
+    # Skip data reading if no data page set
+    dpage = get_data_page(fulldata, index)
+    if dpage == 0xFFFF:
+        return []
+    dindex = dpage * FX_PAGESIZE # index + HEADER_LENGTH + TITLE_IMAGE_LENGTH + get_program_size_bytes(fulldata, index)
+    # There are two options: if there's no save data, the data goes right to the end. Otherwise, 
+    # we have to do something funny
+    spage = get_save_page(fulldata, index)
+    if spage == 0xFFFF:
+        return fulldata[dindex:get_slot_size_bytes(fulldata, index)]
+    else:
+        save_start = spage * FX_PAGESIZE
+        data = fulldata[dindex:save_start]
+        # Now for a funny part: we scan the chunks of 256 bytes at the end, and while they are all 0xFF,
+        # we remove them. This is because, if there is a save, it is aligned to 4k blocks (flash is written
+        # in 4k portions), but the data size is not stored, so there may be lots of padding between the data
+        # and save data portions. We only need to do this if there is save data
+        last_FF_index = 0 # Loop will exit without assignment if ALL are 0xFF
+        for i in range(len(data) - 1, -1, -1):
+            if data[i] != 0xFF:
+                last_FF_index = i + 1 # If the very last byte isn't FF, index will be outside range, math still works
+                break
+        unused_pages = (len(data) - last_FF_index) // FX_PAGESIZE
+        return data[:len(data) - FX_PAGESIZE * unused_pages]
+
+# Get the save data which might be packed with a sketch (for FX-enabled programs!)
+def get_savepart_raw(fulldata, index):
+    spage = get_save_page(fulldata, index)
+    if spage == 0xFFFF:
+        return []
+    else:
+        return fulldata[spage*FX_PAGESIZE:get_slot_size_bytes(fulldata, index)]
 
 
 # Trim the given fx cart data
@@ -142,6 +188,7 @@ def parse(fulldata, report_progress):
         image_raw = get_title_image_raw(fulldata, dindex)
         program_raw = get_program_raw(fulldata, dindex)
         datapart_raw = get_datapart_raw(fulldata, dindex)
+        savepart_raw = get_datapart_raw(fulldata, dindex)
         # TODO: get save data if it exists! Also, get the hash and extra data!
 
         result.append(FxParsedSlot(
@@ -150,7 +197,8 @@ def parse(fulldata, report_progress):
             #arduboy.utils.bin_to_pilimage(image_raw), 
             program_raw, # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
             #arduboy.utils.bin_to_hexrecords(program_raw), 
-            datapart_raw
+            datapart_raw,
+            savepart_raw
         ))
 
         dindex += slotsize
