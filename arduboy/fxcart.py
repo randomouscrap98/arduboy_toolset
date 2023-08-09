@@ -34,10 +34,13 @@ class FxSlotMeta:
     developer: str
     info: str
 
+# Note: Although it says "parsed", I just mean it was parsed out of the giant binary blob.
+# The individual fields are not parsed, in case you want to immediately turn around and rewrite
+# it to the cart (which is likelY), plus I don't know how you might want to use all the data.
 @dataclass
 class FxParsedSlot:
     category: int
-    image: Image
+    image_raw: bytearray
     program_raw: bytearray
     data_raw: bytearray
     save_raw: bytearray
@@ -143,7 +146,8 @@ def parse(fulldata, report_progress):
 
         result.append(FxParsedSlot(
             category_raw, 
-            arduboy.utils.bin_to_pilimage(image_raw), 
+            image_raw,
+            #arduboy.utils.bin_to_pilimage(image_raw), 
             program_raw, # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
             #arduboy.utils.bin_to_hexrecords(program_raw), 
             datapart_raw

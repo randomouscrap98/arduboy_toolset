@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+from PIL import Image
 
 
 # TODO: 
@@ -266,7 +267,7 @@ class SlotWidget(QWidget):
     def __init__(self, parsed: arduboy.fxcart.FxParsedSlot):
         super().__init__()
 
-        # !! BIG NOTE: widgets should not be able to change "modes", so we set up lots 
+        # !! BIG NOTE: widgets should NOT be able to change "modes", so we set up lots 
         # of mode-specific stuff in the constructor! IE a category cannot become a program etc
 
         self.parsed = parsed
@@ -279,8 +280,9 @@ class SlotWidget(QWidget):
         leftwidget = QWidget()
 
         self.image = TitleImageWidget()
-        if parsed.image:
-            self.image.set_image(parsed.image)
+        if parsed.image_raw:
+            self.image.set_image_bytes(parsed.image_raw)
+        self.image.onimage_bytes.connect(self.set_image_bytes)
         leftlayout.addWidget(self.image)
 
         # Create it now, use it later
@@ -393,22 +395,28 @@ class SlotWidget(QWidget):
                 self.parsed.save_raw = f.read()
             self.update_metalabel()
             self.onchange.emit()
+    
+    def set_image_bytes(self, image_bytes):
+        self.parsed.image_raw = image_bytes
+        self.onchange.emit()
 
 
 class TitleImageWidget(QLabel):
-    onclick = pyqtSignal()
+    onimage_bytes = pyqtSignal(bytearray)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setCursor(QtGui.QCursor(Qt.PointingHandCursor))  # Set cursor to pointing hand
         self.setScaledContents(True)  # Scale the image to fit the label
-        self.set_image(None)
+        self.set_image_bytes(None)
         self.setAlignment(Qt.AlignCenter)
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
     
-    def set_image(self, pil_image):
-        if pil_image is not None:
+    # NOTE: should be the simple 1024 bytes directly from the parsing! Anytime image bytes are needed, that's what is expected!
+    def set_image_bytes(self, image_bytes):
+        if image_bytes is not None:
+            pil_image = arduboy.utils.bin_to_pilimage(image_bytes)
             qt_image = QtGui.QImage(pil_image.tobytes(), pil_image.width, pil_image.height, QtGui.QImage.Format_Grayscale8)
             pixmap = QtGui.QPixmap(qt_image) 
             self.setPixmap(pixmap)
@@ -419,7 +427,17 @@ class TitleImageWidget(QLabel):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.onclick.emit()
+            # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
+            if file_path:
+                image = Image.open(file_path)
+                # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
+                image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
+                image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
+                # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
+                image_bytes = arduboy.utils.pilimage_to_bin(image) 
+                self.set_image_bytes(image_bytes)
+                self.onimage_bytes.emit(image_bytes) #arduboy.utils.pilimage_to_bin(image))
 
 
 if __name__ == "__main__":
