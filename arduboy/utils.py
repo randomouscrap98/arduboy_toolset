@@ -30,10 +30,18 @@ MBP_overflow_r31 = 58
 # Pad data to a multiple of the given size. For instance, if data is 245 but multsize is
 # 256, it is padded up to 256 with the given pad data. If data is 400 and multsize is 256,
 # it is padded up to 512
-def pad_data(data, multsize, pad = b'\xFF'):
+def pad_data(data: bytearray, multsize, pad = b'\xFF'):
     if len(data) % multsize: 
         data += pad * (multsize - (len(data) % multsize))
     return data
+
+# Return the amount of padding to add to the given length of data if you wish for the 
+# given alignment. For instance, if length is 245 but alignment is 256, 11 is returned
+def pad_size(length, alignment):
+    if length % alignment:  # It is misaligned, to get it aligned, must know the difference
+        return alignment - (length % alignment)
+    else: # It is exactly aligned
+        return 0 
 
 # Get the bit at position (1 or 0)
 def bytebit(byte, pos):
@@ -264,7 +272,7 @@ def new_parsed_slot_from_category(title, info = "", image = None, category_id = 
     return arduboy.fxcart.FxParsedSlot(
         category_id,
         image,
-        list(),
+        bytearray(),
         bytearray(),
         bytearray(),
         arduboy.fxcart.FxSlotMeta(title, "", "", info)

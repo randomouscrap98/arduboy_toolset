@@ -6,8 +6,8 @@ import logging
 import arduboy.device
 import arduboy.utils
 import struct
-# import sqlite3
 
+from typing import List
 from arduboy.constants import *
 from dataclasses import dataclass, field
 from PIL import Image
@@ -18,7 +18,9 @@ HEADER_START_BYTES = bytearray(HEADER_START_STRING.encode())
 
 HEADER_LENGTH = 256          # The flashcart slot header length in bytes
 TITLE_IMAGE_LENGTH = 1024    # The flashcart slot title image length in bytes
+PREAMBLE_PAGES = (HEADER_LENGTH + TITLE_IMAGE_LENGTH) >> 8 # Page size of entire preamble (includes title)
 HEADER_PROGRAM_FACTOR = 128  # Multiply the flashcart slot program length by this
+SAVE_ALIGNMENT = 4096
 
 CATEGORY_HEADER_INDEX = 7           # "Index into slot header for" category (1 byte)
 PREVIOUS_PAGE_HEADER_INDEX = 8      # "" previous slot page (2 bytes)
@@ -84,6 +86,12 @@ def is_slot(fulldata, index):
 def get_2byte_value(fulldata, index):
     return struct.unpack(">H", fulldata[index: index + 2])[0]
 
+# Write the given value into the given array starting at the given index. Should be readable
+# by get_2byte_value (big endian)
+def write_2byte_value(value, fulldata, index):
+    fulldata[index] = value >> 8
+    fulldata[index + 1] = value & 0xFF
+
 # Get the size IN BYTES of the fx slot! The index should be the start of the slot!
 def get_slot_size_bytes(fulldata, index):
     return get_2byte_value(fulldata, index + SLOT_SIZE_HEADER_INDEX) * FX_PAGESIZE
@@ -100,6 +108,11 @@ def get_save_page(fulldata, index):
 # Get the size in bytes of the program data! The index should be the start of the slot! May not be the exact size!
 def get_program_size_bytes(fulldata, index):
     return fulldata[index + PROGRAM_SIZE_HEADER_INDEX] * HEADER_PROGRAM_FACTOR
+
+# Get the size in pages of the data section. We do pages instead of bytes because this
+# field may not actually be set properly!
+def get_data_size_pages(fulldata, index):
+    return get_2byte_value(fulldata, index + SLOT_SIZE_HEADER_INDEX)
 
 # Get the category of this slot. As usual, index should be the start of the slot
 def get_category(fulldata, index):
@@ -122,10 +135,13 @@ def get_datapart_raw(fulldata, index):
     if dpage == 0xFFFF:
         return []
     dindex = dpage * FX_PAGESIZE # index + HEADER_LENGTH + TITLE_IMAGE_LENGTH + get_program_size_bytes(fulldata, index)
-    # There are two options: if there's no save data, the data goes right to the end. Otherwise, 
-    # we have to do something funny
+    # There are THREE options: if the data size is set, we're good to go, nothing else to do. Otherwise, 
+    # if there's no save data, the data goes right to the end. If all else fails, we have to do something funny
+    dpages = get_data_size_pages(fulldata, index)
     spage = get_save_page(fulldata, index)
-    if spage == 0xFFFF:
+    if dpages != 0xFF:
+        return fulldata[dindex:dindex+dpages*FX_PAGESIZE]
+    elif spage == 0xFFFF:
         return fulldata[dindex:get_slot_size_bytes(fulldata, index)]
     else:
         save_start = spage * FX_PAGESIZE
@@ -194,7 +210,7 @@ def trim_file(infile, outfile = None):
 
 
 # Given an entire FX binary, parse absolutely everything out of it (in slot format)
-def parse(fulldata, report_progress):
+def parse(fulldata, report_progress = None):
 
     logging.debug(f"Full parsing FX cart ({len(fulldata)} bytes)")
     dindex = 0
@@ -209,8 +225,8 @@ def parse(fulldata, report_progress):
         result.append(FxParsedSlot(
             get_category(fulldata, dindex), 
             get_title_image_raw(fulldata, dindex),
-            get_program_raw(fulldata, dindex), # What about parsing the bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
-            #arduboy.utils.bin_to_hexrecords(program_raw), 
+            # What about parsing the program bin? UGH! Most of the time we want the raw, not the parsed, someone else can do that
+            get_program_raw(fulldata, dindex), 
             get_datapart_raw(fulldata, dindex),
             get_savepart_raw(fulldata, dindex),
             get_meta_parsed(fulldata, dindex)
@@ -218,24 +234,98 @@ def parse(fulldata, report_progress):
 
         dindex += slotsize
 
-        report_progress(dindex, len(fulldata))
+        if report_progress:
+            report_progress(dindex, len(fulldata))
 
     logging.info(f"Fully parsed {(len(result))} program sections")
 
     return result
 
 
-# Compile the given parsed data of an arduboy cart back into bytes
-def compile(parsed_records, report_progress):
-    pass
+# Forcibly reassign all the categories, make sure first slot is a category.
+def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
+    category = 0
+    count = 0
+    for slot in parsed_slots:
+        if count == 0 and not slot.is_category():
+            raise Exception("First item MUST be a category!")
+        slot.category = category
+        if slot.is_category():
+            category += 1
+        count += 1
 
-# # Create a database to store programs
-# def make_database(filepath):
-#     with sqlite3.connect(filepath) as con:
-#         cursor = con.cursor()
-#         cursor.execute("""
-#             CREATE TABLE IF NOT EXISTS categories(
-#                 
-#             )
-#                       """)
-# 
+# Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
+# https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
+def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
+    logging.debug(f"Compiling flashcart with {len(parsed_slots)} slots")
+    # First, perform some checks and fixes. 
+    fix_parsed_slots(parsed_slots)
+    previouspage = 0xFFFF
+    currentpage = 0
+    nextpage = 0
+    result = bytearray()
+    games = 0
+    categories = 0
+    for slot in parsed_slots:
+        # All the raw data we're about to dump into the flashcart. Some may be modified later
+        header = default_header()
+        logging.debug(f"ABOUT TO pad some data: {games}/{categories}") #  - {slotpages}")
+        title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
+        program = slot.program_raw # LoadHexFileData(fixPath(row[ID_HEXFILE]))
+        datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) # LoadDataFile(fixPath(row[ID_DATAFILE]))
+        savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) #LoadSaveFile(fixPath(row[ID_SAVEFILE]))
+        # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
+        programsize = len(program)
+        datasize = len(datafile)
+        savesize = len(savefile)
+        id = sha256(program + datafile).digest()
+        programpage = currentpage + PREAMBLE_PAGES
+        datapage    = programpage + (programsize >> 8)  # Data comes after program, wherever it is
+        alignpage   = datapage + (datasize >> 8)        # Calculate align page start even if alignment isn't used
+        alignsize   = arduboy.utils.pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
+        savepage    = alignpage + (alignsize >> 8)      # Save page might not be used, calculate it anyway
+        slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
+        nextpage += slotpages
+        header[7] = slot.category   #list number
+        logging.debug(f"ABOUT TO write 2 byte value: {games}/{categories} - {slotpages}")
+        write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
+        write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
+        write_2byte_value(slotpages, header, SLOT_SIZE_HEADER_INDEX)
+        #don't flash last unused 128 bytes page
+        header[PROGRAM_SIZE_HEADER_INDEX] = (programsize >> 7) - 1 if program[-128:] == b'\xFF' * 128 else programsize >> 7
+        # There IS a program, so let's set some more fields!
+        if programsize > 0:
+            write_2byte_value(programpage, header, PROGRAMPAGE_HEADER_INDEX)
+            if datasize > 0:
+                program[0x14] = 0x18    # IDK, some constants from the other program
+                program[0x15] = 0x95
+                write_2byte_value(datapage, program, 0x16)
+                write_2byte_value(datapage, header, DATAPAGE_HEADER_INDEX)
+            if savesize > 0:
+                program[0x18] = 0x18    # Some constants from the builder program
+                program[0x19] = 0x95
+                write_2byte_value(savepage, program, 0x1a)
+                write_2byte_value(savepage, header, SAVEPAGE_HEADER_INDEX)
+            header[25:57] = id  # NOTE: hash only used if program set!
+            stringdata = (slot.meta.title.encode('utf-8') + b'\0' + slot.meta.version.encode('utf-8') + b'\0' +
+                            slot.meta.developer.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0')
+        else:
+            stringdata = slot.meta.title.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0'
+        if len(stringdata) > 199:
+            stringdata = stringdata[:199]  
+        header[57:57 + len(stringdata)] = stringdata
+        message = arduboy.utils.patch_menubuttons(program)
+        logging.debug(f"ABOUT TO APPEND LOTS OF JUNK: {games}/{categories} - {slotpages}")
+        result = result + header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
+        previouspage = currentpage
+        currentpage = nextpage
+        if programsize > 0:
+            games += 1
+        else:
+            categories += 1
+        if report_progress:
+            report_progress(games + categories, len(parsed_slots))
+
+    result += bytearray(b'\xFF' * 256)
+    logging.info(f"Compiled fx flashcart, {len(result)} bytes, {games} games, {categories} categories")
+    return result

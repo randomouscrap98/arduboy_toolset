@@ -5,6 +5,7 @@ import utils
 import logging
 import arduboy.device
 import os
+import traceback
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None
@@ -278,6 +279,7 @@ class ProgressWindow(QDialog):
     def report_error(self, ex: Exception):
         self.error_state = True
         QMessageBox.critical(self, f"Error during '{self.windowTitle()}'", str(ex), QMessageBox.Ok)
+        logging.exception(ex)
         self.accept()
 
 

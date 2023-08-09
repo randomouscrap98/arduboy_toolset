@@ -10,10 +10,13 @@ import arduboy.utils
 import utils
 import gui_utils
 import crate_gui
+import traceback
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
 from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+
+SHOWTRACE = True
 
 def main():
 
@@ -41,8 +44,12 @@ def main():
     window.show()
     sys.exit(app.exec_())
 
-def exception_hook(exctype, value, traceback):
+def exception_hook(exctype, value, exctrace):
     error_message = f"An unhandled exception occurred:\n{value}"
+    error_message += "\n\nType: {exctype}\nTraceback:" + traceback.format_exc(exctrace)
+    # if SHOWTRACE:
+        # print(f"Traceback: ")
+        # traceback.print_tb(exc_traceback)
     QMessageBox.critical(None, "Unhandled Exception", error_message, QMessageBox.Ok)
 
 

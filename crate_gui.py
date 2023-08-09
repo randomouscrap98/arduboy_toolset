@@ -157,9 +157,14 @@ class CrateWindow(QMainWindow):
         self.list_widget.setCurrentItem(item)
         self.set_modified(True)
     
-    # TODO: gather the dang data into the ready binary!
     def get_current_as_raw(self):
-        return bytearray()
+        slots = [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+        fxbin = bytearray()
+        def do_work(repprog, repstatus):
+            nonlocal slots, fxbin
+            fxbin = arduboy.fxcart.compile(slots, repprog)
+        gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
+        return fxbin
     
     # All saves are basically the same at the end of the day, this is what they do. This removes
     # modification state and sets current document to whatever you give
