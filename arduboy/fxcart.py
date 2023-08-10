@@ -11,7 +11,6 @@ import struct
 from hashlib import sha256
 from typing import List
 from dataclasses import dataclass, field
-from PIL import Image
 
 
 HEADER_START_STRING = "ARDUBOY"

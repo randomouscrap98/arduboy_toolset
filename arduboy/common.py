@@ -44,16 +44,12 @@ def bin_to_pilimage(byteData, raw = False):
 
     return img
 
+# Convert any PIL image with any dimensions into an arduboy binary image. Note: this means
+# it could be stretched and dithered and whatever.
 # Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
 def pilimage_to_bin(image: Image):
-    binimg = image.convert("1")
+    binimg = convert_titlescreen(image)
     width, height  = binimg.size
-    if (width != SCREEN_WIDTH) or (height != SCREEN_HEIGHT) :
-        if height // (width // SCREEN_WIDTH) != SCREEN_HEIGHT:
-            raise Exception("Image dimensions incorrect! Must be a multiple of 128x64")
-        else:
-            binimg = binimg.resize((SCREEN_WIDTH,SCREEN_HEIGHT), Image.NEAREST)
-            width, height  = binimg.size
     pixels = list(binimg.getdata())
     bytes = bytearray(int((height // 8) * width))
     i = 0
@@ -68,3 +64,12 @@ def pilimage_to_bin(image: Image):
             i += 1
     return bytes
     
+
+# Try to get the given image in the right format and size for Arduboy. Still returns a PIL image.
+def convert_titlescreen(image):
+    width, height = image.size
+    # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
+    if width != SCREEN_WIDTH or height != SCREEN_HEIGHT:
+        image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
+    image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
+    return image
