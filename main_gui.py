@@ -40,7 +40,10 @@ def main():
 
     gui_utils.try_create_emoji_font()
 
-    window = MainWindow()
+    if "--crate" in sys.argv:
+        window = crate_gui.CrateWindow()
+    else:
+        window = MainWindow()
     window.show()
     sys.exit(app.exec_())
 

@@ -20,13 +20,10 @@ from PIL import Image
 
 
 # TODO: 
-# - Let a command flag open cratebuilder automatically.
 # - Add some way to move entire categories around
-# - See if there always needs to be a main category (probably not)
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
 # - You MUST get fx data + save out of the arduboy files!
-# - Add function to flash to arduboy
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -179,7 +176,7 @@ class CrateWindow(QMainWindow):
         self.update_title()
     
     def update_title(self):
-        title = f"Cart Editor"
+        title = f"Cart Editor v{constants.VERSION}"
         if self.filepath:
             title = f"{title} - {self.filepath}"
         else:
