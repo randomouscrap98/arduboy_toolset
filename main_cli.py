@@ -6,8 +6,8 @@ import traceback
 import arduboy.device
 import arduboy.serial
 import arduboy.arduhex
-import arduboy.utils
 import arduboy.fxcart
+import arduboy.patch
 import constants
 import utils
 
@@ -151,12 +151,12 @@ def sketchupload_action(args):
     pard = arduboy.arduhex.read(infile)
     parsed = arduboy.arduhex.parse(pard)
     if args.SSD1309:
-        if parsed.patch_ssd1309():
+        if arduboy.patch.patch_all_ssd1309(parsed.flash_data):
             logging.info("Patched upload for SSD1309")
         else:
             logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
     if args.microled:
-        parsed.patch_microled()
+        arduboy.patch.patch_microled(parsed.flash_data)
         logging.info("Patched upload for Arduino Micro LED polarity")
     logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
     # Define the work to do per device then send it off to the generic function. The handler
@@ -186,7 +186,7 @@ def fxupload_action(args):
     infile = get_required_input(args)
     flashbytes = arduboy.fxcart.read(infile)
     if args.SSD1309:
-        count = arduboy.utils.patch_all_ssd1309(flashbytes)
+        count = arduboy.patch.patch_all_ssd1309(flashbytes)
         if count:
             logging.info(f"Patched {count} programs in cart for SSD1309")
         else:

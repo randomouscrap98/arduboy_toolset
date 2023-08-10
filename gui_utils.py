@@ -1,11 +1,13 @@
+import arduboy.device
+
+import utils
+import logging
+import os
+import traceback
+
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
-import utils
-import logging
-import arduboy.device
-import os
-import traceback
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None

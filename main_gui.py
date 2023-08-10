@@ -1,16 +1,18 @@
-import logging
-import os
-import sys
-import constants
 import arduboy.device
 import arduboy.arduhex
 import arduboy.serial
 import arduboy.fxcart
-import arduboy.utils
+import arduboy.patch
+
 import utils
 import gui_utils
 import cart_gui
-import traceback
+import constants
+
+import logging
+import os
+import sys
+
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
 from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
 from PyQt5 import QtGui
@@ -299,12 +301,12 @@ class ActionTable(QTabWidget):
             pard = arduboy.arduhex.read(filepath)
             parsed = arduboy.arduhex.parse(pard)
             if self.su_ssd1309_cb.isChecked():
-                if parsed.patch_ssd1309():
+                if arduboy.patch.patch_all_ssd1309(parsed.flash_data):
                     logging.info("Patched upload for SSD1309")
                 else:
                     logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
             if self.su_microled_cb.isChecked():
-                parsed.patch_microled()
+                arduboy.patch.patch_microled(parsed.flash_data)
                 logging.info("Patched upload for Arduino Micro LED polarity")
             logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
             s_port = device.connect_serial()

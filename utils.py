@@ -52,12 +52,3 @@ def make_titlescreen_from_slot(slot: arduboy.fxcart.FxParsedSlot):
         return make_titlescreen(f"{base}{slot.meta.title}")
     else:
         return make_titlescreen(f"{base}{slot.category}")
-
-# # Try to get the given image in the right format and size for Arduboy. Still returns a PIL image
-# def convert_titlescreen(image):
-#     # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
-#     image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
-#     image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
-#     return image
-# 
-# 

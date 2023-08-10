@@ -98,7 +98,7 @@ def patch_menubuttons(program):
 
 # Given binary data, patch EVERY instance of the lcd boot program for ssd1309
 # Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py.
-def patch_all_ssd1309(flashdata):
+def patch_all_ssd1309(flashdata: bytearray):
     logging.debug("Patching all LCD boot programs for SSD1309 displays")
     lcdBootProgram_addr = 0
     found = 0
@@ -112,7 +112,7 @@ def patch_all_ssd1309(flashdata):
 
 # Given binary data, patch EVERY instance of wrong LED polarity for Micro
 # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
-def patch_microled(flashdata):
+def patch_microled(flashdata: bytearray):
     for i in range(0,FLASHSIZE-4,2):
         if flashdata[i:i+2] == b'\x28\x98':   # RXLED1
             flashdata[i+1] = 0x9a
