@@ -24,6 +24,8 @@ from PIL import Image
 # TODO: 
 # - Add some way to move entire categories around
 # - Test that new game (though they said you can't flash it to fx?)
+# - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
+# - Add default images on COMPILE, update slots with no image before compile maybe?
 
 class CartWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -138,6 +140,10 @@ class CartWindow(QMainWindow):
         csing_action = QAction("Compile selected item", self)
         csing_action.triggered.connect(self.action_compilesingle)
         debug_menu.addAction(csing_action)
+
+        gimg_action = QAction("Generate image for item", self)
+        gimg_action.triggered.connect(self.action_imagesingle)
+        debug_menu.addAction(gimg_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -427,8 +433,7 @@ class CartWindow(QMainWindow):
         # Need to get selected. If none, just... exit?
         cslot = self.get_selected_slot()
         if cslot:
-            defile = slugify.slugify(cslot.meta.title if cslot.meta.title else "") + f"_{utils.get_filesafe_datetime()}.bin"
-            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", defile, constants.BIN_FILEFILTER, options=QFileDialog.Options())
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "bin"), constants.BIN_FILEFILTER, options=QFileDialog.Options())
             if filepath:
                 bindata = arduboy.fxcart.compile_single(cslot)
                 with open(filepath, "wb") as f:
@@ -437,6 +442,17 @@ class CartWindow(QMainWindow):
         else:
             raise Exception("No selected slot!")
 
+    def action_imagesingle(self):
+        # Need to get selected. If none, just... exit?
+        cslot = self.get_selected_slot()
+        if cslot:
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "png"), constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
+            if filepath:
+                img = utils.make_titlescreen_from_slot(cslot)
+                img.save(filepath)
+                debug_actions.global_debug.add_action_str(f"Generated single debug image for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
     
     def get_slot_parent(self, widget):
         while widget:
@@ -676,7 +692,7 @@ class TitleImageWidget(QLabel):
             # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
             if file_path:
-                image = arduboy.arduhex.pilimage_convert(Image.open(file_path))
+                image = utils.convert_titlescreen(Image.open(file_path))
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
                 image_bytes = arduboy.utils.pilimage_to_bin(image) 
                 self.set_image_bytes(image_bytes)

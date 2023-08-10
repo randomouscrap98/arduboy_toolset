@@ -38,14 +38,6 @@ class ArduhexParsed:
     overwrites_caterina: bool = field(default=False)
 
 
-# Try to get the given image in the right format and size for Arduboy. Still returns a PIL image
-def pilimage_convert(image):
-    # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
-    image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
-    image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
-    return image
-
-
 # Read raw data from the arduboy or hex file. Return an intermediate representation
 # which has as much data as possible filed in.
 def read(filepath) -> ArduboyParsed:
