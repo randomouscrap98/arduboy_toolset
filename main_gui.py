@@ -244,7 +244,7 @@ class ActionTable(QTabWidget):
         self.backup_fx_button = QPushButton("Backup")
         self.backup_fx_button.clicked.connect(self.do_backupfx)
         backupfxgroup, layout = gui_utils.make_file_action("Backup Flashcart", self.backup_fx_picker, self.backup_fx_button, "⬇️", gui_utils.BACKUPCOLOR)
-        self.fxb_trim = QCheckBox("Trim flashcart (safe)")
+        self.fxb_trim = QCheckBox("Trim flashcart (excludes dev data!)")
         self.fxb_trim.setChecked(True)
         layout.addWidget(self.fxb_trim)
 
