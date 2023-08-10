@@ -112,7 +112,7 @@ def get_program_size_bytes(fulldata, index):
 # Get the size in pages of the data section. We do pages instead of bytes because this
 # field may not actually be set properly!
 def get_data_size_pages(fulldata, index):
-    return get_2byte_value(fulldata, index + SLOT_SIZE_HEADER_INDEX)
+    return get_2byte_value(fulldata, index + DATA_SIZE_HEADER_INDEX)
 
 # Get the category of this slot. As usual, index should be the start of the slot
 def get_category(fulldata, index):
@@ -133,16 +133,17 @@ def get_datapart_raw(fulldata, index):
     # Skip data reading if no data page set
     dpage = get_data_page(fulldata, index)
     if dpage == 0xFFFF:
-        return []
+        return bytearray()
     dindex = dpage * FX_PAGESIZE # index + HEADER_LENGTH + TITLE_IMAGE_LENGTH + get_program_size_bytes(fulldata, index)
     # There are THREE options: if the data size is set, we're good to go, nothing else to do. Otherwise, 
     # if there's no save data, the data goes right to the end. If all else fails, we have to do something funny
     dpages = get_data_size_pages(fulldata, index)
     spage = get_save_page(fulldata, index)
-    if dpages != 0xFF:
+    if dpages != 0xFFFF:
         return fulldata[dindex:dindex+dpages*FX_PAGESIZE]
     elif spage == 0xFFFF:
-        return fulldata[dindex:get_slot_size_bytes(fulldata, index)]
+        ssize = get_slot_size_bytes(fulldata, index)
+        return fulldata[dindex:index+ssize]
     else:
         save_start = spage * FX_PAGESIZE
         data = fulldata[dindex:save_start]
@@ -162,7 +163,7 @@ def get_datapart_raw(fulldata, index):
 def get_savepart_raw(fulldata, index):
     spage = get_save_page(fulldata, index)
     if spage == 0xFFFF:
-        return []
+        return bytearray()
     else:
         return fulldata[spage*FX_PAGESIZE:get_slot_size_bytes(fulldata, index)]
 
@@ -244,15 +245,18 @@ def parse(fulldata, report_progress = None):
 
 # Forcibly reassign all the categories, make sure first slot is a category.
 def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
-    category = 0
+    category = -1
     count = 0
     for slot in parsed_slots:
-        if count == 0 and not slot.is_category():
-            raise Exception("First item MUST be a category!")
-        slot.category = category
         if slot.is_category():
             category += 1
+        elif count == 0:
+            raise Exception("First item MUST be a category!")
+        slot.category = category
         count += 1
+        # Fix some data types, even if it's slow and lame
+        # slot.data_raw = bytearray(slot.data_raw)
+        # slot.save_raw = bytearray(slot.save_raw)
 
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
@@ -269,11 +273,10 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
     for slot in parsed_slots:
         # All the raw data we're about to dump into the flashcart. Some may be modified later
         header = default_header()
-        logging.debug(f"ABOUT TO pad some data: {games}/{categories}") #  - {slotpages}")
         title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
-        program = slot.program_raw # LoadHexFileData(fixPath(row[ID_HEXFILE]))
-        datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) # LoadDataFile(fixPath(row[ID_DATAFILE]))
-        savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) #LoadSaveFile(fixPath(row[ID_SAVEFILE]))
+        program = arduboy.utils.pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
+        datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) 
+        savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) 
         # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
         programsize = len(program)
         datasize = len(datafile)
@@ -287,7 +290,6 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
         slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
         nextpage += slotpages
         header[7] = slot.category   #list number
-        logging.debug(f"ABOUT TO write 2 byte value: {games}/{categories} - {slotpages}")
         write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
         write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
         write_2byte_value(slotpages, header, SLOT_SIZE_HEADER_INDEX)
@@ -315,7 +317,6 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
             stringdata = stringdata[:199]  
         header[57:57 + len(stringdata)] = stringdata
         message = arduboy.utils.patch_menubuttons(program)
-        logging.debug(f"ABOUT TO APPEND LOTS OF JUNK: {games}/{categories} - {slotpages}")
         result = result + header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
         previouspage = currentpage
         currentpage = nextpage

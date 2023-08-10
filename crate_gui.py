@@ -480,6 +480,14 @@ class TitleImageWidget(QLabel):
                 self.onimage_bytes.emit(image_bytes) #arduboy.utils.pilimage_to_bin(image))
 
 
+def test():
+    try:
+        fxbin = arduboy.fxcart.read("flashcart-image.bin")
+        parsed = arduboy.fxcart.parse(fxbin)
+        compiled = arduboy.fxcart.compile(parsed)
+    except Exception as ex:
+        logging.exception(ex) 
+
 if __name__ == "__main__":
 
     # Set the custom exception hook. Do this ASAP!!
@@ -498,6 +506,7 @@ if __name__ == "__main__":
     logging.basicConfig(filename=os.path.join(constants.SCRIPTDIR, "arduboy_toolset_gui_log.txt"), level=logging.DEBUG, 
                         format="%(asctime)s - %(levelname)s - %(message)s")
 
+    # test()
     app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
     app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
 
