@@ -303,6 +303,7 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
                 program[0x15] = 0x95
                 write_2byte_value(datapage, program, 0x16)
                 write_2byte_value(datapage, header, DATAPAGE_HEADER_INDEX)
+                write_2byte_value(datasize >> 8, header, DATA_SIZE_HEADER_INDEX)
             if savesize > 0:
                 program[0x18] = 0x18    # Some constants from the builder program
                 program[0x19] = 0x95
