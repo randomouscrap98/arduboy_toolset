@@ -1,19 +1,23 @@
-import logging
-import os
-import sys
-import time
-import constants
 import arduboy.device
 import arduboy.arduhex
 import arduboy.serial
 import arduboy.fxcart
-import arduboy.utils
-import utils
-import gui_utils
-import slugify
-import debug_actions
+import arduboy.shortcuts
 
 from arduboy.constants import *
+from arduboy.common import *
+
+import constants
+import utils
+import gui_utils
+import debug_actions
+
+import logging
+import os
+import sys
+import time
+
+from typing import List
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
 from PyQt5.QtWidgets import QMessageBox, QAction, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt5 import QtGui
@@ -25,7 +29,6 @@ from PIL import Image
 # - Add some way to move entire categories around
 # - Test that new game (though they said you can't flash it to fx?)
 # - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
-# - Add default images on COMPILE, update slots with no image before compile maybe?
 
 class CartWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -227,7 +230,7 @@ class CartWindow(QMainWindow):
     
     # Scan through all the list widget items and get the current parsed slot data from each of them. Right now this is
     # fast, but we can't always rely on that! Maybe...
-    def get_slots(self):
+    def get_slots(self) -> List[arduboy.fxcart.FxParsedSlot]:
         return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
     
     # Return the currently selected slot, or none if... none
@@ -245,6 +248,11 @@ class CartWindow(QMainWindow):
         fxbin = bytearray()
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
+            repstatus("Generating missing images")
+            for slot in slots:
+                if not slot.image_raw or sum(slot.image_raw) == 0:
+                    slot.image_raw = pilimage_to_bin(utils.make_titlescreen_from_slot(slot))
+            repstatus("Compiling FX cart")
             fxbin = arduboy.fxcart.compile(slots, repprog)
         dialog = gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
         if dialog.error_state:
@@ -380,7 +388,7 @@ class CartWindow(QMainWindow):
 
     def action_add_category(self):
         # Need to generate default images at some point!! You have the font!
-        newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
+        newcat = SlotWidget(arduboy.shortcuts.new_parsed_slot_from_category("New Category"))
         self.insert_slotwidget(newcat)
         debug_actions.global_debug.add_action_str(f"Added new category to cart")
 
@@ -390,7 +398,7 @@ class CartWindow(QMainWindow):
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
         if file_path:
             parsed = arduboy.arduhex.read(file_path)
-            newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
+            newgame = SlotWidget(arduboy.shortcuts.new_parsed_slot_from_arduboy(parsed))
             self.insert_slotwidget(newgame)
             debug_actions.global_debug.add_action_str(f"Added game to cart: {parsed.title}")
     
@@ -616,7 +624,7 @@ class SlotWidget(QWidget):
         if file_path:
             # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
             parsed = arduboy.arduhex.read(file_path)
-            self.parsed.data_raw = arduboy.utils.arduhex_to_bin(parsed.rawhex)
+            self.parsed.data_raw = arduboy.fxcart.arduhex_to_bin(parsed.rawhex)
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")
@@ -654,7 +662,7 @@ class ImageConvertWorker(QThread):
         self.image = image
     def run(self):
         try:
-            self.image_done.emit(arduboy.utils.bin_to_pilimage(self.image, raw=True))
+            self.image_done.emit(bin_to_pilimage(self.image, raw=True))
         except Exception as ex:
             self.on_error.emit(ex)
 
@@ -672,7 +680,7 @@ class TitleImageWidget(QLabel):
     
     # NOTE: should be the simple 1024 bytes directly from the parsing! Anytime image bytes are needed, that's what is expected!
     def set_image_bytes(self, image_bytes):
-        if image_bytes is not None:
+        if image_bytes is not None and sum(image_bytes) > 0:
             self.worker = ImageConvertWorker(image_bytes)
             self.worker.image_done.connect(self._finish_image)
             self.worker.on_error.connect(lambda ex: gui_utils.show_exception(ex))
@@ -692,9 +700,8 @@ class TitleImageWidget(QLabel):
             # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
             if file_path:
-                image = arduboy.arduhex.pilimage_titlescreen(Image.open(file_path))
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
-                image_bytes = arduboy.utils.pilimage_to_bin(image) 
+                image_bytes = pilimage_to_bin(Image.open(file_path)) 
                 self.set_image_bytes(image_bytes)
                 self.onimage_bytes.emit(image_bytes) #arduboy.utils.pilimage_to_bin(image))
 

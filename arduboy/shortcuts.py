@@ -11,10 +11,10 @@ from PIL import Image
 # NOTE: this is strictly higher level than any other file! Do NOT include this in any 
 # arduboy library files, it is specifically for external use!
 
-def new_parsed_slot_from_category(title, info = "", image : Image = None, category_id = 0):
+def new_parsed_slot_from_category(title: str, info : str = "", image : Image = None, category_id : int = 0) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         category_id,
-        pilimage_to_bin(image) if image else bytearray(SCREEN_BYTES),
+        pilimage_to_bin(image) if image else None, # MUST BE none for things to know there's no image!
         bytearray(),
         bytearray(),
         bytearray(),
@@ -23,10 +23,10 @@ def new_parsed_slot_from_category(title, info = "", image : Image = None, catego
     # sha256(bytearray()).digest(),
 
 # Given a parsed arduhex file, generate a reasonable slot file
-def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed):
+def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
-        pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # We are hoping the format of the image is already correct!
+        pilimage_to_bin(parsed.image) if parsed.image else None, # MUST BE none for things to know there's no image!
         arduboy.fxcart.arduhex_to_bin(parsed.rawhex), # The three main slot data fields are all stored raw in FxParsedSlot, including program.
         parsed.data_raw,
         parsed.save_raw,

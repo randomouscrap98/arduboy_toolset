@@ -75,7 +75,8 @@ def read(filepath) -> ArduboyParsed:
                         try:
                             extract_file = extract(filename)
                             # NOTE: we don't resize the image, since we don't know what people want to do with it!
-                            result.image = Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
+                            with Image.open(extract_file) as img:
+                                result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
                         except Exception as ex:
                             logging.warning(f"Couldn't load title image: {ex} (ignoring)")
                     elif filename.lower() == "fxdata.bin":

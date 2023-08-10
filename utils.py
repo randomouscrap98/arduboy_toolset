@@ -1,12 +1,14 @@
+import arduboy.fxcart
+
+from constants import *
+from arduboy.constants import *
 
 import os
 import time
 import textwrap
 import slugify
-import arduboy.fxcart
+import logging
 
-from constants import *
-from arduboy.constants import *
 from PIL import Image, ImageDraw, ImageFont
 
 def get_filesafe_datetime():
@@ -47,6 +49,7 @@ def make_titlescreen(text):
     return img
 
 def make_titlescreen_from_slot(slot: arduboy.fxcart.FxParsedSlot):
+    logging.debug(f"Creating title image for {slot.meta.title}")
     base = "Category: " if slot.is_category() else "Game: "
     if slot.meta.title:
         return make_titlescreen(f"{base}{slot.meta.title}")

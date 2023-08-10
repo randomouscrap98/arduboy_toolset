@@ -334,11 +334,10 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
             category += 1
         elif count == 0 or count == 1:
             raise Exception("First two items MUST be a category!")
+        if not slot.image_raw or len(slot.image_raw) == 0:
+            slot.image_raw = bytearray(SCREEN_BYTES) # This means, if you don't provide an image, it will be a black screen
         slot.category = category
         count += 1
-        # Fix some data types, even if it's slow and lame
-        # slot.data_raw = bytearray(slot.data_raw)
-        # slot.save_raw = bytearray(slot.save_raw)
 
 # Compile a single slot (with the given page identifiers, VERY important) and return the result. If you're
 # just testing, the pages aren't required (but you won't get a valid frame)
