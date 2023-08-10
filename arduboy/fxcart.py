@@ -260,6 +260,58 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
         # slot.data_raw = bytearray(slot.data_raw)
         # slot.save_raw = bytearray(slot.save_raw)
 
+# Compile a single slot (with the given page identifiers, VERY important) and return the result. If you're
+# just testing, the pages aren't required (but you won't get a valid frame)
+def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0):
+    # All the raw data we're about to dump into the flashcart. Some may be modified later
+    header = default_header()
+    title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
+    program = arduboy.utils.pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
+    datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) 
+    savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) 
+    # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
+    programsize = len(program)
+    datasize = len(datafile)
+    savesize = len(savefile)
+    id = sha256(program + datafile).digest()
+    programpage = currentpage + PREAMBLE_PAGES
+    datapage    = programpage + (programsize >> 8)  # Data comes after program, wherever it is
+    alignpage   = datapage + (datasize >> 8)        # Calculate align page start even if alignment isn't used
+    alignsize   = arduboy.utils.pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
+    savepage    = alignpage + (alignsize >> 8)      # Save page might not be used, calculate it anyway
+    slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
+    nextpage += slotpages
+    header[7] = slot.category   #list number
+    write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
+    write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
+    write_2byte_value(slotpages, header, SLOT_SIZE_HEADER_INDEX)
+    #don't flash last unused 128 bytes page
+    header[PROGRAM_SIZE_HEADER_INDEX] = (programsize >> 7) - 1 if program[-128:] == b'\xFF' * 128 else programsize >> 7
+    # There IS a program, so let's set some more fields!
+    if programsize > 0:
+        write_2byte_value(programpage, header, PROGRAMPAGE_HEADER_INDEX)
+        if datasize > 0:
+            program[0x14] = 0x18    # IDK, some constants from the other program
+            program[0x15] = 0x95
+            write_2byte_value(datapage, program, 0x16)
+            write_2byte_value(datapage, header, DATAPAGE_HEADER_INDEX)
+            write_2byte_value(datasize >> 8, header, DATA_SIZE_HEADER_INDEX)
+        if savesize > 0:
+            program[0x18] = 0x18    # Some constants from the builder program
+            program[0x19] = 0x95
+            write_2byte_value(savepage, program, 0x1a)
+            write_2byte_value(savepage, header, SAVEPAGE_HEADER_INDEX)
+        header[25:57] = id  # NOTE: hash only used if program set!
+        stringdata = (slot.meta.title.encode('utf-8') + b'\0' + slot.meta.version.encode('utf-8') + b'\0' +
+                        slot.meta.developer.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0')
+    else:
+        stringdata = slot.meta.title.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0'
+    if len(stringdata) > 199:
+        stringdata = stringdata[:199]  
+    header[57:57 + len(stringdata)] = stringdata
+    message = arduboy.utils.patch_menubuttons(program)
+    return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
+
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
 def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
@@ -273,60 +325,13 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
     games = 0
     categories = 0
     for slot in parsed_slots:
-        # All the raw data we're about to dump into the flashcart. Some may be modified later
-        header = default_header()
-        title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
-        program = arduboy.utils.pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
-        datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) 
-        savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) 
-        # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
-        programsize = len(program)
-        datasize = len(datafile)
-        savesize = len(savefile)
-        id = sha256(program + datafile).digest()
-        programpage = currentpage + PREAMBLE_PAGES
-        datapage    = programpage + (programsize >> 8)  # Data comes after program, wherever it is
-        alignpage   = datapage + (datasize >> 8)        # Calculate align page start even if alignment isn't used
-        alignsize   = arduboy.utils.pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
-        savepage    = alignpage + (alignsize >> 8)      # Save page might not be used, calculate it anyway
-        slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
-        nextpage += slotpages
-        header[7] = slot.category   #list number
-        write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
-        write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
-        write_2byte_value(slotpages, header, SLOT_SIZE_HEADER_INDEX)
-        #don't flash last unused 128 bytes page
-        header[PROGRAM_SIZE_HEADER_INDEX] = (programsize >> 7) - 1 if program[-128:] == b'\xFF' * 128 else programsize >> 7
-        # There IS a program, so let's set some more fields!
-        if programsize > 0:
-            write_2byte_value(programpage, header, PROGRAMPAGE_HEADER_INDEX)
-            if datasize > 0:
-                program[0x14] = 0x18    # IDK, some constants from the other program
-                program[0x15] = 0x95
-                write_2byte_value(datapage, program, 0x16)
-                write_2byte_value(datapage, header, DATAPAGE_HEADER_INDEX)
-                write_2byte_value(datasize >> 8, header, DATA_SIZE_HEADER_INDEX)
-            if savesize > 0:
-                program[0x18] = 0x18    # Some constants from the builder program
-                program[0x19] = 0x95
-                write_2byte_value(savepage, program, 0x1a)
-                write_2byte_value(savepage, header, SAVEPAGE_HEADER_INDEX)
-            header[25:57] = id  # NOTE: hash only used if program set!
-            stringdata = (slot.meta.title.encode('utf-8') + b'\0' + slot.meta.version.encode('utf-8') + b'\0' +
-                            slot.meta.developer.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0')
-        else:
-            stringdata = slot.meta.title.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0'
-        if len(stringdata) > 199:
-            stringdata = stringdata[:199]  
-        header[57:57 + len(stringdata)] = stringdata
-        message = arduboy.utils.patch_menubuttons(program)
-        result = result + header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
-        previouspage = currentpage
-        currentpage = nextpage
-        if programsize > 0:
+        result = result + compile_single(slot, currentpage, previouspage, nextpage)
+        if get_program_size_bytes(result, currentpage * FX_PAGESIZE) > 0:
             games += 1
         else:
             categories += 1
+        previouspage = currentpage
+        currentpage = nextpage
         if report_progress:
             report_progress(games + categories, len(parsed_slots))
 

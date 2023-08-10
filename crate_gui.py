@@ -10,6 +10,7 @@ import arduboy.fxcart
 import arduboy.utils
 import utils
 import gui_utils
+import slugify
 
 from arduboy.constants import *
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
@@ -21,9 +22,7 @@ from PIL import Image
 
 # TODO: 
 # - Add some way to move entire categories around
-# - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
-# - Figure out if you can get title images out of arduboy files
-# - You MUST get fx data + save out of the arduboy files!
+# - Test that new game (though they said you can't flash it to fx?)
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -130,6 +129,13 @@ class CrateWindow(QMainWindow):
         cart_menu.addAction(findagain_action)
 
         # -------------------------------
+        debug_menu = menu_bar.addMenu("Debug")
+
+        csing_action = QAction("Compile selected item", self)
+        csing_action.triggered.connect(self.action_compilesingle)
+        debug_menu.addAction(csing_action)
+
+        # -------------------------------
         # Create an action for opening the help window
         open_help_action = QAction("Help", self)
         open_help_action.triggered.connect(self.open_help_window)
@@ -167,6 +173,7 @@ class CrateWindow(QMainWindow):
             except Exception as ex:
                 QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.Ok)
     
+
     def set_modified(self, modded = True):
         self.modified = modded
         slots = self.get_slots()
@@ -209,6 +216,14 @@ class CrateWindow(QMainWindow):
     # fast, but we can't always rely on that! Maybe...
     def get_slots(self):
         return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+    
+    # Return the currently selected slot, or none if... none
+    def get_selected_slot(self) -> arduboy.fxcart.FxParsedSlot:
+        selected_item = self.list_widget.currentItem()
+        if selected_item:
+            return self.list_widget.itemWidget(selected_item).get_slot_data()
+        else:
+            return None
 
     # UNFORTUNATELY, any dialog box handles its own exceptions (it's hard not to), so you must check the return
     # type from here. Ew, TODO: fix this!
@@ -388,6 +403,20 @@ class CrateWindow(QMainWindow):
                     item = self.list_widget.itemAt(parent_item.pos())
                     self.list_widget.scrollToItem(item)
                 break
+    
+    def action_compilesingle(self):
+        # Need to get selected. If none, just... exit?
+        cslot = self.get_selected_slot()
+        if cslot:
+            defile = slugify.slugify(cslot.meta.title if cslot.meta.title else "") + f"_{utils.get_filesafe_datetime()}.bin"
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", defile, constants.BIN_FILEFILTER, options=QFileDialog.Options())
+            if filepath:
+                bindata = arduboy.fxcart.compile_single(cslot)
+                with open(filepath, "wb") as f:
+                    f.write(bindata)
+        else:
+            raise Exception("No selected slot!")
+
     
     def get_slot_parent(self, widget):
         while widget:
