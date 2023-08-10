@@ -1,6 +1,7 @@
 # Given a connected serial port, exit the bootloader
 import logging
 import time
+import io
 
 from arduboy.constants import *
 from arduboy.device import MANUFACTURERS
@@ -218,10 +219,9 @@ def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = Non
     logging.info("Wrote {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
 
 
-# Read FX data and dump to the given file. Can report progress same as arduhex functions. 
-# This is once again different than the arduhex function in that it writes directly to a file.
-# Didn't want to disturb the original implementation
-def backup_fx(s_port, filename, report_progress = None):
+# Read FX data and return the binary dump. Can report progress same as arduhex functions. 
+# def backup_fx(s_port, filename, report_progress = None):
+def backup_fx(s_port, report_progress = None):
 
     ## detect flash cart ## 
     jedec_info = get_and_verify_jdec_bootloader(s_port)
@@ -229,10 +229,9 @@ def backup_fx(s_port, filename, report_progress = None):
     start=time.time()
     
     blocks = jedec_info.capacity // FX_BLOCKSIZE
-    logging.info(f"Reading entire FX in port {s_port.port} into file {filename}")
+    logging.info(f"Reading entire FX in port {s_port.port}") # into file {filename}")
 
-    # Just like original function, it writes directly to the file given.
-    with open(filename,"wb") as binfile:
+    with io.BytesIO() as binfile: # open(filename,"wb") as binfile:
         for block in range (0, blocks):
             if block & 1:
                 s_port.write(b"x\xC0") #RGB BLUE OFF, buttons disabled
@@ -258,9 +257,14 @@ def backup_fx(s_port, filename, report_progress = None):
             if report_progress:
                 report_progress(block + 1, blocks)
 
+        binfile.seek(0)
+        result = binfile.read()
+
     s_port.write(b"x\x40")#RGB LED off, buttons enabled
     s_port.read(1)
     logging.info("Read {} blocks in {} seconds".format(blocks, round(time.time() - start,2)))
+
+    return bytearray(result)
 
 
 # NOTE: So in the flashcart-upload.py utility, it's an if/else. So, you either flash "utility" data,

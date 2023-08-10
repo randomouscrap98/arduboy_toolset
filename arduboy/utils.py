@@ -157,24 +157,6 @@ def bin_to_pilimage(byteData, raw = False):
     byteLength = len(byteData)
     if byteLength != SCREEN_BYTES:
         raise Exception(f"Image binary not right size! Expected {SCREEN_BYTES} got {byteLength}")
-    # newdata = bytearray(SCREEN_BYTES)
-    # wmod = SCREEN_WIDTH - 1
-    # hmod = (SCREEN_HEIGHT // 8) - 1
-    # hinv = (SCREEN_HEIGHT // 8)
-    # for b in range(0, SCREEN_BYTES):
-    #     # p = (b // SCREEN_HEIGHT) + SCREEN_WIDTH * (b & hmod) # % SCREEN_WIDTH + b // SCREEN_WIDTH] = byteData[b]
-    #     # newdata[b] = byteData[p] # (b // SCREEN_HEIGHT) + SCREEN_WIDTH * (b & hmod)] # % SCREEN_WIDTH + b // SCREEN_WIDTH] = byteData[b]
-    #     p = hinv * (b & wmod) + b // SCREEN_WIDTH
-    #     newdata[p] = byteData[b]
-    #     # newdata[b] = (
-    #     #     byteData[b] & 0x1 + 
-    #     # )
-    # pixels = bytearray(SCREEN_WIDTH * SCREEN_HEIGHT)
-    # for b in range(0, byteLength):
-    #     for i in range(0, 8):
-    #         yPos = b//SCREEN_WIDTH*8+i
-    #         xPos = b%SCREEN_WIDTH
-    #         pixels[yPos * SCREEN_WIDTH + xPos] = 255 * bytebit(byteData[b], i)
 
     pixels = bytearray(SCREEN_WIDTH * SCREEN_HEIGHT)
     for b in range(0, len(pixels)):
@@ -185,8 +167,6 @@ def bin_to_pilimage(byteData, raw = False):
         return pixels
 
     img = Image.frombytes("L", (SCREEN_WIDTH, SCREEN_HEIGHT), pixels)
-    # img = img.transpose(Image.Transpose.ROTATE_90)
-    # img = Image.frombytes("1", (SCREEN_WIDTH, SCREEN_HEIGHT), byteData)
 
     return img
 

@@ -28,7 +28,6 @@ from PIL import Image
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
 # - Add total game count? And category?
-# - Add way to search (ctrl-F), how will that work?
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -72,11 +71,6 @@ class CrateWindow(QMainWindow):
         open_action.triggered.connect(self.action_opencart)
         file_menu.addAction(open_action)
 
-        open_read_action = QAction("Load From Arduboy", self)
-        open_read_action.setShortcut("Ctrl+Alt+L")
-        # open_cart_action.triggered.connect(self.open_opencart)
-        file_menu.addAction(open_read_action)
-
         save_action = QAction("Save Cart", self)
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.action_save)
@@ -89,8 +83,13 @@ class CrateWindow(QMainWindow):
 
         file_menu.addSeparator()
 
+        open_read_action = QAction("Load From Arduboy", self)
+        open_read_action.setShortcut("Ctrl+Alt+L")
+        open_read_action.triggered.connect(self.action_openflash)
+        file_menu.addAction(open_read_action)
+
         flash_action = QAction("Flash to Arduboy", self)
-        flash_action.setShortcut("Ctrl+Alt+F")
+        flash_action.setShortcut("Ctrl+Alt+W")
         # open_cart_action.triggered.connect(self.open_opencart)
         file_menu.addAction(flash_action)
 
@@ -242,6 +241,22 @@ class CrateWindow(QMainWindow):
             if filepath:
                 bindata = arduboy.fxcart.read(filepath)
                 self.loadcart(bindata, filepath)
+    
+    def action_openflash(self):
+        if self.safely_discard_changes():
+            # Try to connect to arduboy
+            bindata = bytearray()
+            def do_work(device, repprog, repstatus):
+                nonlocal bindata
+                repstatus("Reading FX flash...")
+                s_port = device.connect_serial()
+                bindata = arduboy.serial.backup_fx(s_port, repprog)
+                repstatus("Trimming FX file...")
+                bindata = arduboy.fxcart.trim(bindata)
+            dialog = gui_utils.do_progress_work(do_work, "Backup FX Flash")
+            if not dialog.error_state:
+                self.filepath = None # There is no file anymore
+                self.loadcart(bindata)
 
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def action_save(self):

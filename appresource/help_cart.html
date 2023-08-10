@@ -17,7 +17,7 @@
 
 <p>
     If any games use the FX save feature, you will need to do this "direct" modification every time. It first loads
-    the FX flashcart data into memory, so modifications are done locally (and can be saved to the filesystem) before
+    the FX flashcart data into memory, so <b>modifications are done locally</b> (and can be saved to the filesystem) before
     being written back. Or, you could work strictly on backups, just keep in mind you'll lose any save games that 
     are stored on the FX chip (most games currently don't do this)
 </p>
@@ -25,5 +25,55 @@
 <h2>Cart List</h2>
 
 <p>
-    <!--Talk about how the list is structured and what the buttons mean-->
+    When you load a flashcart into the UI, the cart items are displayed in a list, even though the structure
+    on the Arduboy seems to be a tree of games under categories. The list is displayed like this so it mirrors 
+    how it is stored on the FX flash. This is done so that, in the future, you will be able to very quickly 
+    pull just metadata off the FX flash and reflash only your changes, making the whole thing much much quicker. 
+</p>
+
+<h3>Adding games + categories</h3>
+
+<p>
+    To add a game, use the <b>Cart</b> menu or the keyboard shortcut. The game will be inserted below the currently
+    selected cart item, or at the bottom if none are selected. You can load a game from a .hex or a 
+    .arduboy. If you use .arduboy, some of the fields are auto-filled (if they exist). If you do not provide
+    a title image on write, one will be generated for you.
+</p>
+
+<p>
+    To add a category, you can also use the <b>Cart</b> menu or the keyboard shortcut. Categories have no 
+    associated program or FX data, and are simply the title screen and title/info fields. 
+</p>
+
+<p>
+    <b>Your cart must always start with a category!</b>
+</p>
+
+<h3>Editing games + categories</h3>
+
+<p>
+    To change game data, simply edit the text fields or click the buttons or image on the left of the 
+    game info. Images are automatically converted to the right format, though if it's not the right aspect 
+    ratio, it is currently stretched to fit rather than cropped. The three small buttons under the image
+    let you update the program, FX data, and FX save respectively. The numbers under the buttons indicate
+    the size currently stored for each.
+</p>
+
+<p>
+    There is a limit to how much text information you can put, at roughly 195 bytes total across all fields.
+    If you go over this, your information is truncated.
+</p>
+
+<p>
+    To move games around, simply drag + drop the items on screen. Note that you can move categories too, but
+    it will not move all games in the category along with it. This is because the list mimics how it is stored
+    on flash: a category automatically encompasses all the games after it, until the next category. Moving entire
+    categories may come in the future.
+</p>
+
+<p>
+    To delete games, simply press the delete key while the game is selected, or use the <b>Cart</b> menu. 
+    There is no undo, so be careful (though nothing is written to your arduboy until you flash it back). 
+    If you delete a category, all games in that category remain in the same place, and so become children of the
+    previous category.
 </p>

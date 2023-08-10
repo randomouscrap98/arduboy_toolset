@@ -98,10 +98,6 @@ class MainWindow(QMainWindow):
         new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(new_cart_action)
 
-        # open_cart_action = QAction("Open Cart (.bin)", self)
-        # open_cart_action.triggered.connect(self.open_opencart)
-        # file_menu.addAction(open_cart_action)
-
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
@@ -129,29 +125,10 @@ class MainWindow(QMainWindow):
         new_window = crate_gui.CrateWindow() # file_path, newcart = True)
         self.cart_windows.append(new_window)
         new_window.show()
-        # options = QFileDialog.Options()
-        # file_path, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
-        # if file_path:
-        #     new_window = crate_gui.CrateWindow(file_path, newcart = True)
-        #     self.cart_windows.append(new_window)
-        #     new_window.show()
-
-    # def open_opencart(self):
-    #     options = QFileDialog.Options()
-    #     file_path, _ = QFileDialog.getOpenFileName(self, "Choose Cart File", "", constants.BIN_FILEFILTER, options=options)
-    #     if file_path:
-    #         new_window = crate_gui.CrateWindow(file_path)
-    #         self.cart_windows.append(new_window)
-    #         new_window.show()
     
     def closeEvent(self, event) -> None:
         if hasattr(self, 'help_window'):
             self.help_window.close()
-        # for cw in self.cart_windows:
-        #     try:
-        #         cw.close()
-        #     except Exception as ex:
-        #         logging.error(f"Error when closing cart window: {ex}")
 
 
 class ConnectionInfo(QWidget):
@@ -390,10 +367,13 @@ class ActionTable(QTabWidget):
         def do_work(device, repprog, repstatus):
             repstatus("Saving FX Flash to file...")
             s_port = device.connect_serial()
-            arduboy.serial.backup_fx(s_port, filepath, repprog)
+            # arduboy.serial.backup_fx(s_port, filepath, repprog)
+            bindata = arduboy.serial.backup_fx(s_port, repprog)
             if self.fxb_trim.isChecked():
                 repstatus("Trimming FX file...")
-                arduboy.fxcart.trim_file(filepath)
+                bindata = arduboy.fxcart.trim(bindata)
+            with open (filepath,"wb") as f:
+                f.write(bindata)
             arduboy.serial.exit_normal(s_port) 
 
         gui_utils.do_progress_work(do_work, "Backup FX Flash")

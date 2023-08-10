@@ -213,9 +213,11 @@ def fxbackup_action(args):
         # Not the most elegant way to do this, I might change it later
         real_outfile = outfile if device == 1 else f"{device}-{outfile}"
         device += 1
-        arduboy.serial.backup_fx(s_port, real_outfile, basic_reporting)
+        bindata = arduboy.serial.backup_fx(s_port, basic_reporting)
         if args.trim:
-            arduboy.fxcart.trim_file(real_outfile)
+            bindata = arduboy.fxcart.trim(bindata)
+        with open (real_outfile,"wb") as f:
+            f.write(bindata)
     work_per_device(args, do_work)
 
 def eeprom_backup_action(args):
