@@ -9,7 +9,7 @@ import arduboy.fxcart
 import arduboy.utils
 import utils
 import gui_utils
-import crate_gui
+import cart_gui
 import traceback
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
 from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
@@ -39,8 +39,8 @@ def main():
 
     gui_utils.try_create_emoji_font()
 
-    if "--crate" in sys.argv:
-        window = crate_gui.CrateWindow()
+    if "--cart" in sys.argv:
+        window = cart_gui.CartWindow()
     else:
         window = MainWindow()
     window.show()
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.about_window.show()
     
     def open_newcart(self):
-        new_window = crate_gui.CrateWindow() # file_path, newcart = True)
+        new_window = cart_gui.CartWindow() # file_path, newcart = True)
         self.cart_windows.append(new_window)
         new_window.show()
     

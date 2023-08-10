@@ -11,6 +11,7 @@ import arduboy.utils
 import utils
 import gui_utils
 import slugify
+import debug_actions
 
 from arduboy.constants import *
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
@@ -24,7 +25,7 @@ from PIL import Image
 # - Add some way to move entire categories around
 # - Test that new game (though they said you can't flash it to fx?)
 
-class CrateWindow(QMainWindow):
+class CartWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
 
     def __init__(self):
@@ -55,6 +56,9 @@ class CrateWindow(QMainWindow):
         centralwidget.setLayout(layout)
         self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
+
+        debug_actions.global_debug.add_item.connect(lambda item: self.action_label.setText(item.action))
+        debug_actions.global_debug.add_action_str("Opened cart editor")
         
     def create_menu(self):
         # Create the top menu
@@ -145,6 +149,9 @@ class CrateWindow(QMainWindow):
         footerwidget = QWidget()
         footerlayout = QHBoxLayout()
 
+        self.action_label = QLabel("Action...")
+        self.action_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+        footerlayout.addWidget(self.action_label)
         spacer = QWidget()
         footerlayout.addWidget(spacer)
         footerlayout.setStretchFactor(spacer, 1)
@@ -249,6 +256,7 @@ class CrateWindow(QMainWindow):
             f.write(rawdata)
         self.filepath = filepath
         self.set_modified(False)
+        debug_actions.global_debug.add_action_str(f"Saved cart to file {filepath}")
 
     def clear(self):
         self.list_widget.clear()
@@ -298,6 +306,7 @@ class CrateWindow(QMainWindow):
     def action_newcart(self):
         if self.safely_discard_changes():
             self.clear()
+            debug_actions.global_debug.add_action_str("Created new cart")
 
     def action_opencart(self):
         if self.safely_discard_changes():
@@ -305,6 +314,7 @@ class CrateWindow(QMainWindow):
             if filepath:
                 bindata = arduboy.fxcart.read(filepath)
                 self.loadcart(bindata, filepath)
+                debug_actions.global_debug.add_action_str(f"Loaded cart from {filepath}")
     
     def action_openflash(self):
         if self.safely_discard_changes():
@@ -321,6 +331,7 @@ class CrateWindow(QMainWindow):
             if not dialog.error_state:
                 self.filepath = None # There is no file anymore
                 self.loadcart(bindata)
+                debug_actions.global_debug.add_action_str(f"Loaded cart from Arduboy")
     
     def action_flash(self):
         # Might as well ask... it's kind of a big deal to flash
@@ -339,6 +350,10 @@ class CrateWindow(QMainWindow):
             repstatus("Flashing FX Cart...")
             arduboy.serial.flash_fx(bindata, 0, s_port, verify=True, report_progress=repprog)
         dialog = gui_utils.do_progress_work(do_work, "Flash FX Cart")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Flashed cart to Arduboy")
+        else:
+            debug_actions.global_debug.add_action_str(f"Failed flashing cart to Arduboy")
 
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def action_save(self):
@@ -361,6 +376,7 @@ class CrateWindow(QMainWindow):
         # Need to generate default images at some point!! You have the font!
         newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
         self.insert_slotwidget(newcat)
+        debug_actions.global_debug.add_action_str(f"Added new category to cart")
 
     def action_add_game(self, file_path = None):
         if not file_path:
@@ -370,13 +386,16 @@ class CrateWindow(QMainWindow):
             parsed = arduboy.arduhex.read(file_path)
             newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
             self.insert_slotwidget(newgame)
+            debug_actions.global_debug.add_action_str(f"Added game to cart: {parsed.title}")
     
     def action_delete_selected(self):
         selected_items = self.list_widget.selectedItems()
+        selected_count = len(selected_items)
         for item in selected_items:
             row = self.list_widget.row(item)
             self.list_widget.takeItem(row)
         self.set_modified(True)
+        debug_actions.global_debug.add_action_str(f"Removed {selected_count} slots from cart")
     
     def action_find(self, use_last = False):
         if not use_last:
@@ -414,6 +433,7 @@ class CrateWindow(QMainWindow):
                 bindata = arduboy.fxcart.compile_single(cslot)
                 with open(filepath, "wb") as f:
                     f.write(bindata)
+                debug_actions.global_debug.add_action_str(f"Compiled single cart: {cslot.meta.title}")
         else:
             raise Exception("No selected slot!")
 
@@ -425,7 +445,7 @@ class CrateWindow(QMainWindow):
             widget = widget.parent()
 
     def open_help_window(self):
-        self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
+        self.help_window = gui_utils.HtmlWindow("Arduboy Cart Editor Help", "help_cart.html")
         self.help_window.show()
     
     
@@ -443,6 +463,8 @@ class CrateWindow(QMainWindow):
 
             if reply == QMessageBox.Save:
                 return self.save() # The user still did not make a decision if they didn't save
+            elif reply == QMessageBox.Discard:
+                debug_actions.global_debug.add_action_str(f"Discarded current cart")
             
             # Caller needs to know if the user chose some action that allows them to continue
             return reply != QMessageBox.Cancel
@@ -581,6 +603,7 @@ class SlotWidget(QWidget):
             self.parsed.data_raw = arduboy.utils.arduhex_to_bin(parsed.rawhex)
             self.update_metalabel()
             self.onchange.emit()
+            debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")
 
     def select_data(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
@@ -589,6 +612,7 @@ class SlotWidget(QWidget):
                 self.parsed.data_raw = f.read()
             self.update_metalabel()
             self.onchange.emit()
+            debug_actions.global_debug.add_action_str(f"Edited FX data for: {self.parsed.meta.title}")
 
     def select_save(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Save File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
@@ -597,10 +621,12 @@ class SlotWidget(QWidget):
                 self.parsed.save_raw = f.read()
             self.update_metalabel()
             self.onchange.emit()
+            debug_actions.global_debug.add_action_str(f"Edited FX save for: {self.parsed.meta.title}")
     
     def set_image_bytes(self, image_bytes):
         self.parsed.image_raw = image_bytes
         self.onchange.emit()
+        debug_actions.global_debug.add_action_str(f"Edited tile image for: {self.parsed.meta.title}")
 
 # Perform image conversion in a worker, since it actually does take a non-trivial amount of 
 # time. This speeds up the apparent rendering of the list
@@ -692,6 +718,6 @@ if __name__ == "__main__":
 
     gui_utils.try_create_emoji_font()
 
-    window = CrateWindow()
+    window = CartWindow()
     window.show()
     sys.exit(app.exec_())
