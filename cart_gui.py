@@ -692,7 +692,7 @@ class TitleImageWidget(QLabel):
             # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
             if file_path:
-                image = utils.convert_titlescreen(Image.open(file_path))
+                image = arduboy.arduhex.pilimage_titlescreen(Image.open(file_path))
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
                 image_bytes = arduboy.utils.pilimage_to_bin(image) 
                 self.set_image_bytes(image_bytes)

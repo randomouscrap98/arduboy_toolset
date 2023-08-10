@@ -1,10 +1,11 @@
+from arduboy.constants import *
+
 import logging
 import os
 import tempfile
 import zipfile
 import demjson3
 
-from arduboy.constants import *
 from typing import List
 from dataclasses import dataclass, field
 from PIL import Image
@@ -37,6 +38,13 @@ class ArduhexParsed:
     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
     overwrites_caterina: bool = field(default=False)
 
+
+# Try to get the given image in the right format and size for Arduboy. Still returns a PIL image. This is 
+def pilimage_titlescreen(image):
+    # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
+    image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
+    image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
+    return image
 
 # Read raw data from the arduboy or hex file. Return an intermediate representation
 # which has as much data as possible filed in.
@@ -72,7 +80,7 @@ def read(filepath) -> ArduboyParsed:
                     elif filename.lower().endswith(".png") and filename.lower() != "banner.png" and not result.image:
                         try:
                             extract_file = extract(filename)
-                            result.image = pilimage_convert(Image.open(extract_file))
+                            result.image = pilimage_titlescreen(Image.open(extract_file))
                         except Exception as ex:
                             logging.warning(f"Couldn't load title image: {ex} (ignoring)")
                     elif filename.lower() == "fxdata.bin":

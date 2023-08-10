@@ -1,14 +1,15 @@
 # NOTE: a lot of this code is adapted (with heavy modifications) from
 # https://github.com/MrBlinky/Arduboy-Python-Utilities
 
-from hashlib import sha256
+from arduboy.common import *
+from arduboy.constants import *
+from arduboy.patch import *
+
 import logging
-import arduboy.device
-import arduboy.utils
 import struct
 
+from hashlib import sha256
 from typing import List
-from arduboy.constants import *
 from dataclasses import dataclass, field
 from PIL import Image
 
@@ -34,6 +35,7 @@ DATA_SIZE_HEADER_INDEX = 21         # "" data segment size (2 bytes, factor of 2
 META_HEADER_INDEX = 57              # "" metadata
 
 META_HEADER_SIZE = 199              # Length of the metadata section
+
 
 # Each slot has a "string" section of the header which stores up to 4 
 # pieces of data. Although categories will only have (title, info), and
@@ -64,12 +66,91 @@ class FxParsedSlot:
     # def progdata_hash(self):
     #     sha256(self.p self.data_raw)
 
+
 # Read and pad the fx data from the given file and return the bytearray
 def read(filename):
     logging.debug(f'Reading flash image from file "{filename}"')
     with open(filename, "rb") as f:
         flashdata = bytearray(f.read())
-    return arduboy.utils.pad_data(flashdata, FX_PAGESIZE)
+    return pad_data(flashdata, FX_PAGESIZE)
+
+# -------------------------------------
+#     FX UTILITIES - DATA CONVERSION
+# -------------------------------------
+
+# Convert a block of bytes (should be pre-filled with the correct data) to a single "arduhex" 
+# string. Taken almost directly from 
+# https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-decompiler.py
+def bin_to_arduhex(byteData):
+    byteLength = len(byteData)
+
+    hexData = []
+    for byteNum in range(0, byteLength, 16):
+        hexLine = ":10" + int_to_hex(byteNum, 4) + "00"
+        for i in range(0, 16):
+            if byteNum+i > byteLength-1:
+                break
+            hexLine += int_to_hex(byteData[byteNum+i], 2)
+        lineSum = 0
+        for i in range(1, 41, 2):
+            hexByte = hexLine[i] + hexLine[i+1]
+            lineSum += int(hexByte, 16)
+
+        checkSum = 256-lineSum%256
+        if checkSum == 256:
+            checkSum = 0
+        hexLine += int_to_hex(checkSum, 2)
+        hexData.append(hexLine)
+
+    if byteLength%16 > 0:
+        lineSum = (byteLength%16) + (byteLength-byteLength%16)
+        hexLine = ":" + int_to_hex(byteLength%16, 2) + int_to_hex(byteLength-byteLength%16, 4) + "00"
+        for i in range(0, byteLength%16):
+            lineSum += int(byteData[byteLength-byteLength%16+i])
+            hexLine += int_to_hex(int(byteData[byteLength-byteLength%16+i]))
+        hexLine += int_to_hex(256-lineSum%256, 2)
+        hexData.append(hexLine)
+
+    fullHexString = ""
+    for hexLine in range(0, len(hexData)):
+        fullHexString += hexData[hexLine]
+        if hexLine != len(hexData)-1:
+            fullHexString += "\n"
+
+    return fullHexString
+
+# Convert an in-memory arduhex string into pure bytes for writing to a flashcart. Note
+# that this is STRICTLY different than parsing an arduhex string for dumping to serial!
+# Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
+# TODO: Some of this "arduhex" parsing code needs to be refactored! It's confusing why
+# one would produce a "trimmed" binary and the other a "parsed object" with information
+# ABOUT trimming but the data not trimmed!!
+def arduhex_to_bin(arduhex_str):
+    # result = arduboy.arduhex.parse(arduboy.arduhex.ArduboyParsed("", rawhex=arduhex_str))
+    # return result.flash_data
+    records = arduhex_str.splitlines()
+    bytes = bytearray(b'\xFF' * 29 * 1024)
+    flash_end = 0
+    for rcd in records :
+        if rcd[0] == ":" :
+            rcd_len  = int(rcd[1:3],16)
+            rcd_typ  = int(rcd[7:9],16)
+            rcd_addr = int(rcd[3:7],16)
+            checksum = int(rcd[9+rcd_len*2:11+rcd_len*2],16)
+            if (rcd_typ == 0) and (rcd_len > 0) :
+                flash_addr = rcd_addr
+                for i in range(1,9+rcd_len*2, 2) :
+                    byte = int(rcd[i:i+2],16)
+                    checksum += byte
+                    if i >= 9:
+                        bytes[flash_addr] = byte
+                        flash_addr += 1
+                if flash_addr > flash_end:
+                    flash_end = flash_addr
+                if checksum  & 0xFF != 0 :
+                    raise Exception(f"Hex file contains errors! Checksum fail: {checksum}")
+    flash_end = (flash_end + 255) & 0xFF00
+    return bytes[0:flash_end]
 
 # ----------------------
 #    HEADER PARSING
@@ -266,9 +347,9 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     # All the raw data we're about to dump into the flashcart. Some may be modified later
     header = default_header()
     title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
-    program = arduboy.utils.pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
-    datafile = arduboy.utils.pad_data(slot.data_raw, FX_PAGESIZE) 
-    savefile = arduboy.utils.pad_data(slot.save_raw, SAVE_ALIGNMENT) 
+    program = pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
+    datafile = pad_data(slot.data_raw, FX_PAGESIZE) 
+    savefile = pad_data(slot.save_raw, SAVE_ALIGNMENT) 
     # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
     programsize = len(program)
     datasize = len(datafile)
@@ -277,7 +358,7 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     programpage = currentpage + PREAMBLE_PAGES
     datapage    = programpage + (programsize >> 8)  # Data comes after program, wherever it is
     alignpage   = datapage + (datasize >> 8)        # Calculate align page start even if alignment isn't used
-    alignsize   = arduboy.utils.pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
+    alignsize   = pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
     savepage    = alignpage + (alignsize >> 8)      # Save page might not be used, calculate it anyway
     slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
     nextpage += slotpages
@@ -309,7 +390,7 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     if len(stringdata) > 199:
         stringdata = stringdata[:199]  
     header[57:57 + len(stringdata)] = stringdata
-    message = arduboy.utils.patch_menubuttons(program)
+    message = patch_menubuttons(program)
     return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
 
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
