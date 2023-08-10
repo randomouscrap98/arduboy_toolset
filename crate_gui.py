@@ -26,7 +26,7 @@ from PIL import Image
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
 # - You MUST get fx data + save out of the arduboy files!
-# - Write the fx data size to the header + test transparency again
+# - Add function to flash to arduboy
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -94,7 +94,7 @@ class CrateWindow(QMainWindow):
 
         flash_action = QAction("Flash to Arduboy", self)
         flash_action.setShortcut("Ctrl+Alt+W")
-        # open_cart_action.triggered.connect(self.open_opencart)
+        flash_action.triggered.connect(self.action_flash)
         file_menu.addAction(flash_action)
 
         file_menu.addSeparator()
@@ -301,6 +301,16 @@ class CrateWindow(QMainWindow):
             if not dialog.error_state:
                 self.filepath = None # There is no file anymore
                 self.loadcart(bindata)
+    
+    def action_flash(self):
+        # Must compile data first
+        bindata = self.get_current_as_raw()
+        def do_work(device, repprog, repstatus):
+            nonlocal bindata
+            s_port = device.connect_serial()
+            repstatus("Flashing FX Cart...")
+            arduboy.serial.flash_fx(bindata, 0, s_port, verify=True, report_progress=repprog)
+        dialog = gui_utils.do_progress_work(do_work, "Flash FX Cart")
 
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def action_save(self):
@@ -550,7 +560,8 @@ class SlotWidget(QWidget):
         self.parsed.image_raw = image_bytes
         self.onchange.emit()
 
-
+# Perform image conversion in a worker, since it actually does take a non-trivial amount of 
+# time. This speeds up the apparent rendering of the list
 class ImageConvertWorker(QThread):
     image_done = pyqtSignal(bytearray)
     def __init__(self, image):
@@ -577,12 +588,6 @@ class TitleImageWidget(QLabel):
             self.worker = ImageConvertWorker(image_bytes)
             self.worker.image_done.connect(self._finish_image)
             self.worker.start()
-            # pil_image = arduboy.utils.bin_to_pilimage(image_bytes)
-            # qt_image = QtGui.QImage(pil_image.tobytes(), pil_image.width, pil_image.height, QtGui.QImage.Format_Grayscale8)
-            # qt_image = QtGui.QImage(arduboy.utils.bin_to_pilimage(image_bytes, raw = True), SCREEN_WIDTH, SCREEN_HEIGHT, QtGui.QImage.Format_Grayscale8)
-            # pixmap = QtGui.QPixmap(qt_image) 
-            # self.setPixmap(pixmap)
-            # self.setText("")
         else:
             self.setPixmap(QtGui.QPixmap())
             self.setText("Choose image")

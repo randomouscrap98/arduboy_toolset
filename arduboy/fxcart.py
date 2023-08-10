@@ -247,11 +247,13 @@ def parse(fulldata, report_progress = None):
 def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
     category = -1
     count = 0
+    if len(parsed_slots) < 2:
+        raise Exception("Not enough items in the cart! Must have at least two categories (bootloader requirement)")
     for slot in parsed_slots:
         if slot.is_category():
             category += 1
-        elif count == 0:
-            raise Exception("First item MUST be a category!")
+        elif count == 0 or count == 1:
+            raise Exception("First two items MUST be a category!")
         slot.category = category
         count += 1
         # Fix some data types, even if it's slow and lame
