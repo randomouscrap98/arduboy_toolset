@@ -12,8 +12,8 @@ import utils
 import gui_utils
 
 from arduboy.constants import *
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
-from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
+from PyQt5.QtWidgets import QMessageBox, QAction, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 from PIL import Image
@@ -28,6 +28,7 @@ from PIL import Image
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
 # - Add total game count? And category?
+# - Add way to search (ctrl-F), how will that work?
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -45,7 +46,8 @@ class CrateWindow(QMainWindow):
         # layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
-        
+
+        self.list_widget.setUniformItemSizes(True) # Makes categories ugly but... scrolling nicer
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
         # self.item = SlotWidget()
@@ -88,23 +90,6 @@ class CrateWindow(QMainWindow):
 
         file_menu.addSeparator()
 
-        add_action = QAction("Add Game", self)
-        add_action.setShortcut("Ctrl+G")
-        add_action.triggered.connect(self.action_add_game)
-        file_menu.addAction(add_action)
-
-        add_cat_action = QAction("Add Category", self)
-        add_cat_action.setShortcut("Ctrl+T")
-        add_cat_action.triggered.connect(self.action_add_category)
-        file_menu.addAction(add_cat_action)
-
-        del_action = QAction("Delete Selected", self)
-        del_action.setShortcut(Qt.Key_Delete)
-        del_action.triggered.connect(self.action_delete_selected)
-        file_menu.addAction(del_action)
-
-        file_menu.addSeparator()
-
         flash_action = QAction("Flash to Arduboy", self)
         flash_action.setShortcut("Ctrl+Alt+F")
         # open_cart_action.triggered.connect(self.open_opencart)
@@ -115,6 +100,29 @@ class CrateWindow(QMainWindow):
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
+
+        # -------------------------------
+        cart_menu = menu_bar.addMenu("Cart")
+
+        add_action = QAction("Add Game", self)
+        add_action.setShortcut("Ctrl+G")
+        add_action.triggered.connect(self.action_add_game)
+        cart_menu.addAction(add_action)
+
+        add_cat_action = QAction("Add Category", self)
+        add_cat_action.setShortcut("Ctrl+T")
+        add_cat_action.triggered.connect(self.action_add_category)
+        cart_menu.addAction(add_cat_action)
+
+        del_action = QAction("Delete Selected", self)
+        del_action.setShortcut(Qt.Key_Delete)
+        del_action.triggered.connect(self.action_delete_selected)
+        cart_menu.addAction(del_action)
+
+        find_action = QAction("Search cart", self)
+        find_action.setShortcut("Ctrl+F")
+        find_action.triggered.connect(self.action_find)
+        cart_menu.addAction(find_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -191,25 +199,40 @@ class CrateWindow(QMainWindow):
     # Load the given binary data into the window, clearing out whatever was there before
     def loadcart(self, bindata, filepath = None):
         parsed = None
+        # widgits = [] # Yes it's a cheeky name ufufufu
         # IDK how long it takes to parse, just throw up a loading window just in case anyway
         def do_work(repprog, repstatus):
-            nonlocal parsed
+            nonlocal parsed # widgits # parsed
             parsed = arduboy.fxcart.parse(bindata, repprog)
             repstatus("Rendering items")
             count = 0
             rest = 1
             for slot in parsed:
                 self._add_slot_signal.emit(slot, count == 0)
+                # widget = SlotWidget(slot)
+                # item = self.setup_slotwidget_item(widget)
+                # widgits.append((widget, item))
                 count += 1
                 repprog(count, len(parsed))
                 # This is a hack. The UI does not update unless this is here. An exponentially decreasing thread sleep
                 if count == rest:
                     time.sleep(0.05)
                     rest = rest << 1
-        gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
-        if filepath:
-            self.filepath = filepath
-        self.set_modified(False)
+        self.list_widget.blockSignals(True)
+        try:
+            dialog = gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
+            if not dialog.error_state:
+            #     self.list_widget.clear()
+            #     # for widget,item in widgits:
+            #     #     # item = self.setup_slotwidget_item(widget)
+            #     #     self.list_widget.addItem(item)
+            #     #     self.list_widget.setItemWidget(item, widget) 
+                if filepath:
+                    self.filepath = filepath
+                self.set_modified(False)
+        finally:
+            self.list_widget.blockSignals(False)
+            # self.list_widget.setUniformItemSizes(False)
     
     # -----------------------------------
     #    ACTIONS FROM MENU / SHORTCUTS
@@ -261,6 +284,34 @@ class CrateWindow(QMainWindow):
         for item in selected_items:
             row = self.list_widget.row(item)
             self.list_widget.takeItem(row)
+        self.set_modified(True)
+    
+    def action_find(self):
+        search_text, ok = QInputDialog.getText(self, 'Find in cart', 'Search text:')
+        if not (search_text and ok):
+            return
+        # search_text = "Manic"  # Change this to your search text
+        line_edits = self.findChildren(QLineEdit)
+        le_index = 0
+        for le in line_edits:
+            if le.hasFocus():
+                break
+            le_index += 1
+        reordered_edits = line_edits[le_index + 1:] + line_edits[:le_index + 1]
+        for line_edit in reordered_edits:
+            if search_text.lower() in line_edit.text().lower():
+                line_edit.setFocus()
+                parent_item = self.get_slot_parent(line_edit)
+                if parent_item:
+                    item = self.list_widget.itemAt(parent_item.pos())
+                    self.list_widget.scrollToItem(item)
+                break
+    
+    def get_slot_parent(self, widget):
+        while widget:
+            if isinstance(widget, SlotWidget):
+                return widget
+            widget = widget.parent()
 
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Crate Editor Help", "help_cart.html")
@@ -455,6 +506,7 @@ class TitleImageWidget(QLabel):
     
     # NOTE: should be the simple 1024 bytes directly from the parsing! Anytime image bytes are needed, that's what is expected!
     def set_image_bytes(self, image_bytes):
+        return 
         if image_bytes is not None:
             pil_image = arduboy.utils.bin_to_pilimage(image_bytes)
             qt_image = QtGui.QImage(pil_image.tobytes(), pil_image.width, pil_image.height, QtGui.QImage.Format_Grayscale8)
