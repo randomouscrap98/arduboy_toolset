@@ -285,7 +285,7 @@ def new_parsed_slot_from_category(title, info = "", image = None, category_id = 
 def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed):
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
-        pilimage_to_bin(parsed.image), # We are hoping the format of the image is already correct!
+        pilimage_to_bin(parsed.image) if parsed.image else None, # We are hoping the format of the image is already correct!
         arduhex_to_bin(parsed.rawhex), # The three main slot data fields are all stored raw in FxParsedSlot, including program.
         parsed.data_raw,
         parsed.save_raw,

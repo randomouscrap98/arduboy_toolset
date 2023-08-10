@@ -83,6 +83,14 @@ def read(filepath) -> ArduboyParsed:
                             result.image = pilimage_convert(Image.open(extract_file))
                         except Exception as ex:
                             logging.warning(f"Couldn't load title image: {ex} (ignoring)")
+                    elif filename.lower() == "fxdata.bin":
+                        extract_file = extract(filename)
+                        with open(extract_file, "rb") as f:
+                            result.data_raw = f.read()
+                    elif filename.lower() == "fxsave.bin":
+                        extract_file = extract(filename)
+                        with open(extract_file, "rb") as f:
+                            result.save_raw = f.read()
 
             if not result.rawhex:
                 raise Exception("No .hex file read from arduboy file!")
