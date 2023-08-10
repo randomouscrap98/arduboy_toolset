@@ -15,7 +15,7 @@ from arduboy.constants import *
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
 from PyQt5.QtWidgets import QMessageBox, QAction, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+from PyQt5.QtCore import QTimer, pyqtSignal, Qt, QThread
 from PIL import Image
 
 
@@ -216,7 +216,7 @@ class CrateWindow(QMainWindow):
                 repprog(count, len(parsed))
                 # This is a hack. The UI does not update unless this is here. An exponentially decreasing thread sleep
                 if count == rest:
-                    time.sleep(0.05)
+                    time.sleep(0.01)
                     rest = rest << 1
         self.list_widget.blockSignals(True)
         try:
@@ -491,6 +491,14 @@ class SlotWidget(QWidget):
         self.onchange.emit()
 
 
+class ImageConvertWorker(QThread):
+    image_done = pyqtSignal(bytearray)
+    def __init__(self, image):
+        super().__init__()
+        self.image = image
+    def run(self):
+        self.image_done.emit(arduboy.utils.bin_to_pilimage(self.image, raw=True))
+
 class TitleImageWidget(QLabel):
     onimage_bytes = pyqtSignal(bytearray)
 
@@ -505,16 +513,25 @@ class TitleImageWidget(QLabel):
     
     # NOTE: should be the simple 1024 bytes directly from the parsing! Anytime image bytes are needed, that's what is expected!
     def set_image_bytes(self, image_bytes):
-        return 
         if image_bytes is not None:
-            pil_image = arduboy.utils.bin_to_pilimage(image_bytes)
-            qt_image = QtGui.QImage(pil_image.tobytes(), pil_image.width, pil_image.height, QtGui.QImage.Format_Grayscale8)
-            pixmap = QtGui.QPixmap(qt_image) 
-            self.setPixmap(pixmap)
-            self.setText("")
+            self.worker = ImageConvertWorker(image_bytes)
+            self.worker.image_done.connect(self._finish_image)
+            self.worker.start()
+            # pil_image = arduboy.utils.bin_to_pilimage(image_bytes)
+            # qt_image = QtGui.QImage(pil_image.tobytes(), pil_image.width, pil_image.height, QtGui.QImage.Format_Grayscale8)
+            # qt_image = QtGui.QImage(arduboy.utils.bin_to_pilimage(image_bytes, raw = True), SCREEN_WIDTH, SCREEN_HEIGHT, QtGui.QImage.Format_Grayscale8)
+            # pixmap = QtGui.QPixmap(qt_image) 
+            # self.setPixmap(pixmap)
+            # self.setText("")
         else:
             self.setPixmap(QtGui.QPixmap())
             self.setText("Choose image")
+    
+    def _finish_image(self, b):
+        qt_image = QtGui.QImage(b, SCREEN_WIDTH, SCREEN_HEIGHT, QtGui.QImage.Format_Grayscale8)
+        pixmap = QtGui.QPixmap(qt_image) 
+        self.setPixmap(pixmap)
+        self.setText("")
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
