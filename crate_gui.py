@@ -21,13 +21,13 @@ from PIL import Image
 
 # TODO: 
 # - Let a command flag open cratebuilder automatically.
-# - Add verification steps to cart builder to ensure there is always a category at the start.
 # - Add some way to move entire categories around
 # - See if there always needs to be a main category (probably not)
-# - Add explanation to help about why the list is shown the way it is
 # - Go find out how arduboy format works (hopefully all formats are easy) and get the data from it
 # - Figure out if you can get title images out of arduboy files
-# - Add total game count? And category?
+# - You MUST get fx data + save out of the arduboy files!
+# - Write the fx data size to the header + test transparency again
+# - Drag + drop to add arduhex files
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -51,6 +51,10 @@ class CrateWindow(QMainWindow):
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
 
         layout.addWidget(self.list_widget)
+
+        footerwidget = self.create_footer()
+        layout.addWidget(footerwidget)
+
         centralwidget.setLayout(layout)
         self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
@@ -133,9 +137,33 @@ class CrateWindow(QMainWindow):
         open_help_action.triggered.connect(self.open_help_window)
         menu_bar.addAction(open_help_action)
 
+    def create_footer(self):
+        footerwidget = QWidget()
+        footerlayout = QHBoxLayout()
+
+        spacer = QWidget()
+        footerlayout.addWidget(spacer)
+        footerlayout.setStretchFactor(spacer, 1)
+        self.counts_label = QLabel("Counts label...")
+        footerlayout.addWidget(self.counts_label)
+        footerlayout.setStretchFactor(self.counts_label, 0)
+        # self.game_count = QLabel("Games: ")
+        # footerlayout.addWidget(self.game_count)
+        # footerlayout.setStretchFactor(self.game_count, 0)
+        footerlayout.setContentsMargins(1,1,1,1)
+
+        footerwidget.setLayout(footerlayout)
+        # footerwidget.setStyleSheet("border-right: 1px solid black")
+
+        return footerwidget
     
     def set_modified(self, modded = True):
         self.modified = modded
+        slots = self.get_slots()
+        categories = sum(1 for item in slots if item.is_category())
+        games = len(slots) - categories
+        self.counts_label.setText(f"Categories: {categories} | Games: {games}")
+        # self.game_count.setText(f"Games: {games}")
         self.update_title()
     
     def update_title(self):
@@ -168,8 +196,13 @@ class CrateWindow(QMainWindow):
         self.list_widget.setCurrentItem(item)
         self.set_modified(True)
     
+    # Scan through all the list widget items and get the current parsed slot data from each of them. Right now this is
+    # fast, but we can't always rely on that! Maybe...
+    def get_slots(self):
+        return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+
     def get_current_as_raw(self):
-        slots = [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+        slots = self.get_slots()
         fxbin = bytearray()
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
@@ -253,7 +286,7 @@ class CrateWindow(QMainWindow):
                 bindata = arduboy.serial.backup_fx(s_port, repprog)
                 repstatus("Trimming FX file...")
                 bindata = arduboy.fxcart.trim(bindata)
-            dialog = gui_utils.do_progress_work(do_work, "Backup FX Flash")
+            dialog = gui_utils.do_progress_work(do_work, "Load FX Flash")
             if not dialog.error_state:
                 self.filepath = None # There is no file anymore
                 self.loadcart(bindata)
