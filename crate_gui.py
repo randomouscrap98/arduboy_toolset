@@ -35,6 +35,7 @@ class CrateWindow(QMainWindow):
         super().__init__()
 
         self.filepath = None
+        self.search_text = None
         self.resize(800, 600)
         self._add_slot_signal.connect(self.add_slot)
 
@@ -212,19 +213,26 @@ class CrateWindow(QMainWindow):
     def get_slots(self):
         return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
 
+    # UNFORTUNATELY, any dialog box handles its own exceptions (it's hard not to), so you must check the return
+    # type from here. Ew, TODO: fix this!
     def get_current_as_raw(self):
         slots = self.get_slots()
         fxbin = bytearray()
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
             fxbin = arduboy.fxcart.compile(slots, repprog)
-        gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
-        return fxbin
+        dialog = gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
+        if dialog.error_state:
+            return None
+        else:
+            return fxbin
     
     # All saves are basically the same at the end of the day, this is what they do. This removes
     # modification state and sets current document to whatever you give
     def do_self_save(self, filepath):
         rawdata = self.get_current_as_raw()
+        if not rawdata:
+            return
         with open(filepath, "wb") as f:
             f.write(rawdata)
         self.filepath = filepath
@@ -303,8 +311,16 @@ class CrateWindow(QMainWindow):
                 self.loadcart(bindata)
     
     def action_flash(self):
+        # Might as well ask... it's kind of a big deal to flash
+        reply = QMessageBox.question(self, "Flash FX Cart",
+            f"Are you sure you want to flash this cart to the Arduboy?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply != QMessageBox.Yes:
+            return 
         # Must compile data first
         bindata = self.get_current_as_raw()
+        if not bindata:
+            return
         def do_work(device, repprog, repstatus):
             nonlocal bindata
             s_port = device.connect_serial()
