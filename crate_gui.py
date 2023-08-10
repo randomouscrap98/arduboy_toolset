@@ -27,7 +27,6 @@ from PIL import Image
 # - Figure out if you can get title images out of arduboy files
 # - You MUST get fx data + save out of the arduboy files!
 # - Write the fx data size to the header + test transparency again
-# - Drag + drop to add arduhex files
 
 class CrateWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -45,6 +44,7 @@ class CrateWindow(QMainWindow):
         layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
+        self.setAcceptDrops(True)
 
         self.list_widget.setUniformItemSizes(True) # Makes categories ugly but... scrolling nicer
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
@@ -147,15 +147,27 @@ class CrateWindow(QMainWindow):
         self.counts_label = QLabel("Counts label...")
         footerlayout.addWidget(self.counts_label)
         footerlayout.setStretchFactor(self.counts_label, 0)
-        # self.game_count = QLabel("Games: ")
-        # footerlayout.addWidget(self.game_count)
-        # footerlayout.setStretchFactor(self.game_count, 0)
         footerlayout.setContentsMargins(1,1,1,1)
 
         footerwidget.setLayout(footerlayout)
-        # footerwidget.setStyleSheet("border-right: 1px solid black")
 
         return footerwidget
+    
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+    
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            try:
+                # Why doesn't this set off the normal exception handling?
+                self.action_add_game(url.toLocalFile())
+            except Exception as ex:
+                QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.Ok)
     
     def set_modified(self, modded = True):
         self.modified = modded
@@ -163,7 +175,6 @@ class CrateWindow(QMainWindow):
         categories = sum(1 for item in slots if item.is_category())
         games = len(slots) - categories
         self.counts_label.setText(f"Categories: {categories} | Games: {games}")
-        # self.game_count.setText(f"Games: {games}")
         self.update_title()
     
     def update_title(self):
@@ -313,9 +324,10 @@ class CrateWindow(QMainWindow):
         newcat = SlotWidget(arduboy.utils.new_parsed_slot_from_category("New Category"))
         self.insert_slotwidget(newcat)
 
-    def action_add_game(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
+    def action_add_game(self, file_path = None):
+        if not file_path:
+            options = QFileDialog.Options()
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
         if file_path:
             parsed = arduboy.arduhex.read(file_path)
             newgame = SlotWidget(arduboy.utils.new_parsed_slot_from_arduboy(parsed))
