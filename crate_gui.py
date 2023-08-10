@@ -577,11 +577,15 @@ class SlotWidget(QWidget):
 # time. This speeds up the apparent rendering of the list
 class ImageConvertWorker(QThread):
     image_done = pyqtSignal(bytearray)
+    on_error = pyqtSignal(Exception)
     def __init__(self, image):
         super().__init__()
         self.image = image
     def run(self):
-        self.image_done.emit(arduboy.utils.bin_to_pilimage(self.image, raw=True))
+        try:
+            self.image_done.emit(arduboy.utils.bin_to_pilimage(self.image, raw=True))
+        except Exception as ex:
+            self.on_error.emit(ex)
 
 class TitleImageWidget(QLabel):
     onimage_bytes = pyqtSignal(bytearray)
@@ -600,6 +604,7 @@ class TitleImageWidget(QLabel):
         if image_bytes is not None:
             self.worker = ImageConvertWorker(image_bytes)
             self.worker.image_done.connect(self._finish_image)
+            self.worker.on_error.connect(lambda ex: gui_utils.show_exception(ex))
             self.worker.start()
         else:
             self.setPixmap(QtGui.QPixmap())
@@ -616,16 +621,16 @@ class TitleImageWidget(QLabel):
             # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
             if file_path:
-                image = Image.open(file_path)
-                # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
-                image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
-                image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
+                image = arduboy.arduhex.pilimage_convert(Image.open(file_path))
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
                 image_bytes = arduboy.utils.pilimage_to_bin(image) 
                 self.set_image_bytes(image_bytes)
                 self.onimage_bytes.emit(image_bytes) #arduboy.utils.pilimage_to_bin(image))
 
 
+# --------------------------------------
+#    TEMPORARY SETUP FOR DEBUGGING
+# --------------------------------------
 def test():
     try:
         fxbin = arduboy.fxcart.read("flashcart-image.bin")
@@ -634,17 +639,17 @@ def test():
     except Exception as ex:
         logging.exception(ex) 
 
+
 if __name__ == "__main__":
 
     # Set the custom exception hook. Do this ASAP!!
-    import main_gui
-    sys.excepthook = main_gui.exception_hook
+    sys.excepthook = gui_utils.exception_hook
 
     # Some initial setup
     try:
         # This apparently only matters for windows and for GUI apps
         from ctypes import windll  # Only exists on Windows.
-        myappid = 'Haloopdy.ArduboyToolset' # 'mycompany.myproduct.subproduct.version'
+        myappid = 'Haloopdy.ArduboyToolset'
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
         pass
@@ -658,6 +663,6 @@ if __name__ == "__main__":
 
     gui_utils.try_create_emoji_font()
 
-    window = CrateWindow() # os.path.join(constants.SCRIPTDIR, "newcart.bin"), newcart=True)
+    window = CrateWindow()
     window.show()
     sys.exit(app.exec_())

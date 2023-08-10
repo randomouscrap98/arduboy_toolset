@@ -2,6 +2,7 @@ import logging
 import os
 import tempfile
 import zipfile
+import demjson3
 
 from arduboy.constants import *
 from typing import List
@@ -37,6 +38,14 @@ class ArduhexParsed:
     overwrites_caterina: bool = field(default=False)
 
 
+# Try to get the given image in the right format and size for Arduboy. Still returns a PIL image
+def pilimage_convert(image):
+    # Actually for now I'm just gonna stretch it, I don't care! Hahaha TODO: fix this
+    image = image.resize((SCREEN_WIDTH, SCREEN_HEIGHT), Image.NEAREST)
+    image = image.convert("1") # Do this after because it's probably better AFTER nearest neighbor
+    return image
+
+
 # Read raw data from the arduboy or hex file. Return an intermediate representation
 # which has as much data as possible filed in.
 def read(filepath) -> ArduboyParsed:
@@ -46,16 +55,37 @@ def read(filepath) -> ArduboyParsed:
         # files; this is how Mr.Blink's arduboy python utilities works (mostly)
         with zipfile.ZipFile(filepath) as zip_ref:
             logging.debug(f"Input file {filepath} is zip archive, scanning for hex file")
-            for filename in zip_ref.namelist():
-                if filename.lower().endswith(".hex"):
-                    # Create a temporary directory to hold the file (and other contents maybe later)
-                    with tempfile.TemporaryDirectory() as temp_dir:
-                        zip_ref.extract(filename, temp_dir)
-                        extract_file = os.path.join(temp_dir, filename)
-                        # The arduboy utilities opens with just "r", no binary flags set.
-                        logging.debug(f"Reading hex file {extract_file} (taken from archive into temp file, validating later)")
-                        with open(extract_file,"r") as f:
+            # Create a temporary directory to hold the files we extract temporarily
+            with tempfile.TemporaryDirectory() as temp_dir:
+                def extract(fn): # Simple function to extract a file, it's always the same
+                    zip_ref.extract(fn, temp_dir)
+                    extract_file = os.path.join(temp_dir, fn)
+                    logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
+                    return extract_file
+                for filename in zip_ref.namelist():
+                    if filename.lower().endswith(".hex"):
+                        extract_file = extract(filename)
+                        with open(extract_file,"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
                             result.rawhex = f.read()
+                    elif filename.lower() == "info.json":
+                        try:
+                            extract_file = extract(filename)
+                            info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
+                            if "title" in info: result.title = info["title"]
+                            if "author" in info: result.developer = info["author"]
+                            if "description" in info: result.info = info["description"]
+                            if "version" in info: result.version = info["version"]
+                        except Exception as ex:
+                            logging.warning(f"Couldn't load info.json: {ex} (ignoring)")
+                    elif filename.lower().endswith(".png") and filename.lower() != "banner.png" and not result.image:
+                        try:
+                            extract_file = extract(filename)
+                            result.image = pilimage_convert(Image.open(extract_file))
+                        except Exception as ex:
+                            logging.warning(f"Couldn't load title image: {ex} (ignoring)")
+
+            if not result.rawhex:
+                raise Exception("No .hex file read from arduboy file!")
     except:
         logging.debug(f"Reading potential hex file {filepath} (validating later)")
         with open(filepath,"r") as f:

@@ -15,6 +15,21 @@ SUCCESSCOLOR = "#30c249"
 ERRORCOLOR = "#c23030"
 BACKUPCOLOR = "#308dc2"
 
+SHOWTRACE = True
+
+def exception_hook(exctype, value, exctrace):
+    show_exception(value)
+
+def show_exception(exception, parent = None):
+    global SHOWTRACE
+    error_message = f"An unhandled exception occurred:\n{exception}"
+    if SHOWTRACE:
+        error_message += f"\n\nTraceback:" + "".join(traceback.format_exception(exception))
+    else:
+        error_message += "\n\nSee log for details"
+    QMessageBox.critical(parent, "Unhandled Exception", error_message, QMessageBox.Ok)
+    logging.exception(exception)
+
 
 def setup_font(name):
     font_id = QtGui.QFontDatabase.addApplicationFont(utils.resource_file(name))

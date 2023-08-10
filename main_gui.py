@@ -16,12 +16,11 @@ from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
 from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt
 
-SHOWTRACE = True
 
 def main():
 
     # Set the custom exception hook. Do this ASAP!!
-    sys.excepthook = exception_hook
+    sys.excepthook = gui_utils.exception_hook
 
     # Some initial setup
     try:
@@ -46,14 +45,6 @@ def main():
         window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
-def exception_hook(exctype, value, exctrace):
-    error_message = f"An unhandled exception occurred:\n{value}"
-    error_message += "\n\nType: {exctype}\nTraceback:" + traceback.format_exc(exctrace)
-    # if SHOWTRACE:
-        # print(f"Traceback: ")
-        # traceback.print_tb(exc_traceback)
-    QMessageBox.critical(None, "Unhandled Exception", error_message, QMessageBox.Ok)
 
 
 
