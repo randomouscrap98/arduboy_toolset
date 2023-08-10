@@ -42,19 +42,18 @@ class CrateWindow(QMainWindow):
 
         self.create_menu()
 
-        # centralwidget = QWidget()
-        # layout = QVBoxLayout()
+        centralwidget = QWidget()
+        layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
 
         self.list_widget.setUniformItemSizes(True) # Makes categories ugly but... scrolling nicer
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
-        # self.item = SlotWidget()
 
-        # layout.addWidget(list_widget)
-        # centralwidget.setLayout(layout)
-        self.setCentralWidget(self.list_widget)
+        layout.addWidget(self.list_widget)
+        centralwidget.setLayout(layout)
+        self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
         
     def create_menu(self):
@@ -123,6 +122,11 @@ class CrateWindow(QMainWindow):
         find_action.setShortcut("Ctrl+F")
         find_action.triggered.connect(self.action_find)
         cart_menu.addAction(find_action)
+
+        findagain_action = QAction("Repeat last search", self)
+        findagain_action.setShortcut("Ctrl+Shift+F")
+        findagain_action.triggered.connect(lambda: self.action_find(True))
+        cart_menu.addAction(findagain_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -199,7 +203,6 @@ class CrateWindow(QMainWindow):
     # Load the given binary data into the window, clearing out whatever was there before
     def loadcart(self, bindata, filepath = None):
         parsed = None
-        # widgits = [] # Yes it's a cheeky name ufufufu
         # IDK how long it takes to parse, just throw up a loading window just in case anyway
         def do_work(repprog, repstatus):
             nonlocal parsed # widgits # parsed
@@ -209,9 +212,6 @@ class CrateWindow(QMainWindow):
             rest = 1
             for slot in parsed:
                 self._add_slot_signal.emit(slot, count == 0)
-                # widget = SlotWidget(slot)
-                # item = self.setup_slotwidget_item(widget)
-                # widgits.append((widget, item))
                 count += 1
                 repprog(count, len(parsed))
                 # This is a hack. The UI does not update unless this is here. An exponentially decreasing thread sleep
@@ -222,17 +222,11 @@ class CrateWindow(QMainWindow):
         try:
             dialog = gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
             if not dialog.error_state:
-            #     self.list_widget.clear()
-            #     # for widget,item in widgits:
-            #     #     # item = self.setup_slotwidget_item(widget)
-            #     #     self.list_widget.addItem(item)
-            #     #     self.list_widget.setItemWidget(item, widget) 
                 if filepath:
                     self.filepath = filepath
                 self.set_modified(False)
         finally:
             self.list_widget.blockSignals(False)
-            # self.list_widget.setUniformItemSizes(False)
     
     # -----------------------------------
     #    ACTIONS FROM MENU / SHORTCUTS
@@ -286,20 +280,25 @@ class CrateWindow(QMainWindow):
             self.list_widget.takeItem(row)
         self.set_modified(True)
     
-    def action_find(self):
-        search_text, ok = QInputDialog.getText(self, 'Find in cart', 'Search text:')
-        if not (search_text and ok):
+    def action_find(self, use_last = False):
+        if not use_last:
+            search_text, ok = QInputDialog.getText(self, 'Find in cart', 'Search text:')
+            if not (search_text and ok):
+                return
+            self.search_text = search_text
+        if not self.search_text:
             return
-        # search_text = "Manic"  # Change this to your search text
         line_edits = self.findChildren(QLineEdit)
         le_index = 0
         for le in line_edits:
             if le.hasFocus():
                 break
             le_index += 1
+        # This "splits the deck" at the index of the currently focused textbox, meaning the search will start
+        # from AFTER that text. It lets you do ctrl-F multiple times
         reordered_edits = line_edits[le_index + 1:] + line_edits[:le_index + 1]
         for line_edit in reordered_edits:
-            if search_text.lower() in line_edit.text().lower():
+            if self.search_text.lower() in line_edit.text().lower():
                 line_edit.setFocus()
                 parent_item = self.get_slot_parent(line_edit)
                 if parent_item:
