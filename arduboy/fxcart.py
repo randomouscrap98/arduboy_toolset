@@ -22,6 +22,9 @@ PREAMBLE_PAGES = (HEADER_LENGTH + TITLE_IMAGE_LENGTH) >> 8 # Page size of entire
 HEADER_PROGRAM_FACTOR = 128  # Multiply the flashcart slot program length by this
 SAVE_ALIGNMENT = 4096
 
+MAX_PROGRAM_LENGTH = HEADER_PROGRAM_FACTOR * 0xFFFF
+PROGRAM_NULLPAGE = b'\xFF' * HEADER_PROGRAM_FACTOR
+
 CATEGORY_HEADER_INDEX = 7           # "Index into slot header for" category (1 byte)
 PREVIOUS_PAGE_HEADER_INDEX = 8      # "" previous slot page (2 bytes)
 NEXT_PAGE_HEADER_INDEX = 10         # "" next slot page (2 bytes)
@@ -323,7 +326,8 @@ def parse(fulldata, report_progress = None):
     return result
 
 
-# Forcibly reassign all the categories, make sure first slot is a category.
+# Forcibly reassign all the categories, make sure first slot is a category, fill empty images 
+# with all 0's
 def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
     category = -1
     count = 0
@@ -343,10 +347,10 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
 # just testing, the pages aren't required (but you won't get a valid frame)
 def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0):
     if len(slot.image_raw) != SCREEN_BYTES:
-        raise Exception(f"Title image for game {slot.meta.title} is incorrect size!! Expected: {SCREEN_BYTES} bytes, was: {len(slot.image_raw)}")
+        raise Exception(f"Title image for game {slot.meta.title} is incorrect size!! Expected: {SCREEN_BYTES}, was: {len(slot.image_raw)}")
     # All the raw data we're about to dump into the flashcart. Some may be modified later
     header = default_header()
-    title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
+    title = slot.image_raw
     program = pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
     datafile = pad_data(slot.data_raw, FX_PAGESIZE) 
     savefile = pad_data(slot.save_raw, SAVE_ALIGNMENT) 
@@ -354,20 +358,26 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     programsize = len(program)
     datasize = len(datafile)
     savesize = len(savefile)
+    #don't flash last unused 128 bytes page
+    program_flash_size = (programsize >> 7) - 1 if program[-128:] == PROGRAM_NULLPAGE else programsize >> 7
+    if program_flash_size > 0xFF: # Program size in half-pages is single byte
+        raise Exception(f"Somehow, program is too large for game {slot.meta.title}! Might be a problem with the binary generator! Max size: {0xFFFF} half-pages, program was {program_flash_size}")
     id = sha256(program + datafile).digest()
     programpage = currentpage + PREAMBLE_PAGES
     datapage    = programpage + (programsize >> 8)  # Data comes after program, wherever it is
     alignpage   = datapage + (datasize >> 8)        # Calculate align page start even if alignment isn't used
     alignsize   = pad_size(alignpage, 16) * 256 if savesize > 0 else 0 # Only have alignment if save
     savepage    = alignpage + (alignsize >> 8)      # Save page might not be used, calculate it anyway
-    slotpages   = ((programsize + datasize + alignsize + savesize) >> 8) + PREAMBLE_PAGES
+    total_binary_length = programsize + datasize + alignsize + savesize
+    if total_binary_length & 0xFF:
+        raise Exception(f"Sum of binary sizes is not page aligned for game {slot.meta.title}! Size: {total_binary_length}")
+    slotpages   = PREAMBLE_PAGES + (total_binary_length >> 8)
     nextpage += slotpages
     header[7] = slot.category   #list number
     write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
     write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
     write_2byte_value(slotpages, header, SLOT_SIZE_HEADER_INDEX)
-    #don't flash last unused 128 bytes page
-    header[PROGRAM_SIZE_HEADER_INDEX] = (programsize >> 7) - 1 if program[-128:] == b'\xFF' * 128 else programsize >> 7
+    header[PROGRAM_SIZE_HEADER_INDEX] = program_flash_size
     # There IS a program, so let's set some more fields!
     if programsize > 0:
         write_2byte_value(programpage, header, PROGRAMPAGE_HEADER_INDEX)
@@ -387,12 +397,14 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
                         slot.meta.developer.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0')
     else:
         stringdata = slot.meta.title.encode('utf-8') + b'\0' + slot.meta.info.encode('utf-8') + b'\0'
-    if len(stringdata) > 199:
-        stringdata = stringdata[:199]  
+    if len(stringdata) > META_HEADER_SIZE:
+        stringdata = stringdata[:META_HEADER_SIZE]  
     header[57:57 + len(stringdata)] = stringdata
-    message = patch_menubuttons(program)
     if len(header) != HEADER_LENGTH:
         raise Exception(f"Somehow, header length for {slot.meta.title} was not {HEADER_LENGTH}!")
+    patch_success, message = patch_menubuttons(program)
+    if not patch_success:
+        logging.warning(f"Couldn't patch menu to return to bootloader for {slot.meta.title}: {message}")
     return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
 
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from

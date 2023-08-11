@@ -29,7 +29,7 @@ MBP_overflow_r31 = 58
 # NOTE: This patch doesn't seem to change the size of the program, it's done "in-place"
 def patch_menubuttons(program):
     if len(program) < 256: 
-        return ''
+        return (False, "Program too short")
     vector_23 = (program[0x5E] << 1) | (program[0x5F]  << 9) #ISR timer0 vector addr
     p = vector_23
     l = 0
@@ -70,11 +70,11 @@ def patch_menubuttons(program):
         if (program[p-1] & 0xFE == 0x92) & (program[p-2] & 0x0F == 0x00): # sts instruction
             p +=2
     if l == -1:
-        return 'No menu patch applied. ISR contains subroutine.'
+        return (False,'No menu patch applied. ISR contains subroutine.')
     elif l < len(MENUBUTTONPATCH):
-        return 'No menu patch applied. ISR size too small ({} bytes)'.format(l)
+        return (False,'No menu patch applied. ISR size too small ({} bytes)'.format(l))
     elif (timer0_millis == 0) | (timer0_fract == 0) | (timer0_overflow_count == 0):
-        return 'No menu patch applied. Custom ISR in use.'
+        return (False, 'No menu patch applied. Custom ISR in use.')
     else:
         #patch the new ISR code with 'hold UP + DOWN for 2 seconds to start bootloader menu' feature
         program[vector_23 : vector_23+len(MENUBUTTONPATCH)] = MENUBUTTONPATCH
@@ -91,7 +91,7 @@ def patch_menubuttons(program):
         program[vector_23 + MBP_overflow_r30 +1] = 0xE0 | (timer0_overflow_count >> 4) & 0x0F
         program[vector_23 + MBP_overflow_r31 +0] = 0xF0 | (timer0_overflow_count >> 8) & 0x0F
         program[vector_23 + MBP_overflow_r31 +1] = 0xE0 | (timer0_overflow_count >>12) & 0x0F
-        return 'Menu patch applied'
+        return (True, 'Menu patch applied')
 
 
 # NOTE: this is for things which are HIGHER than fxcart and arduhex! Those lower modules
