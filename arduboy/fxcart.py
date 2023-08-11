@@ -420,7 +420,9 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
     games = 0
     categories = 0
     for slot in parsed_slots:
-        result = result + compile_single(slot, currentpage, previouspage, nextpage)
+        slotbin = compile_single(slot, currentpage, previouspage, nextpage)
+        result = result + slotbin
+        nextpage += (len(slotbin) >> 8)
         if get_program_size_bytes(result, currentpage * FX_PAGESIZE) > 0:
             games += 1
         else:
