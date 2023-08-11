@@ -1,4 +1,15 @@
+## 0.2.1
+
+Small feature update
+
+* Move whole categories up/down, or delete them
+* Auto-generated images show up in UI if cart compiled without them (was already auto-generating them)
+* Ability to add 4k chunks to a save section without opening a file
+* Parse more data more appropriately from .arduboy files
+
 ## 0.2
+
+Added cart builder
 
 * File menu + exit from file menu
 * Added drag + drop for all file selectors

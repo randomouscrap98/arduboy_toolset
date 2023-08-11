@@ -26,6 +26,7 @@ MBP_overflow_r31 = 58
 # Attempt to patch the given binary program (single program!) to add the
 # bootloader "return to menu" button combo. Taken as-is from 
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
+# NOTE: This patch doesn't seem to change the size of the program, it's done "in-place"
 def patch_menubuttons(program):
     if len(program) < 256: 
         return ''

@@ -487,6 +487,9 @@ class CartWindow(QMainWindow):
         if cslot:
             filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "bin"), constants.BIN_FILEFILTER, options=QFileDialog.Options())
             if filepath:
+                # Have to fix up the data first; this is normally called by the full compiler but since we're not doing that...
+                slots = self.get_slots()
+                arduboy.fxcart.fix_parsed_slots(slots)
                 bindata = arduboy.fxcart.compile_single(cslot)
                 with open(filepath, "wb") as f:
                     f.write(bindata)

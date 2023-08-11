@@ -342,6 +342,8 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
 # Compile a single slot (with the given page identifiers, VERY important) and return the result. If you're
 # just testing, the pages aren't required (but you won't get a valid frame)
 def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0):
+    if len(slot.image_raw) != SCREEN_BYTES:
+        raise Exception(f"Title image for game {slot.meta.title} is incorrect size!! Expected: {SCREEN_BYTES} bytes, was: {len(slot.image_raw)}")
     # All the raw data we're about to dump into the flashcart. Some may be modified later
     header = default_header()
     title = slot.image_raw # LoadTitleScreenData(fixPath(row[ID_TITLESCREEN]))
@@ -389,6 +391,8 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
         stringdata = stringdata[:199]  
     header[57:57 + len(stringdata)] = stringdata
     message = patch_menubuttons(program)
+    if len(header) != HEADER_LENGTH:
+        raise Exception(f"Somehow, header length for {slot.meta.title} was not {HEADER_LENGTH}!")
     return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
 
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
