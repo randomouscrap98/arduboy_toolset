@@ -245,7 +245,7 @@ def get_savepart_raw(fulldata, index):
     if spage == 0xFFFF:
         return bytearray()
     else:
-        return fulldata[spage*FX_PAGESIZE:get_slot_size_bytes(fulldata, index)]
+        return fulldata[spage*FX_PAGESIZE:index + get_slot_size_bytes(fulldata, index)]
 
 def get_meta_parsed(fulldata, index):
     meta = fulldata[index+META_HEADER_INDEX:index+META_HEADER_INDEX+META_HEADER_SIZE]

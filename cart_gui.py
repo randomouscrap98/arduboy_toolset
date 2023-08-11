@@ -711,7 +711,7 @@ class TitleImageWidget(QLabel):
 # --------------------------------------
 def test():
     try:
-        fxbin = arduboy.fxcart.read("flashcart-image.bin")
+        fxbin = arduboy.fxcart.read("flashcart-image_good.bin")
         parsed = arduboy.fxcart.parse(fxbin)
         compiled = arduboy.fxcart.compile(parsed)
     except Exception as ex:
