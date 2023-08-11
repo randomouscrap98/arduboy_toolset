@@ -47,6 +47,11 @@ the cart builder, using `Ctrl-F` to search for `Arabia`, then checking the 3 num
 title image on the left. If the last number is **4096 or higher**, your game is **correct**. If it's 0, it is
 development mode and you may lose the save.
 
+If you wish to backup a "Development" save, you will need to make a **complete** backup of your FX, without trimming.
+The Arduboy toolset defaults to trimming the FX backup, just uncheck the trim option before you backup you flash and
+the save data will be included. This is because the save is stored at the very end of the cart, so trimming the backup
+would remove that part from the file.
+
 
 ## Running From Source
 
