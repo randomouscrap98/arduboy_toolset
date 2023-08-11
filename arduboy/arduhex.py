@@ -56,21 +56,29 @@ def read(filepath) -> ArduboyParsed:
                     extract_file = os.path.join(temp_dir, fn)
                     logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
                     return extract_file
+                datafile = "fxdata.bin"
+                savefile = "fxsave.bin"
+                progfile = None
+                try:
+                    extract_file = extract("info.json")
+                    info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
+                    if "title" in info: result.title = info["title"]
+                    if "author" in info: result.developer = info["author"]
+                    if "description" in info: result.info = info["description"]
+                    if "version" in info: result.version = info["version"]
+                    if "binaries" in info:
+                        firstbin = info["binaries"][0]
+                        if "filename" in firstbin: progfile = firstbin["filename"]
+                        if "flashdata" in firstbin: datafile = firstbin["flashdata"]
+                        if "flashsave" in firstbin: savefile = firstbin["flashsave"]
+                        if not result.title and "title" in firstbin: result.title = firstbin["title"]
+                except Exception as ex:
+                    logging.warning(f"Arduboy file {filepath} has no info.json, or parse failed! Will still try to get files out: {ex}")
                 for filename in zip_ref.namelist():
-                    if filename.lower().endswith(".hex"):
+                    if (progfile.lower() == filename.lower()) or (progfile is None and filename.lower().endswith(".hex")):
                         extract_file = extract(filename)
-                        with open(extract_file,"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
+                        with open(extract_file,"r",encoding="utf-8") as f: # The arduboy utilities opens with just "r", no binary flags set.
                             result.rawhex = f.read()
-                    elif filename.lower() == "info.json":
-                        try:
-                            extract_file = extract(filename)
-                            info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
-                            if "title" in info: result.title = info["title"]
-                            if "author" in info: result.developer = info["author"]
-                            if "description" in info: result.info = info["description"]
-                            if "version" in info: result.version = info["version"]
-                        except Exception as ex:
-                            logging.warning(f"Couldn't load info.json: {ex} (ignoring)")
                     elif filename.lower().endswith(".png") and filename.lower() != "banner.png" and not result.image:
                         try:
                             extract_file = extract(filename)
@@ -79,11 +87,11 @@ def read(filepath) -> ArduboyParsed:
                                 result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
                         except Exception as ex:
                             logging.warning(f"Couldn't load title image: {ex} (ignoring)")
-                    elif filename.lower() == "fxdata.bin":
+                    elif filename.lower() == datafile.lower():
                         extract_file = extract(filename)
                         with open(extract_file, "rb") as f:
                             result.data_raw = f.read()
-                    elif filename.lower() == "fxsave.bin":
+                    elif filename.lower() == savefile.lower():
                         extract_file = extract(filename)
                         with open(extract_file, "rb") as f:
                             result.save_raw = f.read()

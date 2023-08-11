@@ -2,6 +2,11 @@
 
 * File menu + exit from file menu
 * Added drag + drop for all file selectors
+* Added cart builder
+  * Load flashcart directly off arduboy into editor
+  * Add/remove/rearrange games + categories
+  * Drag + drop .hex + .arduboy files
+  * Flash back to arduboy when done, or save backup
 
 ## 0.1
 
