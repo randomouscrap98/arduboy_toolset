@@ -148,6 +148,10 @@ class CartWindow(QMainWindow):
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
 
+        addsave_action = QAction("Add 4K to save for item", self)
+        addsave_action.triggered.connect(self.action_addsave)
+        debug_menu.addAction(addsave_action)
+
         # -------------------------------
         # Create an action for opening the help window
         open_help_action = QAction("Help", self)
@@ -231,29 +235,48 @@ class CartWindow(QMainWindow):
     # Scan through all the list widget items and get the current parsed slot data from each of them. Right now this is
     # fast, but we can't always rely on that! Maybe...
     def get_slots(self) -> List[arduboy.fxcart.FxParsedSlot]:
-        return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+        return [ x for x,_ in self.get_slots_widgets() ]
+        # return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
+
+    # Get all the slots along with their widget.
+    def get_slots_widgets(self):
+        result = []
+        for x in range(self.list_widget.count()):
+            widget = self.list_widget.itemWidget(self.list_widget.item(x)) #.get_slot_data() for x in range(self.list_widget.count())]
+            result.append((widget.get_slot_data(), widget))
+        return result
+        # return [self.list_widget.itemWidget(self.list_widget.item(x)).get_slot_data() for x in range(self.list_widget.count())]
     
     # Return the currently selected slot, or none if... none
     def get_selected_slot(self) -> arduboy.fxcart.FxParsedSlot:
+        slot, _ = self.get_selected_slot_widget()
+        return slot
+
+    # Return a combination of currently selected slot and the widget.
+    def get_selected_slot_widget(self) -> arduboy.fxcart.FxParsedSlot:
         selected_item = self.list_widget.currentItem()
         if selected_item:
-            return self.list_widget.itemWidget(selected_item).get_slot_data()
+            item = self.list_widget.itemWidget(selected_item)
+            return item.get_slot_data(), item
         else:
-            return None
+            return None, None
+
 
     # UNFORTUNATELY, any dialog box handles its own exceptions (it's hard not to), so you must check the return
     # type from here. Ew, TODO: fix this!
     def get_current_as_raw(self):
-        slots = self.get_slots()
+        slots = self.get_slots_widgets()
         fxbin = bytearray()
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
             repstatus("Generating missing images")
-            for slot in slots:
+            for slot,widget in slots:
                 if not slot.image_raw or sum(slot.image_raw) == 0:
-                    slot.image_raw = pilimage_to_bin(utils.make_titlescreen_from_slot(slot))
+                    pilimage = utils.make_titlescreen_from_slot(slot)
+                    slot.image_raw = pilimage_to_bin(pilimage)
+                    widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
             repstatus("Compiling FX cart")
-            fxbin = arduboy.fxcart.compile(slots, repprog)
+            fxbin = arduboy.fxcart.compile([x for x,_ in slots], repprog)
         dialog = gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
         if dialog.error_state:
             return None
@@ -459,6 +482,18 @@ class CartWindow(QMainWindow):
                 img = utils.make_titlescreen_from_slot(cslot)
                 img.save(filepath)
                 debug_actions.global_debug.add_action_str(f"Generated single debug image for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
+    
+    def action_addsave(self):
+        cslot,widget = self.get_selected_slot_widget()
+        if cslot:
+            if cslot.is_category():
+                raise Exception("Can't add saves to categories!")
+            cslot.save_raw += bytearray(arduboy.fxcart.SAVE_ALIGNMENT)
+            widget.update_metalabel()
+            self.set_modified(True)
+            debug_actions.global_debug.add_action_str(f"Added more save for: {cslot.meta.title}")
         else:
             raise Exception("No selected slot!")
     
