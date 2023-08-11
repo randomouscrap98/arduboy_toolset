@@ -1,3 +1,9 @@
+## 0.2.2
+
+Major bugfix
+
+* Fixed 'next page' header issue (0.2 - 0.2.1 do not work)
+
 ## 0.2.1
 
 Small feature update

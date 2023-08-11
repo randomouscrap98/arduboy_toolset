@@ -1,5 +1,8 @@
 # Arduboy toolset
 
+![Main window](https://github.com/randomouscrap98/arduboy_toolset/blob/main/screenshot_tools_main.png?raw=true)
+![Card builder](https://github.com/randomouscrap98/arduboy_toolset/blob/main/screenshot_cartbuilder_main.png?raw=true)
+
 A set of personal tools derived heavily from https://github.com/MrBlinky/Arduboy-Python-Utilities
 made as a learning exercise. I wanted to understand what makes Arduboy tick, while also maybe
 providing a slightly easier way to manage Arduboy. 
