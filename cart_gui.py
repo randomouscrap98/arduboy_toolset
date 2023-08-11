@@ -26,7 +26,6 @@ from PIL import Image
 
 
 # TODO: 
-# - Add some way to move entire categories around
 # - Test that new game (though they said you can't flash it to fx?)
 # - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
 
@@ -126,6 +125,25 @@ class CartWindow(QMainWindow):
         del_action.setShortcut(Qt.Key_Delete)
         del_action.triggered.connect(self.action_delete_selected)
         cart_menu.addAction(del_action)
+
+        cart_menu.addSeparator()
+
+        up_cat_action = QAction("Move Category Up", self)
+        up_cat_action.setShortcut("Ctrl+Shift+U")
+        up_cat_action.triggered.connect(self.action_category_up)
+        cart_menu.addAction(up_cat_action)
+
+        down_cat_action = QAction("Move Category Down", self)
+        down_cat_action.setShortcut("Ctrl+Shift+D")
+        down_cat_action.triggered.connect(self.action_category_down)
+        cart_menu.addAction(down_cat_action)
+
+        del_cat_action = QAction("Delete Entire Category", self)
+        del_cat_action.setShortcut("Ctrl+Delete")
+        del_cat_action.triggered.connect(self.action_category_delete)
+        cart_menu.addAction(del_cat_action)
+
+        cart_menu.addSeparator()
 
         find_action = QAction("Search cart", self)
         find_action.setShortcut("Ctrl+F")
@@ -300,12 +318,15 @@ class CartWindow(QMainWindow):
         self.set_modified(False)
         # TODO: might need some other data cleanup!!
     
-    def add_slot(self, slot, clear = False):
+    def add_slot(self, slot, clear = False, index = None):
         if clear:
             self.clear()
         widget = SlotWidget(slot)
         item = self.setup_slotwidget_item(widget)
-        self.list_widget.addItem(item)
+        if index is not None:
+            self.list_widget.insertItem(index, item)
+        else:
+            self.list_widget.addItem(item)
         self.list_widget.setItemWidget(item, widget) 
 
     # Load the given binary data into the window, clearing out whatever was there before
@@ -496,6 +517,61 @@ class CartWindow(QMainWindow):
             debug_actions.global_debug.add_action_str(f"Added more save for: {cslot.meta.title}")
         else:
             raise Exception("No selected slot!")
+    
+    def action_category_up(self):
+        self.shift_category(act = "up")
+
+    def action_category_down(self):
+        self.shift_category(act = "down")
+
+    def action_category_delete(self):
+        self.shift_category(act = "delete")
+
+    def shift_category(self, act = "delete"):
+        # This is slow! Try to get something better eventually!
+        # First step: find the various indexes
+        if not self.list_widget.count():
+            return  # Literally can't do anything! And it's probably unsafe!
+        selected_item = self.list_widget.currentItem()
+        selected_index = self.list_widget.row(selected_item)
+        cat_index = selected_index
+        end_index = selected_index + 1 # Always 1 past the end, just like in python ranges
+        def iscat(i): # This is a big calculation, might as well make a little function to ease it up
+            return self.list_widget.itemWidget(self.list_widget.item(i)).get_slot_data().is_category()
+        while cat_index > 0 and not iscat(cat_index):
+            cat_index -= 1
+        while end_index < self.list_widget.count() and not iscat(end_index):
+            end_index += 1
+        logging.info(f"Cat index: {cat_index}, end index: {end_index}")
+        # Now, see if there's anything to do. If we move up while at the top, or down at the bottom, we are finished already
+        if (cat_index == 0 and act == "up") or (end_index == self.list_widget.count() and act == "down"):
+            return
+        # Now remove all the items in the range
+        count = end_index - cat_index
+        whole_category = []
+        for _ in range(0,count):
+            whole_category.append(self.list_widget.itemWidget(self.list_widget.item(cat_index)).get_slot_data()) # (item, widget))
+            self.list_widget.takeItem(cat_index)
+        if act == "delete": # Nothing else to do, we already removed it
+            self.set_modified(True)
+            debug_actions.global_debug.add_action_str(f"Deleted category {whole_category[0]}")
+            return 
+        # Now, we can calculate where to insert it based on our direction.    
+        if act == "up":
+            target_index = cat_index - 1
+            while target_index > 0 and not iscat(target_index):
+                target_index -= 1
+        elif act == "down":
+            target_index = cat_index + 1
+            while target_index < self.list_widget.count() and not iscat(target_index):
+                target_index += 1
+        # Now we just insert all the items at the target index, but in REVERSE order so we can keep inserting at the same index
+        for slot in reversed(whole_category):
+            self.add_slot(slot, index = target_index)
+        self.list_widget.setCurrentItem(self.list_widget.item(target_index))
+        self.set_modified(True)
+        debug_actions.global_debug.add_action_str(f"Moved category {act}: {whole_category[0].meta.title}")
+
     
     def get_slot_parent(self, widget):
         while widget:
