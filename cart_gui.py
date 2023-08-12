@@ -143,6 +143,16 @@ class CartWindow(QMainWindow):
 
         cart_menu.addSeparator()
 
+        up_slot_action = QAction("Shift Slot Up", self)
+        up_slot_action.setShortcut(QtGui.QKeySequence(Qt.ControlModifier | Qt.ShiftModifier | Qt.Key_Up))
+        up_slot_action.triggered.connect(self.action_slot_up)
+        cart_menu.addAction(up_slot_action)
+
+        down_slot_action = QAction("Shift Slot Down", self)
+        down_slot_action.setShortcut(QtGui.QKeySequence(Qt.ControlModifier | Qt.ShiftModifier | Qt.Key_Down))
+        down_slot_action.triggered.connect(self.action_slot_down)
+        cart_menu.addAction(down_slot_action)
+
         up_cat_action = QAction("Shift Category Up", self)
         up_cat_action.setShortcut("Ctrl+Shift+U")
         up_cat_action.triggered.connect(self.action_category_up)
@@ -614,6 +624,25 @@ class CartWindow(QMainWindow):
         else:
             raise Exception("No selected slot!")
     
+    def action_slot_up(self):
+        self.move_current_slot(-1)
+
+    def action_slot_down(self):
+        self.move_current_slot(1)
+
+    def move_current_slot(self, direction = 0):
+        selected_item = self.list_widget.currentItem()
+        selected_index = self.list_widget.row(selected_item)
+        next_index = selected_index + direction
+        if next_index < 0 or next_index > self.list_widget.count() - 1:
+            return
+        slot = self.list_widget.itemWidget(selected_item).get_slot_data()
+        self.list_widget.takeItem(selected_index)
+        self.add_slot(slot, index = next_index)
+        self.list_widget.setCurrentItem(self.list_widget.item(next_index))
+        self.set_modified(True)
+        debug_actions.global_debug.add_action_str(f"Moved slot by {direction}: {slot.meta.title}")
+
     def action_category_up(self):
         self.shift_category(act = "up")
 

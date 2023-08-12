@@ -1,3 +1,14 @@
+## 0.2.3
+
+Small comfort changes
+
+* Made categories way more obvious
+* Can jump up and down through categories with the menu or keyboard shortcuts
+* Can shift slots up and down with a keyboard shortcut (see in Cart menu)
+* Visual indication that a game is FX enabled
+* Ability to clear FX data or FX save if accidentally added (Debug menu)
+* Increased "info" input limit from 150 to 175.
+
 ## 0.2.2
 
 Major bugfix
