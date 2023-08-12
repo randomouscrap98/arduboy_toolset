@@ -46,7 +46,7 @@ I don't take any responsibility for lost data (I'm sorry!).
 Using this tool will usually preserve the FX saves used by the more complex "FX" games, such as 
 [Prince Of Arabia](https://github.com/Press-Play-On-Tape/PrinceOfArabia). However, we've found that sometimes
 the carts were not configured properly from the cart builder website, and your save data may be located in the
-development area at the end of the flashcart. As such, there is a change that updating your cart will
+development area at the end of the flashcart. As such, there is a chance that updating your cart will
 make you lose this save. You can check if your Prince of Arabia game is correct by loading the cart in
 the cart builder, using `Ctrl-F` to search for `Arabia`, then checking the 3 numbers under the game's 
 title image on the left. If the last number is **4096 or higher**, your game is **correct**. If it's 0, it is
