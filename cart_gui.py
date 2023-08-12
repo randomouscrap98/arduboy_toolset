@@ -131,12 +131,24 @@ class CartWindow(QMainWindow):
 
         cart_menu.addSeparator()
 
-        up_cat_action = QAction("Move Category Up", self)
+        mup_cat_action = QAction("Jump to Previous Category", self)
+        mup_cat_action.setShortcut("Ctrl+U")
+        mup_cat_action.triggered.connect(self.action_category_jumpup)
+        cart_menu.addAction(mup_cat_action)
+
+        mdown_cat_action = QAction("Jump to Next Category", self)
+        mdown_cat_action.setShortcut("Ctrl+D")
+        mdown_cat_action.triggered.connect(self.action_category_jumpdown)
+        cart_menu.addAction(mdown_cat_action)
+
+        cart_menu.addSeparator()
+
+        up_cat_action = QAction("Shift Category Up", self)
         up_cat_action.setShortcut("Ctrl+Shift+U")
         up_cat_action.triggered.connect(self.action_category_up)
         cart_menu.addAction(up_cat_action)
 
-        down_cat_action = QAction("Move Category Down", self)
+        down_cat_action = QAction("Shift Category Down", self)
         down_cat_action.setShortcut("Ctrl+Shift+D")
         down_cat_action.triggered.connect(self.action_category_down)
         cart_menu.addAction(down_cat_action)
@@ -566,25 +578,42 @@ class CartWindow(QMainWindow):
 
     def action_category_delete(self):
         self.shift_category(act = "delete")
+    
+    def action_category_jumpup(self):
+        cat_index, _ = self.find_surrounding_categories()
+        if cat_index is not None and cat_index >= 0:
+            self.list_widget.setCurrentItem(self.list_widget.item(cat_index))
 
-    def shift_category(self, act = "delete"):
+    def action_category_jumpdown(self):
+        _ , cat_index = self.find_surrounding_categories()
+        if cat_index is not None:
+            if cat_index < self.list_widget.count():
+                self.list_widget.setCurrentItem(self.list_widget.item(cat_index))
+    
+    def _iscat(self, i): # This is a big calculation, might as well make a little function to ease it up
+        return self.list_widget.itemWidget(self.list_widget.item(i)).get_slot_data().is_category()
+
+    # Get the current category and the next category.
+    def find_surrounding_categories(self, skip_if_current = True):
         # This is slow! Try to get something better eventually!
         # First step: find the various indexes
         if not self.list_widget.count():
-            return  # Literally can't do anything! And it's probably unsafe!
+            return  None, None # Literally can't do anything! And it's probably unsafe!
         selected_item = self.list_widget.currentItem()
         selected_index = self.list_widget.row(selected_item)
-        cat_index = selected_index
+        cat_index = selected_index - (1 if skip_if_current else 0)
         end_index = selected_index + 1 # Always 1 past the end, just like in python ranges
-        def iscat(i): # This is a big calculation, might as well make a little function to ease it up
-            return self.list_widget.itemWidget(self.list_widget.item(i)).get_slot_data().is_category()
-        while cat_index > 0 and not iscat(cat_index):
+        while cat_index > 0 and not self._iscat(cat_index):
             cat_index -= 1
-        while end_index < self.list_widget.count() and not iscat(end_index):
+        while end_index < self.list_widget.count() and not self._iscat(end_index):
             end_index += 1
-        logging.info(f"Cat index: {cat_index}, end index: {end_index}")
+        # logging.info(f"Cat index: {cat_index}, end index: {end_index}")
+        return cat_index, end_index
+
+    def shift_category(self, act = "delete"):
+        cat_index, end_index = self.find_surrounding_categories(skip_if_current=False)
         # Now, see if there's anything to do. If we move up while at the top, or down at the bottom, we are finished already
-        if (cat_index == 0 and act == "up") or (end_index == self.list_widget.count() and act == "down"):
+        if (cat_index <= 0 and act == "up") or (end_index >= self.list_widget.count() and act == "down"):
             return
         # Now remove all the items in the range
         count = end_index - cat_index
@@ -599,11 +628,11 @@ class CartWindow(QMainWindow):
         # Now, we can calculate where to insert it based on our direction.    
         if act == "up":
             target_index = cat_index - 1
-            while target_index > 0 and not iscat(target_index):
+            while target_index > 0 and not self._iscat(target_index):
                 target_index -= 1
         elif act == "down":
             target_index = cat_index + 1
-            while target_index < self.list_widget.count() and not iscat(target_index):
+            while target_index < self.list_widget.count() and not self._iscat(target_index):
                 target_index += 1
         # Now we just insert all the items at the target index, but in REVERSE order so we can keep inserting at the same index
         for slot in reversed(whole_category):
