@@ -220,6 +220,9 @@ class CartWindow(QMainWindow):
 
         return footerwidget
     
+    # -------------------
+    #       EVENTS 
+    # -------------------
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -235,7 +238,21 @@ class CartWindow(QMainWindow):
                 self.action_add_game(url.toLocalFile())
             except Exception as ex:
                 QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.Ok)
+
+    def closeEvent(self, event) -> None:
+        if self.safely_discard_changes():
+            # Clear out some junk, we have a lot of parsed resources and junk!
+            self.modified = False
+            if hasattr(self, 'help_window'):
+                self.help_window.close()
+            event.accept()
+        else:
+            # User did not choose an action, do not exit.
+            event.ignore()
     
+    # ---------------------
+    #    GENERAL METHODS
+    # ---------------------
 
     def set_modified(self, modded = True):
         self.modified = modded
@@ -304,6 +321,11 @@ class CartWindow(QMainWindow):
         else:
             return None, None
 
+    def get_slot_parent(self, widget):
+        while widget:
+            if isinstance(widget, SlotWidget):
+                return widget
+            widget = widget.parent()
 
     # UNFORTUNATELY, any dialog box handles its own exceptions (it's hard not to), so you must check the return
     # type from here. Ew, TODO: fix this!
@@ -337,6 +359,28 @@ class CartWindow(QMainWindow):
         self.filepath = filepath
         self.set_modified(False)
         debug_actions.global_debug.add_action_str(f"Saved cart to file {filepath}")
+
+    # Returns whether the user went through with an action. If false, you should not 
+    # continue your discard!
+    def safely_discard_changes(self):
+        if self.modified:
+            reply = QMessageBox.question(
+                self,
+                "Unsaved Changes",
+                f"There are unsaved changes! Do you want to save your work?",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save
+            )
+
+            if reply == QMessageBox.Save:
+                return self.save() # The user still did not make a decision if they didn't save
+            elif reply == QMessageBox.Discard:
+                debug_actions.global_debug.add_action_str(f"Discarded current cart")
+            
+            # Caller needs to know if the user chose some action that allows them to continue
+            return reply != QMessageBox.Cancel
+
+        return True
 
     def clear(self):
         self.list_widget.clear()
@@ -641,50 +685,9 @@ class CartWindow(QMainWindow):
         self.set_modified(True)
         debug_actions.global_debug.add_action_str(f"Moved category {act}: {whole_category[0].meta.title}")
 
-    
-    def get_slot_parent(self, widget):
-        while widget:
-            if isinstance(widget, SlotWidget):
-                return widget
-            widget = widget.parent()
-
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Cart Editor Help", "help_cart.html")
         self.help_window.show()
-    
-    
-    # Returns whether the user went through with an action. If false, you should not 
-    # continue your discard!
-    def safely_discard_changes(self):
-        if self.modified:
-            reply = QMessageBox.question(
-                self,
-                "Unsaved Changes",
-                f"There are unsaved changes! Do you want to save your work?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save
-            )
-
-            if reply == QMessageBox.Save:
-                return self.save() # The user still did not make a decision if they didn't save
-            elif reply == QMessageBox.Discard:
-                debug_actions.global_debug.add_action_str(f"Discarded current cart")
-            
-            # Caller needs to know if the user chose some action that allows them to continue
-            return reply != QMessageBox.Cancel
-
-        return True
-
-    def closeEvent(self, event) -> None:
-        if self.safely_discard_changes():
-            # Clear out some junk, we have a lot of parsed resources and junk!
-            self.modified = False
-            if hasattr(self, 'help_window'):
-                self.help_window.close()
-            event.accept()
-        else:
-            # User did not choose an action, do not exit.
-            event.ignore()
     
 
 class SlotWidget(QWidget):
