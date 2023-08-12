@@ -24,6 +24,9 @@ from PyQt5 import QtGui
 from PyQt5.QtCore import QTimer, pyqtSignal, Qt, QThread
 from PIL import Image
 
+# Info input field's length limit. Just the field, not the data (though apparently the data is truncated
+# when placed in the field)
+INFO_MAX_LENGTH = 175
 
 # TODO: 
 # - Test that new game (though they said you can't flash it to fx?)
@@ -166,9 +169,19 @@ class CartWindow(QMainWindow):
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
 
+        debug_menu.addSeparator()
+
         addsave_action = QAction("Add 4K to save for item", self)
         addsave_action.triggered.connect(self.action_addsave)
         debug_menu.addAction(addsave_action)
+
+        clearfxsave_action = QAction("Clear FX save for item", self)
+        clearfxsave_action.triggered.connect(self.action_clearfxsave)
+        debug_menu.addAction(clearfxsave_action)
+
+        clearfxdata_action = QAction("Clear FX data for item", self)
+        clearfxdata_action.triggered.connect(self.action_clearfxdata)
+        debug_menu.addAction(clearfxdata_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -520,6 +533,30 @@ class CartWindow(QMainWindow):
             debug_actions.global_debug.add_action_str(f"Added more save for: {cslot.meta.title}")
         else:
             raise Exception("No selected slot!")
+
+    def action_clearfxdata(self):
+        cslot,widget = self.get_selected_slot_widget()
+        if cslot:
+            if cslot.is_category():
+                raise Exception("Can't clear FX data from categories!")
+            cslot.data_raw = bytearray()
+            widget.update_metalabel()
+            self.set_modified(True)
+            debug_actions.global_debug.add_action_str(f"Removed FX data for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
+
+    def action_clearfxsave(self):
+        cslot,widget = self.get_selected_slot_widget()
+        if cslot:
+            if cslot.is_category():
+                raise Exception("Can't clear FX save from categories!")
+            cslot.save_raw = bytearray()
+            widget.update_metalabel()
+            self.set_modified(True)
+            debug_actions.global_debug.add_action_str(f"Removed FX save for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
     
     def action_category_up(self):
         self.shift_category(act = "up")
@@ -638,7 +675,8 @@ class SlotWidget(QWidget):
         #  Left section (image, data)
         # ---------------------------
         leftlayout = QVBoxLayout()
-        leftwidget = QWidget()
+        self.leftwidget = QWidget()
+        self.leftwidget.setObjectName("leftwidget")
 
         self.image = TitleImageWidget()
         if parsed.image_raw:
@@ -669,7 +707,7 @@ class SlotWidget(QWidget):
 
         # This is a category then
         else:
-            leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
+            self.leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
             self.meta_label.setStyleSheet("font-weight: bold; margin-bottom: 5px")
 
         self.meta_label.setAlignment(Qt.AlignCenter)
@@ -678,8 +716,8 @@ class SlotWidget(QWidget):
         self.update_metalabel()
 
         leftlayout.setContentsMargins(0,0,0,0)
-        leftwidget.setLayout(leftlayout)
-        toplayout.addWidget(leftwidget)
+        self.leftwidget.setLayout(leftlayout)
+        toplayout.addWidget(self.leftwidget)
 
         # And now all the editable fields!
         # ---------------------------
@@ -690,7 +728,7 @@ class SlotWidget(QWidget):
 
         fields = []
         self.title = gui_utils.new_selflabeled_edit("Title", parsed.meta.title)
-        self.title.textChanged.connect(lambda t: self.do_meta_change(t, "title"))
+        self.title.textChanged.connect(self.title_set_event)
         fields.append(self.title)
         if not parsed.is_category():
             self.version = gui_utils.new_selflabeled_edit("Version", parsed.meta.version)
@@ -701,11 +739,19 @@ class SlotWidget(QWidget):
             fields.append(self.author)
         self.info = gui_utils.new_selflabeled_edit("Info", parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
-        self.info.setMaxLength(150) # Max total length of meta in header is 199, this limit is just a warning
+        self.info.setMaxLength(INFO_MAX_LENGTH) # Max total length of meta in header is 199, this limit is just a warning
         fields.append(self.info)
         
+        self.category_bigtitle = None
+
         if parsed.is_category():
-            gui_utils.add_children_nostretch(fieldlayout, fields)
+            self.category_bigtitle = QLabel(parsed.meta.title)
+            self.category_bigtitle.setStyleSheet("font-weight: bold;")
+            self.category_bigtitle.setAlignment(Qt.AlignCenter)
+            gui_utils.set_font_size(self.category_bigtitle, 16)
+            self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.5))
+            self.category_bigtitle.setStyleSheet("background: rgba(255,255,0,1)")
+            gui_utils.add_children_nostretch(fieldlayout, fields, self.category_bigtitle)
         else:
             for f in fields:
                 fieldlayout.addWidget(f)
@@ -714,9 +760,13 @@ class SlotWidget(QWidget):
         fieldsparent.setLayout(fieldlayout)
 
         toplayout.addWidget(fieldsparent)
-        # toplayout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
 
         self.setLayout(toplayout)
+    
+    def title_set_event(self, title):
+        self.do_meta_change(title, "title")
+        if self.category_bigtitle:
+            self.category_bigtitle.setText(title)
 
     # Update the metadata label for this unit with whatever new information is stored locally
     def update_metalabel(self):
@@ -724,6 +774,12 @@ class SlotWidget(QWidget):
             self.meta_label.setText("Category ↓")
         else:
             self.meta_label.setText(f"{len(self.parsed.program_raw)}  |  {len(self.parsed.data_raw)}  |  {len(self.parsed.save_raw)}")
+            if len(self.parsed.data_raw) or len(self.parsed.save_raw):
+                self.leftwidget.setToolTip("FX-Enabled title")
+                self.leftwidget.setStyleSheet("#leftwidget { background: rgba(255,0,0,0.15) }")
+            else:
+                self.leftwidget.setToolTip(None)
+                self.leftwidget.setStyleSheet("")
     
     # Perform a simple meta field change. This is unfortunately DIFFERENT than the metalabel!
     def do_meta_change(self, new_text, field):

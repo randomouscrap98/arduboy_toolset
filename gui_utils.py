@@ -108,11 +108,12 @@ def make_file_action(title: str, picker, button, symbol = None, symbol_color = N
     group.setStyleSheet("QCheckBox { margin-left: 8px; margin-bottom: 5px; }")
     return (group, group_layout)
 
-def add_children_nostretch(layout, children):
+def add_children_nostretch(layout, children, spacer = None):
     for c in children:
         layout.addWidget(c)
         layout.setStretchFactor(c, 0)
-    spacer = QWidget()
+    if not spacer:
+        spacer = QWidget()
     layout.addWidget(spacer)
     layout.setStretchFactor(spacer, 1)
 
