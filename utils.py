@@ -11,6 +11,22 @@ import logging
 
 from PIL import Image, ImageDraw, ImageFont
 
+
+def set_app_id():
+    # Some initial setup
+    try:
+        # This apparently only matters for windows and for GUI apps
+        from ctypes import windll  # Only exists on Windows.
+        myappid = 'Haloopdy.ArduboyToolset'
+        windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except ImportError:
+        pass
+
+def set_basic_logging():
+    logging.basicConfig(filename=os.path.join(SCRIPTDIR, "arduboy_toolset_gui_log.txt"), level=logging.DEBUG, 
+                        format="%(asctime)s - %(levelname)s - %(message)s")
+
+
 def get_filesafe_datetime():
     return time.strftime("%Y%m%d-%H%M%S", time.localtime())
 
@@ -55,3 +71,4 @@ def make_titlescreen_from_slot(slot: arduboy.fxcart.FxParsedSlot):
         return make_titlescreen(f"{base}{slot.meta.title}")
     else:
         return make_titlescreen(f"{base}{slot.category}")
+

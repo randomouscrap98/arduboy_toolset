@@ -955,23 +955,12 @@ def test():
 
 if __name__ == "__main__":
 
-    # Set the custom exception hook. Do this ASAP!!
-    sys.excepthook = gui_utils.exception_hook
-
-    # Some initial setup
-    try:
-        # This apparently only matters for windows and for GUI apps
-        from ctypes import windll  # Only exists on Windows.
-        myappid = 'Haloopdy.ArduboyToolset'
-        windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-    except ImportError:
-        pass
-
-    logging.basicConfig(filename=os.path.join(constants.SCRIPTDIR, "arduboy_toolset_gui_log.txt"), level=logging.DEBUG, 
-                        format="%(asctime)s - %(levelname)s - %(message)s")
+    utils.set_basic_logging()
 
     # test()
     app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
+    sys.excepthook = gui_utils.exception_hook
+    utils.set_app_id()
     app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
 
     gui_utils.try_create_emoji_font()
