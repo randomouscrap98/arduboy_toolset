@@ -29,6 +29,8 @@ from PIL import Image
 # when placed in the field)
 INFO_MAX_LENGTH = 175
 
+CATEGORY_BLOCK_STYLE = "background: rgba(255,255,0,1); color: #000; font-weight: bold"
+
 # TODO: 
 # - Test that new game (though they said you can't flash it to fx?)
 # - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
@@ -771,7 +773,7 @@ class SlotWidget(QWidget):
 
         # This is a category then
         else:
-            self.leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
+            self.leftwidget.setStyleSheet(CATEGORY_BLOCK_STYLE)
             self.meta_label.setStyleSheet("font-weight: bold; margin-bottom: 5px")
 
         self.meta_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -810,11 +812,10 @@ class SlotWidget(QWidget):
 
         if parsed.is_category():
             self.category_bigtitle = QLabel(parsed.meta.title)
-            self.category_bigtitle.setStyleSheet("font-weight: bold;")
             self.category_bigtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
             gui_utils.set_font_size(self.category_bigtitle, 16)
             self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.75))
-            self.category_bigtitle.setStyleSheet("background: rgba(255,255,0,1)")
+            self.category_bigtitle.setStyleSheet(CATEGORY_BLOCK_STYLE)
             gui_utils.add_children_nostretch(fieldlayout, fields, self.category_bigtitle)
         else:
             for f in fields:
