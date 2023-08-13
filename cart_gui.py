@@ -62,6 +62,8 @@ class CartWindow(QMainWindow):
         layout.addWidget(footerwidget)
 
         centralwidget.setLayout(layout)
+        # centralwidget.setObjectName("wtfplease")
+        centralwidget.setStyleSheet("QListWidget { border: 1px solid " + gui_utils.SUBDUEDCOLOR + " }")
         self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
 
@@ -685,7 +687,7 @@ class CartWindow(QMainWindow):
     def shift_category(self, act = "delete"):
         cat_index, end_index = self.find_surrounding_categories(skip_if_current=False)
         # Now, see if there's anything to do. If we move up while at the top, or down at the bottom, we are finished already
-        if (cat_index <= 0 and act == "up") or (end_index >= self.list_widget.count() and act == "down"):
+        if cat_index is None or end_index is None or (cat_index <= 0 and act == "up") or (end_index >= self.list_widget.count() and act == "down"):
             return
         # Now remove all the items in the range
         count = end_index - cat_index
@@ -695,7 +697,7 @@ class CartWindow(QMainWindow):
             self.list_widget.takeItem(cat_index)
         if act == "delete": # Nothing else to do, we already removed it
             self.set_modified(True)
-            debug_actions.global_debug.add_action_str(f"Deleted category {whole_category[0]}")
+            debug_actions.global_debug.add_action_str(f"Deleted category {whole_category[0].meta.title}")
             return 
         # Now, we can calculate where to insert it based on our direction.    
         if act == "up":
