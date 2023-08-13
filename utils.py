@@ -3,6 +3,7 @@ import arduboy.fxcart
 from constants import *
 from arduboy.constants import *
 
+import sys
 import os
 import time
 import textwrap
@@ -23,8 +24,29 @@ def set_app_id():
         pass
 
 def set_basic_logging():
-    logging.basicConfig(filename=os.path.join(SCRIPTDIR, "arduboy_toolset_gui_log.txt"), level=logging.DEBUG, 
-                        format="%(asctime)s - %(levelname)s - %(message)s")
+    if sys.platform == "darwin":
+        log_dir = os.path.expanduser("~/Library/Logs/arduboy_toolset")
+    else:
+        log_dir = SCRIPTDIR
+
+    level=logging.DEBUG
+    log_format="%(asctime)s - %(levelname)s - %(message)s"
+
+    try:
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        logging.basicConfig(level=level, format=log_format,
+            handlers=[
+                logging.FileHandler(os.path.join(log_dir, "arduboy_toolset_gui_log.txt")),
+                logging.StreamHandler()
+            ]
+        )
+    except Exception as ex:
+        logging.basicConfig(level=level, format=log_format,
+            handlers=[ logging.StreamHandler() ]
+        )
+        logging.warning(f"Couldn't set up file logging: {ex}")
+
 
 
 def get_filesafe_datetime():
