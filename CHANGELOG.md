@@ -1,6 +1,6 @@
-## 0.2.3
+## 0.3
 
-Small comfort changes
+Support MacOS + Small comfort changes
 
 * Made categories way more obvious
 * Can jump up and down through categories with the menu or keyboard shortcuts

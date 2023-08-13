@@ -210,9 +210,11 @@ class CartWindow(QMainWindow):
 
         # -------------------------------
         # Create an action for opening the help window
+        help_menu = menu_bar.addMenu("About")
+        
         open_help_action = QAction("Help", self)
         open_help_action.triggered.connect(self.open_help_window)
-        menu_bar.addAction(open_help_action)
+        help_menu.addAction(open_help_action)
 
     def create_footer(self):
         footerwidget = QWidget()

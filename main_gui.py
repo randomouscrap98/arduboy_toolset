@@ -100,14 +100,17 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
 
         # ----------------------
-        # Create an action for opening the help window
-        open_help_action = QAction("Help", self)
-        open_help_action.triggered.connect(self.open_help_window)
-        menu_bar.addAction(open_help_action)
+        about_menu = menu_bar.addMenu("About")
 
         open_about_action = QAction("About", self)
         open_about_action.triggered.connect(self.open_about_window)
-        menu_bar.addAction(open_about_action)
+        about_menu.addAction(open_about_action)
+
+        # Create an action for opening the help window
+        open_help_action = QAction("Help", self)
+        open_help_action.triggered.connect(self.open_help_window)
+        about_menu.addAction(open_help_action)
+
 
 
     def open_help_window(self):
