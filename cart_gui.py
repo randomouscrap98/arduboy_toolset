@@ -53,8 +53,8 @@ class CartWindow(QMainWindow):
         self.setAcceptDrops(True)
 
         self.list_widget.setUniformItemSizes(True) # Makes categories ugly but... scrolling nicer
-        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
-        self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.list_widget.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
         layout.addWidget(self.list_widget)
 
@@ -126,7 +126,7 @@ class CartWindow(QMainWindow):
         cart_menu.addAction(add_cat_action)
 
         del_action = QAction("Delete Selected", self)
-        del_action.setShortcut(Qt.Key_Delete)
+        del_action.setShortcut(Qt.Key.Key_Delete)
         del_action.triggered.connect(self.action_delete_selected)
         cart_menu.addAction(del_action)
 
@@ -145,12 +145,12 @@ class CartWindow(QMainWindow):
         cart_menu.addSeparator()
 
         up_slot_action = QAction("Shift Slot Up", self)
-        up_slot_action.setShortcut(QtGui.QKeySequence(Qt.ControlModifier | Qt.ShiftModifier | Qt.Key_Up))
+        up_slot_action.setShortcut(QtGui.QKeySequence(Qt.KeyboardModifier.ControlModifier| Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Up))
         up_slot_action.triggered.connect(self.action_slot_up)
         cart_menu.addAction(up_slot_action)
 
         down_slot_action = QAction("Shift Slot Down", self)
-        down_slot_action.setShortcut(QtGui.QKeySequence(Qt.ControlModifier | Qt.ShiftModifier | Qt.Key_Down))
+        down_slot_action.setShortcut(QtGui.QKeySequence(Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Down))
         down_slot_action.triggered.connect(self.action_slot_down)
         cart_menu.addAction(down_slot_action)
 
@@ -248,7 +248,7 @@ class CartWindow(QMainWindow):
                 # Why doesn't this set off the normal exception handling?
                 self.action_add_game(url.toLocalFile())
             except Exception as ex:
-                QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.Ok)
+                QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.StandardButton.Ok)
 
     def closeEvent(self, event) -> None:
         if self.safely_discard_changes():
@@ -379,17 +379,17 @@ class CartWindow(QMainWindow):
                 self,
                 "Unsaved Changes",
                 f"There are unsaved changes! Do you want to save your work?",
-                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save
+                QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save
             )
 
-            if reply == QMessageBox.Save:
+            if reply == QMessageBox.StandardButton.Save:
                 return self.save() # The user still did not make a decision if they didn't save
-            elif reply == QMessageBox.Discard:
+            elif reply == QMessageBox.StandardButton.Discard:
                 debug_actions.global_debug.add_action_str(f"Discarded current cart")
             
             # Caller needs to know if the user chose some action that allows them to continue
-            return reply != QMessageBox.Cancel
+            return reply != QMessageBox.StandardButton.Cancel
 
         return True
 
@@ -448,7 +448,7 @@ class CartWindow(QMainWindow):
 
     def action_opencart(self):
         if self.safely_discard_changes():
-            filepath, _ = QFileDialog.getOpenFileName(self, "Open Flashcart File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+            filepath, _ = QFileDialog.getOpenFileName(self, "Open Flashcart File", "", constants.BIN_FILEFILTER)
             if filepath:
                 bindata = arduboy.fxcart.read(filepath)
                 self.loadcart(bindata, filepath)
@@ -475,8 +475,8 @@ class CartWindow(QMainWindow):
         # Might as well ask... it's kind of a big deal to flash
         reply = QMessageBox.question(self, "Flash FX Cart",
             f"Are you sure you want to flash this cart to the Arduboy?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply != QMessageBox.Yes:
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if reply != QMessageBox.StandardButton.Yes:
             return 
         # Must compile data first
         bindata = self.get_current_as_raw()
@@ -503,8 +503,7 @@ class CartWindow(QMainWindow):
 
     # Save current file with a dialog, set new file as filepath, remove modification.
     def action_save_as(self):
-        options = QFileDialog.Options()
-        filepath, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER, options=options)
+        filepath, _ = QFileDialog.getSaveFileName(self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER)
         if filepath:
             self.do_self_save(filepath)
             return True
@@ -518,8 +517,7 @@ class CartWindow(QMainWindow):
 
     def action_add_game(self, file_path = None):
         if not file_path:
-            options = QFileDialog.Options()
-            file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=options)
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
         if file_path:
             parsed = arduboy.arduhex.read(file_path)
             newgame = SlotWidget(arduboy.shortcuts.new_parsed_slot_from_arduboy(parsed))
@@ -565,7 +563,7 @@ class CartWindow(QMainWindow):
         # Need to get selected. If none, just... exit?
         cslot = self.get_selected_slot()
         if cslot:
-            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "bin"), constants.BIN_FILEFILTER, options=QFileDialog.Options())
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "bin"), constants.BIN_FILEFILTER)
             if filepath:
                 # Have to fix up the data first; this is normally called by the full compiler but since we're not doing that...
                 slots = self.get_slots()
@@ -581,7 +579,7 @@ class CartWindow(QMainWindow):
         # Need to get selected. If none, just... exit?
         cslot = self.get_selected_slot()
         if cslot:
-            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "png"), constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save single compiled slot", utils.get_meta_backup_filename(cslot.meta, "png"), constants.IMAGE_FILEFILTER)
             if filepath:
                 img = utils.make_titlescreen_from_slot(cslot)
                 img.save(filepath)
@@ -772,7 +770,7 @@ class SlotWidget(QWidget):
             self.leftwidget.setStyleSheet("background: rgba(255,255,0,1)")
             self.meta_label.setStyleSheet("font-weight: bold; margin-bottom: 5px")
 
-        self.meta_label.setAlignment(Qt.AlignCenter)
+        self.meta_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         gui_utils.mod_font_size(self.meta_label, 0.85)
         leftlayout.addWidget(self.meta_label)
         self.update_metalabel()
@@ -809,9 +807,9 @@ class SlotWidget(QWidget):
         if parsed.is_category():
             self.category_bigtitle = QLabel(parsed.meta.title)
             self.category_bigtitle.setStyleSheet("font-weight: bold;")
-            self.category_bigtitle.setAlignment(Qt.AlignCenter)
+            self.category_bigtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
             gui_utils.set_font_size(self.category_bigtitle, 16)
-            self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.5))
+            self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.75))
             self.category_bigtitle.setStyleSheet("background: rgba(255,255,0,1)")
             gui_utils.add_children_nostretch(fieldlayout, fields, self.category_bigtitle)
         else:
@@ -852,7 +850,7 @@ class SlotWidget(QWidget):
         return self.parsed
     
     def select_program(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER, options=QFileDialog.Options())
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
         if file_path:
             # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
             parsed = arduboy.arduhex.read(file_path)
@@ -862,7 +860,7 @@ class SlotWidget(QWidget):
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")
 
     def select_data(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER)
         if file_path:
             with open(file_path, "rb") as f:
                 self.parsed.data_raw = f.read()
@@ -871,7 +869,7 @@ class SlotWidget(QWidget):
             debug_actions.global_debug.add_action_str(f"Edited FX data for: {self.parsed.meta.title}")
 
     def select_save(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Save File", "", constants.BIN_FILEFILTER, options=QFileDialog.Options())
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Save File", "", constants.BIN_FILEFILTER)
         if file_path:
             with open(file_path, "rb") as f:
                 self.parsed.save_raw = f.read()
@@ -903,10 +901,10 @@ class TitleImageWidget(QLabel):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setCursor(QtGui.QCursor(Qt.PointingHandCursor))  # Set cursor to pointing hand
+        self.setCursor(QtGui.QCursor(Qt.CursorShape.PointingHandCursor))  # Set cursor to pointing hand
         self.setScaledContents(True)  # Scale the image to fit the label
         self.set_image_bytes(None)
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
     
@@ -922,15 +920,15 @@ class TitleImageWidget(QLabel):
             self.setText("Choose image")
     
     def _finish_image(self, b):
-        qt_image = QtGui.QImage(b, SCREEN_WIDTH, SCREEN_HEIGHT, QtGui.QImage.Format_Grayscale8)
+        qt_image = QtGui.QImage(b, SCREEN_WIDTH, SCREEN_HEIGHT, QtGui.QImage.Format.Format_Grayscale8)
         pixmap = QtGui.QPixmap(qt_image) 
         self.setPixmap(pixmap)
         self.setText("")
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             # Open a file select dialog, resize+crop the image to exactly 128x64, then set it as self and pass it along!
-            file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER, options=QFileDialog.Options())
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER)
             if file_path:
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
                 image_bytes = pilimage_to_bin(Image.open(file_path)) 
@@ -975,4 +973,4 @@ if __name__ == "__main__":
 
     window = CartWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

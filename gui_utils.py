@@ -29,7 +29,7 @@ def show_exception(exception, parent = None):
         error_message += f"\n\nTraceback:" + "".join(traceback.format_exception(exception))
     else:
         error_message += "\n\nSee log for details"
-    QMessageBox.critical(parent, "Unhandled Exception", error_message, QMessageBox.Ok)
+    QMessageBox.critical(parent, "Unhandled Exception", error_message, QMessageBox.StandardButton.Ok)
     logging.exception(exception)
 
 
@@ -174,15 +174,14 @@ class FilePicker(QWidget):
         return self.filetext.text()
     
     def show_file_dialog(self):
-        options = QFileDialog.Options()
         if self.default_name_generator:
             default_name = self.default_name_generator()
         else:
             default_name = ""
         if self.save_new_file:
-            file_path, _ = QFileDialog.getSaveFileName(self, "Save File", default_name, self.file_filter, options=options)
+            file_path, _ = QFileDialog.getSaveFileName(self, "Save File", default_name, self.file_filter)
         else:
-            file_path, _ = QFileDialog.getOpenFileName(self, "Choose File", default_name, self.file_filter, options=options)
+            file_path, _ = QFileDialog.getOpenFileName(self, "Choose File", default_name, self.file_filter)
         self.filetext.setText(file_path)
 
 
@@ -211,9 +210,9 @@ class FilePicker(QWidget):
             confirmation = QMessageBox.question(
                 parent, "Overwrite file",
                 f"File already exists. Are you sure you want to overwrite this file: {filepath}?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
 
-            if confirmation == QMessageBox.Yes:
+            if confirmation == QMessageBox.StandardButton.Yes:
                 os.remove(filepath)
             else:
                 return None
@@ -240,7 +239,7 @@ class ProgressWindow(QDialog):
         layout = QVBoxLayout()
 
         self.setWindowTitle(title)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint & ~Qt.WindowMaximizeButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint & ~Qt.WindowType.WindowMaximizeButtonHint)
         self.error_state = False
         self.simple = simple
 
@@ -250,12 +249,12 @@ class ProgressWindow(QDialog):
             self.resize(400, 200)
 
             self.status_label = QLabel("Waiting...")
-            self.status_label.setAlignment(Qt.AlignCenter)
+            self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             mod_font_size(self.status_label, 2)
             layout.addWidget(self.status_label)
 
             self.device_label = QLabel(device if device else "~")
-            self.device_label.setAlignment(Qt.AlignCenter)
+            self.device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.device_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
             layout.addWidget(self.device_label)
 
@@ -266,7 +265,7 @@ class ProgressWindow(QDialog):
             self.ok_button = QPushButton("OK")
             self.ok_button.clicked.connect(self.accept)  # Connect to the accept() method
             self.ok_button.hide()  # Hide the OK button initially
-            layout.addWidget(self.ok_button, alignment=Qt.AlignCenter)
+            layout.addWidget(self.ok_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.setLayout(layout)
     
@@ -296,7 +295,7 @@ class ProgressWindow(QDialog):
     
     def report_error(self, ex: Exception):
         self.error_state = True
-        QMessageBox.critical(self, f"Error during '{self.windowTitle()}'", str(ex), QMessageBox.Ok)
+        QMessageBox.critical(self, f"Error during '{self.windowTitle()}'", str(ex), QMessageBox.StandardButton.Ok)
         logging.exception(ex)
         self.accept()
 
@@ -342,5 +341,5 @@ def do_progress_work(work, title, simple = False):
     worker_thread = ProgressWorkerThread(work, simple = simple)
     worker_thread.connect(dialog)
     worker_thread.start()
-    dialog.exec_()
+    dialog.exec()
     return dialog

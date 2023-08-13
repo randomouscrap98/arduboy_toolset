@@ -47,7 +47,7 @@ def main():
     else:
         window = MainWindow()
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 
@@ -273,7 +273,7 @@ class ActionTable(QTabWidget):
 
         # Add widgets to tab4
         label = QLabel("Coming later I hope?")
-        label.setAlignment(Qt.AlignCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         utilities_layout.addWidget(label)
 
         # Set layouts for each tab
@@ -409,9 +409,9 @@ class ActionTable(QTabWidget):
         confirmation = QMessageBox.question(
             self, "ERASE EEPROM",
             f"EEPROM is a 1KB area for save data. Are you SURE you want to erase EEPROM?", 
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
 
-        if confirmation != QMessageBox.Yes:
+        if confirmation != QMessageBox.StandardButton.Yes:
             return
 
         def do_work(device, repprog, repstatus):
