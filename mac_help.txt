@@ -17,4 +17,5 @@ PyInstaller will fail to build. You have to get the latest version using:
 
 Apple Silicon
 --------------
-Still working on that
+Have to get a rosetta version of your terminal, then get a rosetta version of homebrew and alias it, then
+install python3 through the intel homebrew and use specifically it to make your virtual environment
