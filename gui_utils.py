@@ -5,9 +5,9 @@ import logging
 import os
 import traceback
 
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt6 import QtGui
+from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None

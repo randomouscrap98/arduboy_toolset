@@ -1,7 +1,7 @@
 import datetime
 
 from dataclasses import dataclass
-from PyQt5.QtCore import QTimer, pyqtSignal, Qt, QThread, QObject
+from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread, QObject
 
 
 @dataclass

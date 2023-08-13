@@ -13,10 +13,11 @@ import logging
 import os
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget, QGroupBox
-from PyQt5.QtWidgets import QMessageBox, QAction, QCheckBox, QFileDialog
-from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal, Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
+from PyQt6.QtWidgets import QMessageBox, QCheckBox 
+from PyQt6 import QtGui
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QTimer, pyqtSignal, Qt
 
 
 def main():

@@ -18,10 +18,11 @@ import sys
 import time
 
 from typing import List
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
-from PyQt5.QtWidgets import QMessageBox, QAction, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
-from PyQt5 import QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal, Qt, QThread
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
+from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
+from PyQt6 import QtGui
+from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread
 from PIL import Image
 
 # Info input field's length limit. Just the field, not the data (though apparently the data is truncated
