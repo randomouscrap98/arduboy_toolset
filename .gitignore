@@ -169,3 +169,4 @@ ignore/
 !arduboy_toolset_cli.spec
 !arduboy_toolset.spec
 *log.txt
+.venv*

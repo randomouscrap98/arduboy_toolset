@@ -1,0 +1,20 @@
+Getting Python
+--------------
+You can't use the version of python that comes from MacOS or the package manager. You have to use
+"Homebrew", which you get from some script you run (just search Homebrew install)
+
+brew install python.
+brew link python
+
+Command is "python3" and "pip3"
+
+PyInstaller
+-------------
+PyInstaller will fail to build. You have to get the latest version using:
+
+  pip uninstall pyinstaller
+  PYINSTALLER_COMPILE_BOOTLOADER=1 pip install git+https://github.com/pyinstaller/pyinstaller.git@develop
+
+Apple Silicon
+--------------
+Still working on that
