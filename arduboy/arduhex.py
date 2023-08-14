@@ -75,7 +75,7 @@ def read(filepath) -> ArduboyParsed:
                 except Exception as ex:
                     logging.warning(f"Arduboy file {filepath} has no info.json, or parse failed! Will still try to get files out: {ex}")
                 for filename in zip_ref.namelist():
-                    if (progfile.lower() == filename.lower()) or (progfile is None and filename.lower().endswith(".hex")):
+                    if (progfile is not None and progfile.lower() == filename.lower()) or (progfile is None and filename.lower().endswith(".hex")):
                         extract_file = extract(filename)
                         with open(extract_file,"r",encoding="utf-8") as f: # The arduboy utilities opens with just "r", no binary flags set.
                             result.rawhex = f.read()
