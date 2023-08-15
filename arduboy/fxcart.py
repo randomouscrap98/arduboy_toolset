@@ -325,9 +325,10 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     header[57:57 + len(stringdata)] = stringdata
     if len(header) != HEADER_LENGTH:
         raise Exception(f"Somehow, header length for {slot.meta.title} was not {HEADER_LENGTH}!")
-    patch_success, message = patch_menubuttons(program)
-    if not patch_success:
-        logging.warning(f"Couldn't patch menu to return to bootloader for {slot.meta.title}: {message}")
+    if len(program):
+        patch_success, message = patch_menubuttons(program)
+        if not patch_success:
+            logging.warning(f"Couldn't patch menu to return to bootloader for {slot.meta.title}: {message}")
     return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
 
 # Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from

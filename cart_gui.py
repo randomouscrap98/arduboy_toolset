@@ -266,12 +266,12 @@ class CartWindow(QMainWindow):
     
     def dropEvent(self, event):
         if event.mimeData().hasUrls():
-            url = event.mimeData().urls()[0]
-            try:
-                # Why doesn't this set off the normal exception handling?
-                self.action_add_game(url.toLocalFile())
-            except Exception as ex:
-                QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.StandardButton.Ok)
+            for url in event.mimeData().urls():
+                try:
+                    # Why doesn't this set off the normal exception handling?
+                    self.action_add_game(url.toLocalFile())
+                except Exception as ex:
+                    QMessageBox.critical(None, "Can't open file", f"Couldn't open arduboy/hex file: {ex}", QMessageBox.StandardButton.Ok)
 
     def closeEvent(self, event) -> None:
         if self.safely_discard_changes():
