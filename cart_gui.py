@@ -130,7 +130,7 @@ class CartWindow(QMainWindow):
         edit_menu.addAction(add_cat_action)
 
         del_action = QAction("Delete Selected", self)
-        del_action.setShortcut(Qt.Key.Key_Delete)
+        del_action.setShortcut("Ctrl+Delete")
         del_action.triggered.connect(self.action_delete_selected)
         edit_menu.addAction(del_action)
 
@@ -157,7 +157,7 @@ class CartWindow(QMainWindow):
         edit_menu.addAction(down_cat_action)
 
         del_cat_action = QAction("Delete Entire Category", self)
-        del_cat_action.setShortcut("Ctrl+Delete")
+        del_cat_action.setShortcut("Ctrl+Shift+Delete")
         del_cat_action.triggered.connect(self.action_category_delete)
         edit_menu.addAction(del_cat_action)
 
