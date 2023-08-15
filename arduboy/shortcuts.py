@@ -27,7 +27,7 @@ def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> ardub
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
         pilimage_to_bin(parsed.image) if parsed.image else None, # MUST BE none for things to know there's no image!
-        arduboy.fxcart.arduhex_to_bin(parsed.rawhex), # The three main slot data fields are all stored raw in FxParsedSlot, including program.
+        arduboy.arduhex.parse(parsed).flash_data_min(), # fxcart.arduhex_to_bin(parsed.rawhex), # The three main slot data fields are all stored raw in FxParsedSlot, including program.
         parsed.data_raw,
         parsed.save_raw,
         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)

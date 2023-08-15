@@ -204,13 +204,17 @@ class CartWindow(QMainWindow):
         # -------------------------------
         debug_menu = menu_bar.addMenu("Debug")
 
-        csing_action = QAction("Compile selected item", self)
+        csing_action = QAction("Compile selected Slot", self)
         csing_action.triggered.connect(self.action_compilesingle)
         debug_menu.addAction(csing_action)
 
-        gimg_action = QAction("Generate image for item", self)
+        gimg_action = QAction("Generate image for Slot", self)
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
+
+        unparse_action = QAction("Convert Slot bin to hex", self)
+        unparse_action.triggered.connect(self.action_unparsebin)
+        debug_menu.addAction(unparse_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -596,6 +600,19 @@ class CartWindow(QMainWindow):
         else:
             raise Exception("No selected slot!")
     
+    def action_unparsebin(self):
+        cslot = self.get_selected_slot()
+        if cslot:
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as hex", utils.get_meta_backup_filename(cslot.meta, "hex"), constants.HEX_FILEFILTER)
+            if filepath:
+                hexstring = arduboy.arduhex.unparse(cslot.program_raw)
+                with open(filepath, "w") as f:
+                    f.write(hexstring)
+                debug_actions.global_debug.add_action_str(f"Saved slot as hex for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
+
+    
     def action_addsave(self):
         cslot,widget = self.get_selected_slot_widget()
         if cslot:
@@ -862,7 +879,7 @@ class SlotWidget(QWidget):
         if file_path:
             # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
             parsed = arduboy.arduhex.read(file_path)
-            self.parsed.data_raw = arduboy.fxcart.arduhex_to_bin(parsed.rawhex)
+            self.parsed.data_raw = arduboy.arduhex.parse(parsed).flash_data_min() # fxcart.arduhex_to_bin(parsed.rawhex)
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")

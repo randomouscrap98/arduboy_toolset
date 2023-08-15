@@ -6,10 +6,13 @@ import os
 import tempfile
 import zipfile
 import demjson3
+import binascii
 
 from typing import List
 from dataclasses import dataclass, field
 from PIL import Image
+
+BYTES_PER_RECORD = 16
 
 # Represents maximum data pulled from SOME kind of sketch file
 @dataclass
@@ -38,6 +41,9 @@ class ArduhexParsed:
     flash_page_count: int = field(default=0)
     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
     overwrites_caterina: bool = field(default=False)
+
+    def flash_data_min(self):
+        return self.flash_data[:FLASH_PAGESIZE * self.flash_page_count]
 
 
 # Read raw data from the arduboy or hex file. Return an intermediate representation
@@ -77,7 +83,7 @@ def read(filepath) -> ArduboyParsed:
                 for filename in zip_ref.namelist():
                     if (progfile is not None and progfile.lower() == filename.lower()) or (progfile is None and filename.lower().endswith(".hex")):
                         extract_file = extract(filename)
-                        with open(extract_file,"r",encoding="utf-8") as f: # The arduboy utilities opens with just "r", no binary flags set.
+                        with open(extract_file,"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
                             result.rawhex = f.read()
                     elif filename.lower().endswith(".png") and filename.lower() != "banner.png" and not result.image:
                         try:
@@ -104,6 +110,10 @@ def read(filepath) -> ArduboyParsed:
             result.rawhex = f.read()
     return result
 
+# Write the given parsed arduboy back to the filesystem
+def write(ard_parsed: ArduboyParsed, filepath: str):
+    pass
+
 # Parse pages and data relevant for flashing out of the parsed arduboy file
 # Throws an exception if the records can't be validated. Taken almost verbatim from 
 # https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
@@ -112,6 +122,7 @@ def parse(arduboy_data: ArduboyParsed):
     result = ArduhexParsed(arduboy_data)
     records = arduboy_data.rawhex.splitlines()
     flash_addr = 0
+    # NOTE: this is a simple Intel HEX format: https://en.wikipedia.org/wiki/Intel_HEX
     for rcd in records :
         # Assuming this is some kind of end symbol
         if rcd == ":00000001FF": 
@@ -119,13 +130,14 @@ def parse(arduboy_data: ArduboyParsed):
         elif rcd[0] == ":" :
             # This part is literally just copy + paste, the hex format seems complicated...
             rcd_len  = int(rcd[1:3],16)
-            rcd_typ  = int(rcd[7:9],16)
             rcd_addr = int(rcd[3:7],16)
-            rcd_sum  = int(rcd[9+rcd_len*2:11+rcd_len*2],16)
+            rcd_typ  = int(rcd[7:9],16)
+            rcd_end = 9 + rcd_len*2
+            rcd_sum  = int(rcd[rcd_end:rcd_end+2],16)
             if (rcd_typ == 0) and (rcd_len > 0) :
                 flash_addr = rcd_addr
-                result.flash_page_used[int(rcd_addr / 128)] = True
-                result.flash_page_used[int((rcd_addr + rcd_len - 1) / 128)] = True
+                result.flash_page_used[int(rcd_addr / FLASH_PAGESIZE)] = True
+                result.flash_page_used[int((rcd_addr + rcd_len - 1) / FLASH_PAGESIZE)] = True
                 checksum = rcd_sum
                 for i in range(1,9+rcd_len*2, 2) :
                     byte = int(rcd[i:i+2],16)
@@ -145,3 +157,20 @@ def parse(arduboy_data: ArduboyParsed):
                 result.overwrites_caterina = True
 
     return result
+
+# Convert a raw binary back into hex! 
+def unparse(bindata: bytearray, bytes_per_record = BYTES_PER_RECORD) -> str:
+    if bytes_per_record > 255:
+        raise Exception("Too many bytes per record! Limit 255")
+    hexstring = ""
+    # Hex files seem to start at 0, so we can reuse the index as the flash address
+    for flash_addr in range(0, len(bindata), bytes_per_record):
+        rec_bytes = bindata[flash_addr:flash_addr + bytes_per_record]
+        line = hex(len(rec_bytes))[2:].zfill(2) + hex(flash_addr)[2:].zfill(4) + "00"
+        line += binascii.hexlify(rec_bytes).decode()
+        # THe checksum portion is the sum of all the bytes on the line other than the checksum itself and the initial symbols (: and etc)
+        checksum = sum(bytes.fromhex(line))
+        # but then least significant byte + two's compliment. LSB 
+        checksum = (~(checksum & 0xFF) + 1) & 0xFF
+        hexstring += ":" + (line + hex(checksum)[2:].zfill(2)).upper() + "\n"
+    return hexstring + ":00000001FF"

@@ -1,4 +1,5 @@
 
+FLASH_PAGESIZE = 128        # Not sure if this is the true page size but it's what a lot of this program uses
 FLASHSIZE = 32768         # Size of the onboard flash (default chip whatever, atmega etc)
 
 FX_PAGESIZE = 256       # The hardware page size in the FX modchip flash
