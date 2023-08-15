@@ -6,6 +6,17 @@
 </p>
 
 <p>
+    What is a flashcart? The base model Arduboy from several years ago contained only 32KB of flash memory, intended
+    to store one program. The community came up with a mod which would add a 16MB flash module, and wrote a special
+    menu program that lets you browse games written into that bigger flash. The games are stitched together into a 
+    special format, and that whole big file full of games is called a cart, which is stored on the mod's flash memory. 
+    Newer Arduboys, called Arduboy FX, come with this mod preinstalled. This program understands this big flashcart 
+    file, and can decompile + recompile it, allowing you to add or modify programs within it.
+</p>
+
+<h2>Using</h2>
+
+<p>
     So to modify the cart on your Arduboy, you might:
 </p>
 
@@ -17,18 +28,24 @@
 
 <p>
     If any games use the FX save feature, you will need to do this "direct" modification every time. It first loads
-    the FX flashcart data into memory, so <b>modifications are done locally</b> (and can be saved to the filesystem) before
-    being written back. Or, you could work strictly on backups, just keep in mind you'll lose any save games that 
-    are stored on the FX chip (most games currently don't do this)
+    the FX flashcart data into memory, so <b>modifications are done locally</b> (and can be saved to your computer) before
+    being written back to the Arduboy. Keep in mind that flashing older cart backups will <i>also</i> flash your older
+    FX saves, so always work off the latest cart in your Arduboy if you want to preserve your FX saves.
 </p>
 
 <h2>Cart List</h2>
 
 <p>
-    When you load a flashcart into the UI, the cart items are displayed in a list, even though the structure
-    on the Arduboy seems to be a tree of games under categories. The list is displayed like this so it mirrors 
-    how it is stored on the FX flash. This is done so that, in the future, you will be able to very quickly 
-    pull just metadata off the FX flash and reflash only your changes, making the whole thing much much quicker. 
+    When you load a flashcart into the UI, the cart items are displayed in a list. This is how it is stored in 
+    the flashcart: each item in the cart is called a "Slot", and each Slot holds either a progrma or a category.
+    A category encompasses all programs that follow it, up until the next category. Note that Arduboy expects 
+    the first category to always be empty (this will be enforced whenever the cart is compiled).
+</p>
+
+<p>
+    There are keyboard shortcuts to make navigating the cart easier. You can check out all the navigation options
+    in the <b>Navigate</b> menu. You can also search for text within the cart, if you're looking for a specific 
+    program or category.
 </p>
 
 <h3>Adding games + categories</h3>
@@ -46,7 +63,7 @@
 </p>
 
 <p>
-    <b>Your cart must always start with a category!</b>
+    <b>Your cart must always start with an empty category!</b>
 </p>
 
 <h3>Editing games + categories</h3>
@@ -65,8 +82,8 @@
 </p>
 
 <p>
-    To move games around, simply drag + drop the items on screen. Note that you can move categories too, but
-    it will not move all games in the category along with it. This is because the list mimics how it is stored
+    To move games around, simply drag + drop the items on screen. Note that you can move categories like this too, 
+    but it will not move all games in the category along with it. This is because the list mimics how it is stored
     on flash: a category automatically encompasses all the games after it, until the next category. Moving entire
     categories may come in the future.
 </p>

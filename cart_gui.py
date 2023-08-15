@@ -117,73 +117,89 @@ class CartWindow(QMainWindow):
         file_menu.addAction(exit_action)
 
         # -------------------------------
-        cart_menu = menu_bar.addMenu("Cart")
+        edit_menu = menu_bar.addMenu("Edit")
 
         add_action = QAction("Add Game", self)
         add_action.setShortcut("Ctrl+G")
         add_action.triggered.connect(self.action_add_game)
-        cart_menu.addAction(add_action)
+        edit_menu.addAction(add_action)
 
         add_cat_action = QAction("Add Category", self)
         add_cat_action.setShortcut("Ctrl+T")
         add_cat_action.triggered.connect(self.action_add_category)
-        cart_menu.addAction(add_cat_action)
+        edit_menu.addAction(add_cat_action)
 
         del_action = QAction("Delete Selected", self)
         del_action.setShortcut(Qt.Key.Key_Delete)
         del_action.triggered.connect(self.action_delete_selected)
-        cart_menu.addAction(del_action)
+        edit_menu.addAction(del_action)
 
-        cart_menu.addSeparator()
-
-        mup_cat_action = QAction("Jump to Previous Category", self)
-        mup_cat_action.setShortcut("Ctrl+U")
-        mup_cat_action.triggered.connect(self.action_category_jumpup)
-        cart_menu.addAction(mup_cat_action)
-
-        mdown_cat_action = QAction("Jump to Next Category", self)
-        mdown_cat_action.setShortcut("Ctrl+D")
-        mdown_cat_action.triggered.connect(self.action_category_jumpdown)
-        cart_menu.addAction(mdown_cat_action)
-
-        cart_menu.addSeparator()
+        edit_menu.addSeparator()
 
         up_slot_action = QAction("Shift Slot Up", self)
         up_slot_action.setShortcut(QtGui.QKeySequence(Qt.KeyboardModifier.ControlModifier| Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Up))
         up_slot_action.triggered.connect(self.action_slot_up)
-        cart_menu.addAction(up_slot_action)
+        edit_menu.addAction(up_slot_action)
 
         down_slot_action = QAction("Shift Slot Down", self)
         down_slot_action.setShortcut(QtGui.QKeySequence(Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Down))
         down_slot_action.triggered.connect(self.action_slot_down)
-        cart_menu.addAction(down_slot_action)
+        edit_menu.addAction(down_slot_action)
 
         up_cat_action = QAction("Shift Category Up", self)
         up_cat_action.setShortcut("Ctrl+Shift+U")
         up_cat_action.triggered.connect(self.action_category_up)
-        cart_menu.addAction(up_cat_action)
+        edit_menu.addAction(up_cat_action)
 
         down_cat_action = QAction("Shift Category Down", self)
         down_cat_action.setShortcut("Ctrl+Shift+D")
         down_cat_action.triggered.connect(self.action_category_down)
-        cart_menu.addAction(down_cat_action)
+        edit_menu.addAction(down_cat_action)
 
         del_cat_action = QAction("Delete Entire Category", self)
         del_cat_action.setShortcut("Ctrl+Delete")
         del_cat_action.triggered.connect(self.action_category_delete)
-        cart_menu.addAction(del_cat_action)
+        edit_menu.addAction(del_cat_action)
 
-        cart_menu.addSeparator()
+        edit_menu.addSeparator()
+
+        addsave_action = QAction("Add 4K to save for Slot", self)
+        addsave_action.triggered.connect(self.action_addsave)
+        edit_menu.addAction(addsave_action)
+
+        clearfxsave_action = QAction("Clear FX save for Slot", self)
+        clearfxsave_action.triggered.connect(self.action_clearfxsave)
+        edit_menu.addAction(clearfxsave_action)
+
+        clearfxdata_action = QAction("Clear FX data for Slot", self)
+        clearfxdata_action.triggered.connect(self.action_clearfxdata)
+        edit_menu.addAction(clearfxdata_action)
+
+
+        # -------------------------------
+        navigate_menu = menu_bar.addMenu("Navigate")
+
+        mup_cat_action = QAction("Jump to Previous Category", self)
+        mup_cat_action.setShortcut("Ctrl+U")
+        mup_cat_action.triggered.connect(self.action_category_jumpup)
+        navigate_menu.addAction(mup_cat_action)
+
+        mdown_cat_action = QAction("Jump to Next Category", self)
+        mdown_cat_action.setShortcut("Ctrl+D")
+        mdown_cat_action.triggered.connect(self.action_category_jumpdown)
+        navigate_menu.addAction(mdown_cat_action)
+
+        navigate_menu.addSeparator()
 
         find_action = QAction("Search cart", self)
         find_action.setShortcut("Ctrl+F")
         find_action.triggered.connect(self.action_find)
-        cart_menu.addAction(find_action)
+        navigate_menu.addAction(find_action)
 
         findagain_action = QAction("Repeat last search", self)
         findagain_action.setShortcut("Ctrl+Shift+F")
         findagain_action.triggered.connect(lambda: self.action_find(True))
-        cart_menu.addAction(findagain_action)
+        navigate_menu.addAction(findagain_action)
 
         # -------------------------------
         debug_menu = menu_bar.addMenu("Debug")
@@ -196,25 +212,12 @@ class CartWindow(QMainWindow):
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
 
-        debug_menu.addSeparator()
-
-        addsave_action = QAction("Add 4K to save for item", self)
-        addsave_action.triggered.connect(self.action_addsave)
-        debug_menu.addAction(addsave_action)
-
-        clearfxsave_action = QAction("Clear FX save for item", self)
-        clearfxsave_action.triggered.connect(self.action_clearfxsave)
-        debug_menu.addAction(clearfxsave_action)
-
-        clearfxdata_action = QAction("Clear FX data for item", self)
-        clearfxdata_action.triggered.connect(self.action_clearfxdata)
-        debug_menu.addAction(clearfxdata_action)
-
         # -------------------------------
         # Create an action for opening the help window
         help_menu = menu_bar.addMenu("About")
         
         open_help_action = QAction("Help", self)
+        open_help_action.setShortcut(QtGui.QKeySequence(Qt.Key.Key_F1))
         open_help_action.triggered.connect(self.open_help_window)
         help_menu.addAction(open_help_action)
 
