@@ -879,7 +879,7 @@ class SlotWidget(QWidget):
         if file_path:
             # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
             parsed = arduboy.arduhex.read(file_path)
-            self.parsed.data_raw = arduboy.arduhex.parse(parsed).flash_data_min() # fxcart.arduhex_to_bin(parsed.rawhex)
+            self.parsed.data_raw = arduboy.arduhex.parse(parsed).flash_data_min()
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")

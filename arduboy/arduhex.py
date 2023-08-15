@@ -165,8 +165,11 @@ def unparse(bindata: bytearray, bytes_per_record = BYTES_PER_RECORD) -> str:
     hexstring = ""
     # Hex files seem to start at 0, so we can reuse the index as the flash address
     for flash_addr in range(0, len(bindata), bytes_per_record):
+        # Pull a limited number of bytes out of the data (based on bytes per record)
         rec_bytes = bindata[flash_addr:flash_addr + bytes_per_record]
+        # First part of the line is the number of bytes, address, and record type (always 0)
         line = hex(len(rec_bytes))[2:].zfill(2) + hex(flash_addr)[2:].zfill(4) + "00"
+        # Then the chosen number of bytes in hex
         line += binascii.hexlify(rec_bytes).decode()
         # THe checksum portion is the sum of all the bytes on the line other than the checksum itself and the initial symbols (: and etc)
         checksum = sum(bytes.fromhex(line))
