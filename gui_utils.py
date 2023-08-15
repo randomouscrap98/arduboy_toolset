@@ -26,7 +26,7 @@ def show_exception(exception, parent = None):
     global SHOWTRACE
     error_message = f"An unhandled exception occurred:\n{exception}"
     if SHOWTRACE:
-        error_message += f"\n\nTraceback:" + "".join(traceback.format_exception(exception))
+        error_message += f"\n\nTraceback:" + "".join(traceback.format_exception(type(exception), exception, exception.__traceback__))
     else:
         error_message += "\n\nSee log for details"
     QMessageBox.critical(parent, "Unhandled Exception", error_message, QMessageBox.StandardButton.Ok)

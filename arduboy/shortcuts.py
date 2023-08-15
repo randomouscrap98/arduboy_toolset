@@ -31,3 +31,16 @@ def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> ardub
         parsed.save_raw,
         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
     )
+
+def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot) -> arduboy.arduhex.ArduboyParsed:
+    return arduboy.arduhex.ArduboyParsed(
+        "unknown.arduboy",
+        arduboy.arduhex.unparse(slot.program_raw),
+        slot.meta.title,
+        slot.meta.version,
+        slot.meta.developer,
+        slot.meta.info,
+        bin_to_pilimage(slot.image_raw),
+        slot.data_raw,
+        slot.save_raw
+    )

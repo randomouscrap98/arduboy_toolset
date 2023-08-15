@@ -112,7 +112,44 @@ def read(filepath) -> ArduboyParsed:
 
 # Write the given parsed arduboy back to the filesystem
 def write(ard_parsed: ArduboyParsed, filepath: str):
-    pass
+    with tempfile.TemporaryDirectory() as tempdir:
+        files = []
+        # First, let's create the object that will be json later. We may modify it!
+        info = { "schemaVersion" : 3 }
+        binary = { }
+        if ard_parsed.title: 
+            info["title"] = ard_parsed.title
+            binary["title"] = ard_parsed.title
+        if ard_parsed.version: info["version"] = ard_parsed.version
+        if ard_parsed.developer: info["author"] = ard_parsed.developer
+        if ard_parsed.info: info["description"] = ard_parsed.info
+        # First, let's write the title image
+        files.append(os.path.join(tempdir, "title.png"))
+        ard_parsed.image.save(files[-1])
+        # Next, write the hex
+        binary["filename"] = "program.hex"
+        files.append(os.path.join(tempdir, binary["filename"]))
+        with open(files[-1], "w") as f:
+            f.write(ard_parsed.rawhex)
+        # Then IF there's data and save, write them.
+        if ard_parsed.data_raw and len(ard_parsed.data_raw) > 0:
+            binary["flashdata"] = "fxdata.bin"
+            files.append(os.path.join(tempdir, binary["flashdata"]))
+            with open(files[-1], "wb") as f:
+                f.write(ard_parsed.data_raw)
+        if ard_parsed.save_raw and len(ard_parsed.save_raw) > 0:
+            binary["flashsave"] = "fxsave.bin"
+            files.append(os.path.join(tempdir, binary["flashsave"]))
+            with open(files[-1], "wb") as f:
+                f.write(ard_parsed.save_raw)
+        info["binaries"] = [ binary ]
+        # Finally, write the info.json file
+        files.append(os.path.join(tempdir, "info.json"))
+        demjson3.encode_to_file(files[-1], info, compactly=False)
+        # Zip it all uuuppp!!
+        with zipfile.ZipFile(filepath, 'w') as zipf:
+            for fp in files:
+                zipf.write(fp, arcname=os.path.basename(fp))
 
 # Parse pages and data relevant for flashing out of the parsed arduboy file
 # Throws an exception if the records can't be validated. Taken almost verbatim from 

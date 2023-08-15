@@ -208,13 +208,18 @@ class CartWindow(QMainWindow):
         csing_action.triggered.connect(self.action_compilesingle)
         debug_menu.addAction(csing_action)
 
+        ardsingle_action = QAction("Generate .arduboy from slot", self)
+        ardsingle_action.triggered.connect(self.action_writesinglearduboy)
+        debug_menu.addAction(ardsingle_action)
+
+        unparse_action = QAction("Generate .hex from Slot bin", self)
+        unparse_action.triggered.connect(self.action_unparsebin)
+        debug_menu.addAction(unparse_action)
+
+
         gimg_action = QAction("Generate image for Slot", self)
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
-
-        unparse_action = QAction("Convert Slot bin to hex", self)
-        unparse_action.triggered.connect(self.action_unparsebin)
-        debug_menu.addAction(unparse_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -612,13 +617,27 @@ class CartWindow(QMainWindow):
         else:
             raise Exception("No selected slot!")
 
+    def action_writesinglearduboy(self):
+        cslot,_ = self.get_selected_slot_widget()
+        if cslot:
+            if cslot.is_category():
+                raise Exception("Can't write arduboy files for categories!")
+            filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as .arduboy", utils.get_meta_backup_filename(cslot.meta, "arduboy"), constants.ARDUBOY_FILEFILTER)
+            if filepath:
+                # Need to convert slot back to arduboy parsed and then write
+                ardparsed = arduboy.shortcuts.arduboy_from_slot(cslot)
+                arduboy.arduhex.write(ardparsed, filepath)
+            debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {cslot.meta.title}")
+        else:
+            raise Exception("No selected slot!")
+
     
     def action_addsave(self):
         cslot,widget = self.get_selected_slot_widget()
         if cslot:
             if cslot.is_category():
                 raise Exception("Can't add saves to categories!")
-            cslot.save_raw += bytearray(arduboy.fxcart.SAVE_ALIGNMENT)
+            cslot.save_raw += bytearray([0xFF] * arduboy.fxcart.SAVE_ALIGNMENT)
             widget.update_metalabel()
             self.set_modified(True)
             debug_actions.global_debug.add_action_str(f"Added more save for: {cslot.meta.title}")
