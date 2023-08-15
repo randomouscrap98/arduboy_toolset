@@ -98,6 +98,11 @@ class CartWindow(QMainWindow):
         save_as_action.triggered.connect(self.action_save_as)
         file_menu.addAction(save_as_action)
 
+        export_slots_action = QAction("Export slots to .arduboy", self)
+        # export_slots_action.setShortcut()
+        export_slots_action.triggered.connect(self.action_exportslots)
+        file_menu.addAction(export_slots_action)
+
         file_menu.addSeparator()
 
         open_read_action = QAction("Load From Arduboy", self)
@@ -208,7 +213,7 @@ class CartWindow(QMainWindow):
         csing_action.triggered.connect(self.action_compilesingle)
         debug_menu.addAction(csing_action)
 
-        ardsingle_action = QAction("Generate .arduboy from slot", self)
+        ardsingle_action = QAction("Generate .arduboy from Slot", self)
         ardsingle_action.triggered.connect(self.action_writesinglearduboy)
         debug_menu.addAction(ardsingle_action)
 
@@ -526,6 +531,18 @@ class CartWindow(QMainWindow):
             self.do_self_save(filepath)
             return True
         return False
+
+    def action_exportslots(self):
+        slots = self.get_slots()
+        if not len(slots):
+            raise Exception("No slots to export!")
+        filepath = QFileDialog.getExistingDirectory(self, "Export folder") # (self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER)
+        if filepath:
+            def do_work(repprog, repstatus):
+                utils.export_slots_as_arduboy(slots, filepath, repprog)
+            dialog = gui_utils.do_progress_work(do_work, "Export slots as .arduboy", simple = True)
+            debug_actions.global_debug.add_action_str(f"Exported slots as .arduboy")
+
 
     def action_add_category(self):
         # Need to generate default images at some point!! You have the font!

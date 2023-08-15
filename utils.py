@@ -1,4 +1,6 @@
 import arduboy.fxcart
+import arduboy.arduhex
+import arduboy.shortcuts
 
 from constants import *
 from arduboy.constants import *
@@ -9,8 +11,12 @@ import time
 import textwrap
 import slugify
 import logging
+import demjson3
 
+from typing import List
 from PIL import Image, ImageDraw, ImageFont
+
+EXPORT_SLOTS_DIGITS = 3
 
 
 def set_app_id():
@@ -94,3 +100,28 @@ def make_titlescreen_from_slot(slot: arduboy.fxcart.FxParsedSlot):
     else:
         return make_titlescreen(f"{base}{slot.category}")
 
+def export_slots_name(slot, number):
+    return str(number).zfill(EXPORT_SLOTS_DIGITS) + "_" + slugify.slugify(slot.meta.title)
+
+def export_slots_as_arduboy(slots: List[arduboy.fxcart.FxParsedSlot], folderpath, report_progress):
+    logging.debug(f"Exporting {len(slots)} slots as a bunch of arduboy files to {folderpath}")
+    if not os.path.isdir(folderpath):
+        raise Exception(f"Folder {folderpath} does not exist!")
+    category = -1
+    program = 0
+    current_path = folderpath
+    for index,slot in enumerate(slots):
+        if slot.is_category():
+            category += 1
+            program = 0
+            current_path = os.path.join(folderpath, export_slots_name(slot, category))
+            os.mkdir(current_path)
+            arduboy.arduhex.bin_to_pilimage(slot.image_raw).save(os.path.join(current_path, "category.png"))
+            data = { "title" : slot.meta.title, "info" : slot.meta.info, "image" : "category.png" }
+            demjson3.encode_to_file(os.path.join(current_path, "category.json"), data, compactly = False)
+        else:
+            program += 1
+            ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
+            arduboy.arduhex.write(ardparsed, os.path.join(current_path, export_slots_name(slot, program) + ".arduboy"))
+        if report_progress:
+            report_progress(index + 1, len(slots))

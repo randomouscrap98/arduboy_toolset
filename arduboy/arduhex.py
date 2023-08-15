@@ -49,6 +49,7 @@ class ArduhexParsed:
 # Read raw data from the arduboy or hex file. Return an intermediate representation
 # which has as much data as possible filed in.
 def read(filepath) -> ArduboyParsed:
+    logging.debug(f"Reading data from ardu/hex file: {filepath}")
     result = ArduboyParsed(os.path.splitext(os.path.basename(filepath))[0])
     try:
         # First, we try to open the file as a zip. This apparently handles both .zip and .arduboy
@@ -112,6 +113,7 @@ def read(filepath) -> ArduboyParsed:
 
 # Write the given parsed arduboy back to the filesystem
 def write(ard_parsed: ArduboyParsed, filepath: str):
+    logging.debug(f"Writing data to arduboy file: {filepath}")
     with tempfile.TemporaryDirectory() as tempdir:
         files = []
         # First, let's create the object that will be json later. We may modify it!
@@ -147,7 +149,7 @@ def write(ard_parsed: ArduboyParsed, filepath: str):
         files.append(os.path.join(tempdir, "info.json"))
         demjson3.encode_to_file(files[-1], info, compactly=False)
         # Zip it all uuuppp!!
-        with zipfile.ZipFile(filepath, 'w') as zipf:
+        with zipfile.ZipFile(filepath, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
             for fp in files:
                 zipf.write(fp, arcname=os.path.basename(fp))
 
@@ -197,6 +199,7 @@ def parse(arduboy_data: ArduboyParsed):
 
 # Convert a raw binary back into hex! 
 def unparse(bindata: bytearray, bytes_per_record = BYTES_PER_RECORD) -> str:
+    logging.debug(f"UNParsing arduboy binary data ({len(bindata)} bytes) back to hex")
     if bytes_per_record > 255:
         raise Exception("Too many bytes per record! Limit 255")
     hexstring = ""

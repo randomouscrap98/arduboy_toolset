@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from dataclasses import dataclass
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread, QObject
@@ -18,6 +19,7 @@ class DebugContainer(QObject):
         self.merge_repeats = True
     
     def add_action_str(self, action: str):
+        logging.info(f"ACTION: {action}")
         self.add_action(DebugAction(action, datetime.datetime.now()))
 
     def add_action(self, action: DebugAction):

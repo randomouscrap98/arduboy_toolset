@@ -1,4 +1,3 @@
-from hashlib import sha256
 import logging
 import arduboy.arduhex
 import arduboy.fxcart
