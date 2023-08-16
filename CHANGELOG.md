@@ -1,3 +1,14 @@
+## 0.3.1
+
+Small changes, export to .arduboy
+
+* Moved cart builder menu options around
+* Can export individual slots or the entire cart to .arduboy files
+* Windows + MacOS use python 3.8 now (a downgrade to increase support maybe?)
+* Single Mac release for now, just intel
+* Multi-drag-and-drop (each file treated as a separate slot!)
+* Added more to cart builder help
+
 ## 0.3
 
 Support MacOS + Small comfort changes
