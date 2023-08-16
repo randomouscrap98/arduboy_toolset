@@ -69,9 +69,16 @@ class FxParsedSlot:
     #     sha256(self.p self.data_raw)
 
 
-# Read and pad the fx data from the given file and return the bytearray
+# Read and pad the fx flash image from the given file and return the bytearray
 def read(filename):
     logging.debug(f'Reading flash image from file "{filename}"')
+    with open(filename, "rb") as f:
+        flashdata = bytearray(f.read())
+    return pad_data(flashdata, FX_PAGESIZE)
+
+# Read and pad the fx data (individual) from the given file and return the byte array.
+def read_data(filename):
+    logging.debug(f'Reading fx data from file "{filename}"')
     with open(filename, "rb") as f:
         flashdata = bytearray(f.read())
     return pad_data(flashdata, FX_PAGESIZE)

@@ -213,16 +213,12 @@ class ActionTable(QTabWidget):
         self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
         uploadsketchgroup, templay = gui_utils.make_file_action("Upload Sketch", self.upload_sketch_picker, self.upload_sketch_button, "⬆️", gui_utils.SUCCESSCOLOR)
         self.upload_sketch_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        # self.upload_sketch_fx_enabled = QCheckBox("FX Dev Data")
-        # self.upload_sketch_fx_enabled.stateChanged.connect(self.set_sketch_fx_enabled)
         fx_enabled_container, self.upload_sketch_fx_enabled = gui_utils.make_toggleable_element("Include FX dev data", self.upload_sketch_fx_picker)
-        # uploadsketchfxgroup, self.upload_sketch_fx_symbol  = gui_utils.make_file_group_generic(self.upload_sketch_fx_picker, self.upload_sketch_fx_enabled, "🛅", gui_utils.SUCCESSCOLOR)
         self.su_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
         self.su_microled_cb = QCheckBox("Patch for Micro LED polarity")
-        templay.addWidget(fx_enabled_container) # uploadsketchfxgroup)
+        templay.addWidget(fx_enabled_container)
         templay.addWidget(self.su_ssd1309_cb)
         templay.addWidget(self.su_microled_cb)
-        # self.set_sketch_fx_enabled() # Make sure the state matches
 
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_sketch_button = QPushButton("Backup")
@@ -293,19 +289,14 @@ class ActionTable(QTabWidget):
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
     
-    # def set_sketch_fx_enabled(self):
-    #     checked = self.upload_sketch_fx_enabled.isChecked()
-    #     self.upload_sketch_fx_picker.setEnabled(checked)
-    #     self.upload_sketch_fx_symbol.setEnabled(checked)
-    
     def do_uploadsketch(self): 
         filepath = self.upload_sketch_picker.check_filepath(self) 
-        if not filepath: return
 
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
             pard = arduboy.arduhex.read(filepath)
             parsed = arduboy.arduhex.parse(pard)
+            fx_data = None
             if self.su_ssd1309_cb.isChecked():
                 if arduboy.patch.patch_all_ssd1309(parsed.flash_data):
                     logging.info("Patched upload for SSD1309")
@@ -314,6 +305,10 @@ class ActionTable(QTabWidget):
             if self.su_microled_cb.isChecked():
                 arduboy.patch.patch_microled(parsed.flash_data)
                 logging.info("Patched upload for Arduino Micro LED polarity")
+            if self.upload_sketch_fx_enabled.isChecked():
+                fx_filepath = self.upload_sketch_fx_picker.check_filepath(self)
+                fx_data = arduboy.fxcart.read_data(fx_filepath)
+                logging.info("Adding FX data to cart")
             logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
             s_port = device.connect_serial()
             if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
@@ -322,6 +317,9 @@ class ActionTable(QTabWidget):
             arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
             repstatus("Verifying sketch...")
             arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
+            if fx_data:
+                repstatus("Flashing FX dev data...")
+                arduboy.serial.flash_fx(fx_data, -1, s_port, report_progress=repprog)
             arduboy.serial.exit_bootloader(s_port) # NOTE! THIS MIGHT BE THE ONLY PLACE WE EXIT THE BOOTLOADER!
 
         gui_utils.do_progress_work(do_work, "Upload Sketch")

@@ -2,6 +2,8 @@
 import logging
 import time
 import io
+import arduboy.common
+import arduboy.arduhex
 
 from arduboy.constants import *
 from arduboy.device import MANUFACTURERS
@@ -39,6 +41,7 @@ def get_jedec_id(s_port):
         raise Exception(f"No flash cart detected on port {s_port.port}")
     return bytearray(jedec_id)
 
+
 @dataclass
 class JedecInfo:
     id: bytearray
@@ -48,9 +51,13 @@ class JedecInfo:
     def __str__(self):
         return "0x{:02X}{:02X}{:02X} - {} ({} KiB)".format(self.id[0],self.id[1],self.id[2], self.manufacturer, 
             self.capacity // 1024 if self.manufacturer != "unknown" else "???")
+    
+    def total_pages(self):
+        return self.capacity // FX_PAGESIZE
+
 
 # Get parsed jedec info from device. Will throw exception if device has no jedec info
-def get_jedec_info(s_port):
+def get_jedec_info(s_port) -> JedecInfo:
     jedec_id = get_jedec_id(s_port)
     if jedec_id[0] in MANUFACTURERS.keys():
         manufacturer = MANUFACTURERS[jedec_id[0]]
@@ -68,7 +75,9 @@ def is_caterina(s_port):
 
 # Flash the given arduboy hex file to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
-def flash_arduhex(arduhex, s_port, report_progress: None):
+def flash_arduhex(arduhex: arduboy.arduhex.ArduhexParsed, s_port, report_progress: None):
+    if not len(arduhex.flash_data):
+        raise Exception("No flash data provided!")
     # Just like fx flash rejects non-fx chips and bad bootloaders, this one too will reject "bad" bootloader
     if arduhex.overwrites_caterina and is_caterina(s_port):
         raise Exception("Upload will likely corrupt the bootloader.")
@@ -159,10 +168,18 @@ def get_and_verify_jdec_bootloader(s_port):
 # This one strays from the design of the other flashing functions because the verification is builtin.
 def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = None):
 
-    ## detect flash cart ## (apparently jdec info not used here)
-    get_and_verify_jdec_bootloader(s_port)
+    if not len(flashdata):
+        raise Exception("No flash data provided!")
+
+    info = get_and_verify_jdec_bootloader(s_port)
+    flashdata = arduboy.common.pad_data(flashdata, FX_PAGESIZE)
     
     start=time.time()
+
+    # If someone requested to write to the end of the flash, figure out the page number such that
+    # it would encompass the whole data right at the end
+    if pagenumber < 0:
+        pagenumber = info.total_pages() - (len(flashdata) // FX_PAGESIZE)
 
     # when starting partially in a block, preserve the beginning of old block data
     if pagenumber % FX_PAGES_PER_BLOCK:
