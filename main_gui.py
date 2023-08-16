@@ -48,7 +48,6 @@ class MainWindow(QMainWindow):
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
         self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
-        # self.cart_windows = [] # we store them but do nothing with them, they are independent?
 
         self.create_menu()
 
@@ -111,8 +110,7 @@ class MainWindow(QMainWindow):
         self.about_window.show()
     
     def open_newcart(self):
-        new_window = main_cart.CartWindow() # file_path, newcart = True)
-        # self.cart_windows.append(new_window)
+        new_window = main_cart.CartWindow()
         new_window.show()
     
     def closeEvent(self, event) -> None:
@@ -169,7 +167,7 @@ class ConnectionInfo(QWidget):
         if self.do_updates:
             self.update_count += 1
             try:
-                device = arduboy.device.find_single(enter_bootloader=False)
+                device = arduboy.device.find_single(enter_bootloader=False, log=False)
                 self.status_label.setText("Connected!")
                 self.info_label.setText(device.display_name())
                 self.status_picture.setText("✅")
@@ -271,7 +269,7 @@ class ActionTable(QTabWidget):
         tools_layout = QHBoxLayout()
         cart_editor_button = QPushButton("Cart Builder")
         cart_editor_button.clicked.connect(self.do_open_cartbuilder)
-        arduboy_editor_button = QPushButton("Arduboy File Builder")
+        arduboy_editor_button = QPushButton("Package Builder (.arduboy)")
         tools_layout.addWidget(cart_editor_button)
         tools_layout.addWidget(arduboy_editor_button)
         tools_group.setLayout(tools_layout)
