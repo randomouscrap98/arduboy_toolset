@@ -14,7 +14,7 @@ import os
 import sys
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
-from PyQt6.QtWidgets import QMessageBox, QCheckBox 
+from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
         self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
-        self.cart_windows = [] # we store them but do nothing with them, they are independent?
+        # self.cart_windows = [] # we store them but do nothing with them, they are independent?
 
         self.create_menu()
 
@@ -102,7 +102,6 @@ class MainWindow(QMainWindow):
         about_menu.addAction(open_help_action)
 
 
-
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Toolset Help", "help.html")
         self.help_window.show()
@@ -113,7 +112,7 @@ class MainWindow(QMainWindow):
     
     def open_newcart(self):
         new_window = main_cart.CartWindow() # file_path, newcart = True)
-        self.cart_windows.append(new_window)
+        # self.cart_windows.append(new_window)
         new_window.show()
     
     def closeEvent(self, event) -> None:
@@ -268,9 +267,17 @@ class ActionTable(QTabWidget):
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
         # Add widgets to tab4
-        label = QLabel("Coming later I hope?")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        utilities_layout.addWidget(label)
+        tools_group = QGroupBox("Extra Tools")
+        tools_layout = QHBoxLayout()
+        cart_editor_button = QPushButton("Cart Builder")
+        cart_editor_button.clicked.connect(self.do_open_cartbuilder)
+        arduboy_editor_button = QPushButton("Arduboy File Builder")
+        tools_layout.addWidget(cart_editor_button)
+        tools_layout.addWidget(arduboy_editor_button)
+        tools_group.setLayout(tools_layout)
+        gui_utils.add_children_nostretch(utilities_layout, [
+            tools_group
+        ])
 
         # Set layouts for each tab
         tab1.setLayout(sketch_layout)
@@ -288,6 +295,11 @@ class ActionTable(QTabWidget):
         self.upload_eeprom_button.setEnabled(connected)
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
+    
+    def do_open_cartbuilder(self):
+        new_window = main_cart.CartWindow() # file_path, newcart = True)
+        # self.cart_windows.append(new_window)
+        new_window.show()
     
     def do_uploadsketch(self): 
         filepath = self.upload_sketch_picker.check_filepath(self) 
