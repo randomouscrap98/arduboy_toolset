@@ -212,10 +212,17 @@ class ActionTable(QTabWidget):
         self.upload_sketch_button = QPushButton("Upload")
         self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
         uploadsketchgroup, templay = gui_utils.make_file_action("Upload Sketch", self.upload_sketch_picker, self.upload_sketch_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        self.upload_sketch_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        # self.upload_sketch_fx_enabled = QCheckBox("FX Dev Data")
+        # self.upload_sketch_fx_enabled.stateChanged.connect(self.set_sketch_fx_enabled)
+        fx_enabled_container, self.upload_sketch_fx_enabled = gui_utils.make_toggleable_element("Include FX dev data", self.upload_sketch_fx_picker)
+        # uploadsketchfxgroup, self.upload_sketch_fx_symbol  = gui_utils.make_file_group_generic(self.upload_sketch_fx_picker, self.upload_sketch_fx_enabled, "🛅", gui_utils.SUCCESSCOLOR)
         self.su_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
         self.su_microled_cb = QCheckBox("Patch for Micro LED polarity")
+        templay.addWidget(fx_enabled_container) # uploadsketchfxgroup)
         templay.addWidget(self.su_ssd1309_cb)
         templay.addWidget(self.su_microled_cb)
+        # self.set_sketch_fx_enabled() # Make sure the state matches
 
         self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_sketch_button = QPushButton("Backup")
@@ -285,6 +292,11 @@ class ActionTable(QTabWidget):
         self.upload_eeprom_button.setEnabled(connected)
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
+    
+    # def set_sketch_fx_enabled(self):
+    #     checked = self.upload_sketch_fx_enabled.isChecked()
+    #     self.upload_sketch_fx_picker.setEnabled(checked)
+    #     self.upload_sketch_fx_symbol.setEnabled(checked)
     
     def do_uploadsketch(self): 
         filepath = self.upload_sketch_picker.check_filepath(self) 
