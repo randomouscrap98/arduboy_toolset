@@ -6,7 +6,7 @@ import arduboy.patch
 
 import utils
 import gui_utils
-import cart_gui
+import main_cart
 import constants
 
 import logging
@@ -33,7 +33,7 @@ def main():
     gui_utils.try_create_emoji_font()
 
     if "--cart" in sys.argv:
-        window = cart_gui.CartWindow()
+        window = main_cart.CartWindow()
     else:
         window = MainWindow()
     window.show()
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         self.about_window.show()
     
     def open_newcart(self):
-        new_window = cart_gui.CartWindow() # file_path, newcart = True)
+        new_window = main_cart.CartWindow() # file_path, newcart = True)
         self.cart_windows.append(new_window)
         new_window.show()
     

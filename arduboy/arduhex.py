@@ -86,7 +86,7 @@ def read(filepath) -> ArduboyParsed:
                         extract_file = extract(filename)
                         with open(extract_file,"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
                             result.rawhex = f.read()
-                    elif filename.lower().endswith(".png") and filename.lower() != "banner.png" and not result.image:
+                    elif filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
                         try:
                             extract_file = extract(filename)
                             # NOTE: we don't resize the image, since we don't know what people want to do with it!
