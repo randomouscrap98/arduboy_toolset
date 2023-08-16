@@ -19,8 +19,8 @@ The toolset allows you to:
 
 ## Quickstart
 
-* Get the latest release from https://github.com/randomouscrap98/arduboy_toolset/releases. There are release for 
-Windows and Linux, but none for MacOS yet (though it's possible in the future).
+* Get the latest release from https://github.com/randomouscrap98/arduboy_toolset/releases. There are releases for 
+Windows, Linux, and the latest MacOS (sorry if you have an older MacOS, toolchains sort of lock me in!!)
 * Extract to a folder somewhere
 * Run `arduboy_toolset.exe` for the standard GUI application
 
@@ -33,7 +33,7 @@ immediately put onto your Arduboy.
 
 You can add games by dragging and dropping `.hex` or `.arduboy` files into the window. They will be inserted below
 the currently focused menu item. If you accidently place a game where you don't want it, you can drag the games around
-in the list, or press `delete` or use the `Cart` menu to remove them. When you're ready to put everything back on 
+in the list, or press `Ctrl-delete` or use the `Cart` menu to remove them. When you're ready to put everything back on 
 your Arduboy, use the `File` menu again to `Flash to Arduboy`. 
 
 ## Caveats
@@ -97,9 +97,9 @@ Notes:
   and CLI application
 - The CLI application, to increase startup speed (because of how it might be used),
   requires all files in that folder (other than the GUI)
+- The MacOS release, due to difficulties on that OS, does not have the CLI program (sorry!)
 - The icon HAS to be a .ico file for windows
 
 ## Plans
-- Get releases for macOS (I don't have a mac yet though)
 - Add some of the cool extra features still left from Mr.Blinky's tools (like image display, development FX stuff, etc)
 - Maybe spruce up the UI a bit?
