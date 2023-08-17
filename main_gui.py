@@ -3,18 +3,21 @@ import arduboy.arduhex
 import arduboy.serial
 import arduboy.fxcart
 import arduboy.patch
+import arduboy.shortcuts
 
 import utils
 import gui_utils
 import main_cart
 import constants
+import widget_slot
+import debug_actions
 
 import logging
 import os
 import sys
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
-from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox
+from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox, QFileDialog
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt
@@ -258,12 +261,33 @@ class ActionTable(QTabWidget):
         tools_layout = QHBoxLayout()
         cart_editor_button = QPushButton("Cart Builder")
         cart_editor_button.clicked.connect(self.do_open_cartbuilder)
-        arduboy_editor_button = QPushButton("Package Builder (.arduboy)")
+        # arduboy_editor_button = QPushButton("Package Builder (.arduboy)")
         tools_layout.addWidget(cart_editor_button)
-        tools_layout.addWidget(arduboy_editor_button)
+        # tools_layout.addWidget(arduboy_editor_button)
         tools_group.setLayout(tools_layout)
+
+        package_group = QGroupBox("Package .arduboy")
+        self.package_layout = QVBoxLayout()
+        self.package_slot = widget_slot.SlotWidget(arduboy.shortcuts.empty_parsed_slot(), force_all_fields=True)
+        self.package_layout.addWidget(self.package_slot)
+        package_controls_group = QWidget()
+        package_controls_layout = QHBoxLayout()
+        clear_package_button = QPushButton("Reset")
+        clear_package_button.clicked.connect(self.do_reset_package)
+        package_controls_layout.addWidget(clear_package_button)
+        load_package_button = QPushButton("Load")
+        load_package_button.clicked.connect(self.do_load_package)
+        package_controls_layout.addWidget(load_package_button)
+        save_package_button = QPushButton("Save")
+        save_package_button.clicked.connect(self.do_save_package)
+        package_controls_layout.addWidget(save_package_button)
+        package_controls_group.setLayout(package_controls_layout)
+        self.package_layout.addWidget(package_controls_group)
+        package_group.setLayout(self.package_layout)
+
         gui_utils.add_children_nostretch(utilities_layout, [
-            tools_group
+            package_group,
+            tools_group,
         ])
 
         # Set layouts for each tab
@@ -283,6 +307,36 @@ class ActionTable(QTabWidget):
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
     
+    def replace_slot(self, new_widget):
+        self.package_layout.replaceWidget(self.package_slot, new_widget)
+        self.package_slot.setParent(None) # Clean it up
+        self.package_slot = new_widget
+
+    def do_reset_package(self):
+        # Must confirm
+        if gui_utils.yes_no("Confirm reset package", "Are you sure you want to reset the package?", self):
+            # We do something really stupid
+            self.replace_slot(widget_slot.SlotWidget(arduboy.shortcuts.empty_parsed_slot(), force_all_fields=True))
+            debug_actions.global_debug.add_action_str(f"Reset arduboy package editor")
+
+    def do_load_package(self):
+        # Must confirm
+        if gui_utils.yes_no("Confirm load package", "Are you sure you want to load a new package?", self):
+            file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
+            if file_path:
+                parsed = arduboy.arduhex.read(file_path)
+                self.replace_slot(widget_slot.SlotWidget(arduboy.shortcuts.new_parsed_slot_from_arduboy(parsed)))
+                debug_actions.global_debug.add_action_str(f"Loaded arduboy package into editor: {file_path}")
+    
+    def do_save_package(self):
+        slot = self.package_slot.get_slot_data()
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as .arduboy", utils.get_meta_backup_filename(slot.meta, "arduboy"), constants.ARDUBOY_FILEFILTER)
+        if filepath:
+            # Need to convert slot back to arduboy parsed and then write
+            ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
+            arduboy.arduhex.write(ardparsed, filepath)
+        debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {slot.meta.title} to {filepath}")
+
     def do_open_cartbuilder(self):
         new_window = main_cart.CartWindow() # file_path, newcart = True)
         # self.cart_windows.append(new_window)

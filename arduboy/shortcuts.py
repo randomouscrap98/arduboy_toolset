@@ -10,6 +10,11 @@ from PIL import Image
 # NOTE: this is strictly higher level than any other file! Do NOT include this in any 
 # arduboy library files, it is specifically for external use!
 
+def empty_parsed_slot() -> arduboy.fxcart.FxParsedSlot:
+    return arduboy.fxcart.FxParsedSlot(
+        0, None, bytearray(), bytearray(), bytearray(), arduboy.fxcart.FxSlotMeta("", "", "", "")
+    )
+
 def new_parsed_slot_from_category(title: str, info : str = "", image : Image = None, category_id : int = 0) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         category_id,

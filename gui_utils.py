@@ -378,3 +378,9 @@ def basic_gui_setup():
     try_create_emoji_font()
 
     return app
+
+def yes_no(title, question, parent):
+    return QMessageBox.question(parent, title, question,
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        QMessageBox.StandardButton.No
+    ) == QMessageBox.StandardButton.Yes
