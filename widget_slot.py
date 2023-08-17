@@ -45,7 +45,7 @@ class SlotWidget(QWidget):
         self.leftwidget.setObjectName("leftwidget")
 
         self.image = TitleImageWidget()
-        if parsed.image_raw:
+        if parsed.has_image():
             self.image.set_image_bytes(parsed.image_raw)
         self.image.onimage_bytes.connect(self.set_image_bytes)
         leftlayout.addWidget(self.image)

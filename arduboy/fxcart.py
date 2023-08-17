@@ -64,6 +64,9 @@ class FxParsedSlot:
     # For now, category calculation is simple: when there's no program
     def is_category(self):
         return len(self.program_raw) == 0
+    
+    def has_image(self):
+        return self.image_raw and sum(self.image_raw) > 0
 
     # def progdata_hash(self):
     #     sha256(self.p self.data_raw)

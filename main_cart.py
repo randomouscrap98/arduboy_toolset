@@ -365,7 +365,7 @@ class CartWindow(QMainWindow):
             nonlocal slots, fxbin
             repstatus("Generating missing images")
             for slot,widget in slots:
-                if not slot.image_raw or sum(slot.image_raw) == 0:
+                if not slot.has_image():
                     pilimage = utils.make_titlescreen_from_slot(slot)
                     slot.image_raw = pilimage_to_bin(pilimage)
                     widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
