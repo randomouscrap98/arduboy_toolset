@@ -3,6 +3,7 @@
 * Added more fields to arduboy package creator (including auto-set hidden date)
 * Removed button to cart builder, renamed Utilities tab to Package
 * Updated cart builder help with links to where to find games
+* Updated "about" with more information + used packages, added "about" Cart Editor
 
 ## 0.4.0
 

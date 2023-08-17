@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         # Create an action for opening the help window
         open_help_action = QAction("Help", self)
         open_help_action.triggered.connect(self.open_help_window)
+        open_help_action.setShortcut(QtGui.QKeySequence(Qt.Key.Key_F1))
         about_menu.addAction(open_help_action)
 
 

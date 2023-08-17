@@ -2,6 +2,8 @@
 
 <p>
     Arduboy toolset lets you upload + backup <b>sketches</b>, <b>flashcart data</b>, and <b>EEPROM</b>.
+    There's a rudimentary <b>.arduboy</b> package creator with basic fields, and a separate <b>Cart Editor</b> 
+    you can open from the <u>File</u> menu.
 </p>
 
 <h2>Sketches</h2>
@@ -14,24 +16,29 @@
 </p>
 
 <p>
-    The additional options on sketch upload are for special patches. They are not necessary if you have a
+    Some sketches use data stored on the "Fx" flash memory. These games usually go on a flashcart, so this 
+    option is only used while developing FX games. It places the development FX data at the end of the
+    flash memory, so you don't have to reflash an entire flashcart.
+</p>
+
+<p>
+    The rest of the options on sketch upload are for special patches. They are not necessary if you have a
     regular Arduboy, they are mostly for DIY hardware.
 </p>
 
 <p>
-    <b>Note:</b> sketch backups you make are raw .bin files, which can't currently be reflashed back to 
-    Arduboy with this tool. Sorry, it was an oversight! Until that's added, you should be able to use
-    Mr.Blinky's <a href="https://github.com/MrBlinky/Arduboy-Python-Utilities">Arduboy-Python-Utilities</a>
-    scripts, just make sure you follow the directions!
+    <b>Note:</b> sketch backups you make are raw .bin files, which have to be turned back into .hex
+    files before they can be reflashed. There's currently no way to do this yet, sorry! In the future,
+    flash backups will be .hex files by default.
 </p>
 
 <h2>Flashcart</h2>
 
 <p>
-    Arduboy FX and others with the "flashcart" have a special bootloader that boots before the sketch
+    Arduboy FX and others with the "Fx modchip" have a special bootloader that boots before the sketch
     to allow you to choose one of many games on the additional flash memory (usually 16MB). The bootloader 
-    will flash the game to the "sketch" area and boot into it, just like this tool does when you upload a 
-    sketch.
+    will flash the game you choose to the "sketch" area and boot into it, just like this tool does 
+    when you upload a sketch.
 </p>
 
 <p> 
@@ -41,10 +48,35 @@
     portion of this tool
 </p>
 
+<p>
+    Alternatively, you can use the <b>Cart Editor</b> located in the <u>File</u> menu. This lets you
+    pull the FX flashcart off your device, make edits, and reflash it, but it also lets you create new
+    flashcarts and save them to the filesystem, in the same .bin format used for flashing.
+</p>
+
 <h2>EEPROM</h2>
 
 <p>
     EEPROM is a small 1024 byte area made specifically for save game data. All games have to share the 
     same space for saves, so they often overwrite each other. You can backup + restore this data
     using this tool
+</p>
+
+<h2>Package</h2>
+
+<p>
+    Arduboy games are generally distributed in a <b>.arduboy</b> file format. It's a simple zip archive 
+    with the extension renamed, containing the game, extra data, images, and information about the game.
+</p>
+
+<p>
+    You can generate basic <b>.arduboy</b> archives for distribution using this package generator. You 
+    can also modify existing packages (such as updating the version + binaries inside).
+</p>
+
+<p>
+    Note that this package generator does not have the complete set of fields supported by the 
+    <b>.arduboy</b> format, but it is enough for most use cases. However, if you open a package
+    which contains these extra fields, they will <b>not</b> be saved back when you save the 
+    package. Use this package creator with caution. More fields may become available in the future.
 </p>
