@@ -21,24 +21,13 @@ from PyQt6.QtCore import QTimer, pyqtSignal, Qt
 
 
 def main():
-
-    utils.set_basic_logging()
-
-    app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
-    sys.excepthook = gui_utils.exception_hook
-    utils.set_app_id()
-
-    app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
-
-    gui_utils.try_create_emoji_font()
-
+    app = gui_utils.basic_gui_setup()
     if "--cart" in sys.argv:
         window = main_cart.CartWindow()
     else:
         window = MainWindow()
     window.show()
     sys.exit(app.exec())
-
 
 
 class MainWindow(QMainWindow):

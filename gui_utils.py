@@ -4,10 +4,11 @@ import utils
 import logging
 import os
 import traceback
+import sys
 
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
-from PyQt6.QtWidgets import  QCheckBox
+from PyQt6.QtWidgets import  QCheckBox, QApplication
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
@@ -363,3 +364,17 @@ def do_progress_work(work, title, simple = False):
     worker_thread.start()
     dialog.exec()
     return dialog
+
+
+# Most gui "apps" all have the same setup
+def basic_gui_setup():
+    utils.set_basic_logging()
+
+    app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
+    sys.excepthook = exception_hook
+    utils.set_app_id()
+    app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
+
+    try_create_emoji_font()
+
+    return app

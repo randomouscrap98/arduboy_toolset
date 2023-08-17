@@ -1010,17 +1010,8 @@ def test():
 
 
 if __name__ == "__main__":
-
-    utils.set_basic_logging()
-
-    # test()
-    app = QApplication(sys.argv) # Frustrating... you HAVE to run this first before you do ANY QT stuff!
-    sys.excepthook = gui_utils.exception_hook
-    utils.set_app_id()
-    app.setWindowIcon(QtGui.QIcon(utils.resource_file("icon.ico")))
-
-    gui_utils.try_create_emoji_font()
-
+    app = gui_utils.basic_gui_setup()
     window = CartWindow()
     window.show()
     sys.exit(app.exec())
+    
