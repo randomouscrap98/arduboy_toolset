@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
 
         # Set up the main window
         self.setWindowTitle(f"Arduboy Toolset v{constants.VERSION}")
-        self.setGeometry(100, 100, 700, 500)  # Set a reasonable window size
+        self.setGeometry(100, 100, 700, 400)  # Set a reasonable window size
 
         self.create_menu()
 
@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
 
         layout.setStretchFactor(coninfo, 0)
         layout.setStretchFactor(tabs, 1)
+        # layout.setContentsMargins(10, 5, 10, 10)
 
         # Set the layout as the central widget
         central_widget = QWidget()
@@ -145,6 +146,7 @@ class ConnectionInfo(QWidget):
 
         layout.setStretchFactor(self.status_picture, 0)
         layout.setStretchFactor(text_container, 1)
+        layout.setContentsMargins(15,5,15,7)
 
         self.setLayout(layout)
         self.timer.start(1000)
@@ -188,7 +190,7 @@ class ActionTable(QTabWidget):
         self.addTab(tab1, "Sketch")
         self.addTab(tab2, "Flashcart")
         self.addTab(tab3, "EEPROM")
-        self.addTab(tab4, "Utilities")
+        self.addTab(tab4, "Package")
 
         # Create layouts for each tab
         sketch_layout = QVBoxLayout()
@@ -257,18 +259,16 @@ class ActionTable(QTabWidget):
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
         # Add widgets to tab4
-        tools_group = QGroupBox("Extra Tools")
-        tools_layout = QHBoxLayout()
-        cart_editor_button = QPushButton("Cart Builder")
-        cart_editor_button.clicked.connect(self.do_open_cartbuilder)
-        # arduboy_editor_button = QPushButton("Package Builder (.arduboy)")
-        tools_layout.addWidget(cart_editor_button)
-        # tools_layout.addWidget(arduboy_editor_button)
-        tools_group.setLayout(tools_layout)
+        # tools_group = QGroupBox("Extra Tools")
+        # tools_layout = QHBoxLayout()
+        # cart_editor_button = QPushButton("Cart Builder")
+        # cart_editor_button.clicked.connect(self.do_open_cartbuilder)
+        # tools_layout.addWidget(cart_editor_button)
+        # tools_group.setLayout(tools_layout)
 
         package_group = QGroupBox("Package .arduboy")
         self.package_layout = QVBoxLayout()
-        self.package_slot = widget_slot.SlotWidget(arduboy.shortcuts.empty_parsed_slot(), force_all_fields=True)
+        self.package_slot = self.make_slot_widget()
         self.package_layout.addWidget(self.package_slot)
         package_controls_group = QWidget()
         package_controls_layout = QHBoxLayout()
@@ -287,7 +287,7 @@ class ActionTable(QTabWidget):
 
         gui_utils.add_children_nostretch(utilities_layout, [
             package_group,
-            tools_group,
+            # tools_group,
         ])
 
         # Set layouts for each tab
@@ -307,6 +307,13 @@ class ActionTable(QTabWidget):
         self.backup_eeprom_button.setEnabled(connected)
         self.erase_eeprom_button.setEnabled(connected)
     
+    def make_slot_widget(self, arduparsed: arduboy.arduhex.ArduboyParsed = None):
+        if not arduparsed:
+            arduparsed = arduboy.shortcuts.empty_parsed_arduboy()
+        result = widget_slot.SlotWidget(arduparsed=arduparsed)
+        result.layout.setContentsMargins(5,5,5,5)
+        return result
+
     def replace_slot(self, new_widget):
         self.package_layout.replaceWidget(self.package_slot, new_widget)
         self.package_slot.setParent(None) # Clean it up
@@ -316,24 +323,24 @@ class ActionTable(QTabWidget):
         # Must confirm
         if gui_utils.yes_no("Confirm reset package", "Are you sure you want to reset the package?", self):
             # We do something really stupid
-            self.replace_slot(widget_slot.SlotWidget(arduboy.shortcuts.empty_parsed_slot(), force_all_fields=True))
+            self.replace_slot(self.make_slot_widget())
             debug_actions.global_debug.add_action_str(f"Reset arduboy package editor")
 
     def do_load_package(self):
         # Must confirm
-        if gui_utils.yes_no("Confirm load package", "Are you sure you want to load a new package?", self):
-            file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
-            if file_path:
-                parsed = arduboy.arduhex.read(file_path)
-                self.replace_slot(widget_slot.SlotWidget(arduboy.shortcuts.new_parsed_slot_from_arduboy(parsed)))
-                debug_actions.global_debug.add_action_str(f"Loaded arduboy package into editor: {file_path}")
+        # if gui_utils.yes_no("Confirm load package", "Are you sure you want to load a new package?", self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
+        if file_path:
+            parsed = arduboy.arduhex.read(file_path)
+            self.replace_slot(self.make_slot_widget(parsed))
+            debug_actions.global_debug.add_action_str(f"Loaded arduboy package into editor: {file_path}")
     
     def do_save_package(self):
         slot = self.package_slot.get_slot_data()
         filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as .arduboy", utils.get_meta_backup_filename(slot.meta, "arduboy"), constants.ARDUBOY_FILEFILTER)
         if filepath:
-            # Need to convert slot back to arduboy parsed and then write
-            ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
+            # The slot is special and can have additional fields. Might as well get them now
+            ardparsed = self.package_slot.compute_arduboy()
             arduboy.arduhex.write(ardparsed, filepath)
         debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {slot.meta.title} to {filepath}")
 

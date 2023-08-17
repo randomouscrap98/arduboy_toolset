@@ -1,4 +1,6 @@
 import arduboy.fxcart
+import arduboy.shortcuts
+import arduboy.arduhex
 
 import gui_utils
 import constants
@@ -6,6 +8,8 @@ import debug_actions
 
 from arduboy.constants import *
 from arduboy.common import *
+
+import datetime
 
 from typing import List
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
@@ -19,23 +23,27 @@ from PIL import Image
 # when placed in the field)
 INFO_MAX_LENGTH = 175
 CATEGORY_BLOCK_STYLE = "background: rgba(255,255,0,1); color: #000; font-weight: bold"
+FX_STYLE = "background: rgba(0,50,205,0.15)"
 
 class SlotWidget(QWidget):
     onchange = pyqtSignal()
     
     # A slot must always have SOME parsed data associated with it!
-    def __init__(self, parsed: arduboy.fxcart.FxParsedSlot, force_all_fields = False):
+    def __init__(self, parsed: arduboy.fxcart.FxParsedSlot = None, arduparsed: arduboy.arduhex.ArduboyParsed = None): #force_all_fields = False):
         super().__init__()
 
         # !! BIG NOTE: widgets should NOT be able to change "modes", so we set up lots 
         # of mode-specific stuff in the constructor! IE a category cannot become a program etc
-        self.mode = "game"
+        if arduparsed:
+            self.mode = "all"
+            self.parsed = arduboy.shortcuts.new_parsed_slot_from_arduboy(arduparsed)
+        elif parsed:
+            self.mode = "category" if parsed.is_category() else "game"
+            self.parsed = parsed
+        else:
+            raise Exception("Must provide either slot or arduboy data!")
 
-        if parsed.is_category() and not force_all_fields:
-            self.mode = "category"
-
-        self.parsed = parsed
-        toplayout = QHBoxLayout()
+        self.layout = QHBoxLayout()
 
         # ---------------------------
         #  Left section (image, data)
@@ -45,8 +53,8 @@ class SlotWidget(QWidget):
         self.leftwidget.setObjectName("leftwidget")
 
         self.image = TitleImageWidget()
-        if parsed.has_image():
-            self.image.set_image_bytes(parsed.image_raw)
+        if self.parsed.has_image():
+            self.image.set_image_bytes(self.parsed.image_raw)
         self.image.onimage_bytes.connect(self.set_image_bytes)
         leftlayout.addWidget(self.image)
 
@@ -83,7 +91,7 @@ class SlotWidget(QWidget):
 
         leftlayout.setContentsMargins(0,0,0,0)
         self.leftwidget.setLayout(leftlayout)
-        toplayout.addWidget(self.leftwidget)
+        self.layout.addWidget(self.leftwidget)
 
         # And now all the editable fields!
         # ---------------------------
@@ -93,25 +101,35 @@ class SlotWidget(QWidget):
         fieldsparent = QWidget()
 
         fields = []
-        self.title = gui_utils.new_selflabeled_edit("Title", parsed.meta.title)
+        self.title = gui_utils.new_selflabeled_edit("Title", self.parsed.meta.title)
         self.title.textChanged.connect(self.title_set_event)
         fields.append(self.title)
         if self.mode != "category":
-            self.version = gui_utils.new_selflabeled_edit("Version", parsed.meta.version)
+            self.version = gui_utils.new_selflabeled_edit("Version", self.parsed.meta.version)
             self.version.textChanged.connect(lambda t: self.do_meta_change(t, "version"))
             fields.append(self.version)
-            self.author = gui_utils.new_selflabeled_edit("Author", parsed.meta.developer)
+            self.author = gui_utils.new_selflabeled_edit("Author", self.parsed.meta.developer)
             self.author.textChanged.connect(lambda t: self.do_meta_change(t, "developer"))
             fields.append(self.author)
-        self.info = gui_utils.new_selflabeled_edit("Info", parsed.meta.info)
+        self.info = gui_utils.new_selflabeled_edit("Info", self.parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
         self.info.setMaxLength(INFO_MAX_LENGTH) # Max total length of meta in header is 199, this limit is just a warning
         fields.append(self.info)
+        if self.mode == "all":
+            self.genre = gui_utils.new_selflabeled_edit("Genre", arduparsed.genre)
+            fields.append(self.genre)
+            self.url = gui_utils.new_selflabeled_edit("Url", arduparsed.url)
+            fields.append(self.url)
+            self.sourceurl = gui_utils.new_selflabeled_edit("Source Code Url", arduparsed.sourceUrl)
+            fields.append(self.sourceurl)
+            spacer = QWidget()
+            leftlayout.addWidget(spacer)
+            leftlayout.setStretchFactor(spacer, 99)
         
         self.category_bigtitle = None
 
         if self.mode == "category":
-            self.category_bigtitle = QLabel(parsed.meta.title)
+            self.category_bigtitle = QLabel(self.parsed.meta.title)
             self.category_bigtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
             gui_utils.set_font_size(self.category_bigtitle, 16)
             self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.75))
@@ -124,9 +142,9 @@ class SlotWidget(QWidget):
         fieldlayout.setContentsMargins(0,0,0,0)
         fieldsparent.setLayout(fieldlayout)
 
-        toplayout.addWidget(fieldsparent)
+        self.layout.addWidget(fieldsparent)
 
-        self.setLayout(toplayout)
+        self.setLayout(self.layout)
     
     def title_set_event(self, title):
         self.do_meta_change(title, "title")
@@ -141,7 +159,7 @@ class SlotWidget(QWidget):
             self.meta_label.setText(f"{len(self.parsed.program_raw)}  |  {len(self.parsed.data_raw)}  |  {len(self.parsed.save_raw)}")
             if len(self.parsed.data_raw) or len(self.parsed.save_raw):
                 self.leftwidget.setToolTip("FX-Enabled title")
-                self.leftwidget.setStyleSheet("#leftwidget { background: rgba(255,0,0,0.15) }")
+                self.leftwidget.setStyleSheet(f"#leftwidget {{ {FX_STYLE} }}")
             else:
                 self.leftwidget.setToolTip(None)
                 self.leftwidget.setStyleSheet("")
@@ -153,6 +171,17 @@ class SlotWidget(QWidget):
 
     def get_slot_data(self):
         return self.parsed
+    
+    # Do a bit more work and get a computed arduboy file. Only really useful when this widget is used as
+    # specifically an arduboy package editor
+    def compute_arduboy(self):
+        slot = self.get_slot_data()
+        ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
+        ardparsed.date = datetime.datetime.utcnow().isoformat()
+        ardparsed.genre = self.genre.text()
+        ardparsed.url = self.url.text()
+        ardparsed.sourceUrl = self.sourceurl.text()
+        return ardparsed
     
     def select_program(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)

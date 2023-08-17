@@ -15,6 +15,9 @@ def empty_parsed_slot() -> arduboy.fxcart.FxParsedSlot:
         0, bytearray(SCREEN_BYTES), bytearray(), bytearray(), bytearray(), arduboy.fxcart.FxSlotMeta("", "", "", "")
     )
 
+def empty_parsed_arduboy() -> arduboy.arduhex.ArduboyParsed:
+    return arduboy.arduhex.ArduboyParsed(None)
+
 def new_parsed_slot_from_category(title: str, info : str = "", image : Image = None, category_id : int = 0) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         category_id,

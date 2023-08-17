@@ -30,8 +30,61 @@ class ArduboyParsed:
     data_raw: bytearray = field(default_factory=lambda:bytearray())
     save_raw: bytearray = field(default_factory=lambda:bytearray())
 
+    # Some optional fields
+    date : str = field(default=None)
+    genre : str = field(default=None)
+    publisher : str = field(default=None)
+    idea : str = field(default=None)
+    code : str = field(default=None)
+    art : str = field(default=None)
+    sound : str = field(default=None)
+    url : str = field(default=None)
+    sourceUrl : str = field(default=None)
+    email : str = field(default=None)
+    companion : str = field(default=None)
+
     def __str__(self) -> str:
         return f"{self.original_filename}"
+    
+    def fill_generic(self, info, func):
+        func(info, "title")
+        func(info, "author", "developer")
+        func(info, "description", "info")
+        func(info, "version")
+        func(info, "genre")
+        func(info, "date")
+        func(info, "publisher")
+        func(info, "idea")
+        func(info, "code")
+        func(info, "art")
+        func(info, "sound")
+        func(info, "url")
+        func(info, "sourceUrl")
+        func(info, "email")
+        func(info, "companion")
+
+    
+    def fill_with_info(self, info):
+        self.fill_generic(info, self._set_self)
+
+    def fill_info(self, info):
+        self.fill_generic(info, self._set_info)
+    
+    def _set_self(self, info, field, prop = None):
+        if not prop:
+            prop = field
+        if field in info:
+            setattr(self, prop, info[field])
+        return getattr(self, prop)
+    
+    def _set_info(self, info, field, prop = None):
+        if not prop:
+            prop = field
+        value = getattr(self, prop)
+        if value is not None:
+            info[field] = value
+        return value
+
 
 # Represents a parsed arduboy hex file. Not sure if it's really necessary tbh...
 @dataclass 
@@ -69,10 +122,7 @@ def read(filepath) -> ArduboyParsed:
                 try:
                     extract_file = extract("info.json")
                     info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
-                    if "title" in info: result.title = info["title"]
-                    if "author" in info: result.developer = info["author"]
-                    if "description" in info: result.info = info["description"]
-                    if "version" in info: result.version = info["version"]
+                    result.fill_with_info(info)
                     if "binaries" in info:
                         firstbin = info["binaries"][0]
                         if "filename" in firstbin: progfile = firstbin["filename"]
@@ -119,12 +169,9 @@ def write(ard_parsed: ArduboyParsed, filepath: str):
         # First, let's create the object that will be json later. We may modify it!
         info = { "schemaVersion" : 3 }
         binary = { }
+        ard_parsed.fill_info(info)
         if ard_parsed.title: 
-            info["title"] = ard_parsed.title
             binary["title"] = ard_parsed.title
-        if ard_parsed.version: info["version"] = ard_parsed.version
-        if ard_parsed.developer: info["author"] = ard_parsed.developer
-        if ard_parsed.info: info["description"] = ard_parsed.info
         # First, let's write the title image
         files.append(os.path.join(tempdir, "title.png"))
         ard_parsed.image.save(files[-1])
