@@ -1,3 +1,8 @@
+## 0.4.1
+
+* Added more fields to arduboy package creator (including auto-set hidden date)
+* Removed button to cart builder, renamed Utilities tab to Package
+
 ## 0.4.0
 
 * Fixed major bug where setting program actually sets fx data (sorry!!)
