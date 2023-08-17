@@ -167,12 +167,7 @@ def get_datapart_raw(fulldata, index):
         # we remove them. This is because, if there is a save, it is aligned to 4k blocks (flash is written
         # in 4k portions), but the data size is not stored, so there may be lots of padding between the data
         # and save data portions. We only need to do this if there is save data
-        last_FF_index = 0 # Loop will exit without assignment if ALL are 0xFF
-        for i in range(len(data) - 1, -1, -1):
-            if data[i] != 0xFF:
-                last_FF_index = i + 1 # If the very last byte isn't FF, index will be outside range, math still works
-                break
-        unused_pages = (len(data) - last_FF_index) // FX_PAGESIZE
+        unused_pages = count_unused_pages(data)
         return data[:len(data) - FX_PAGESIZE * unused_pages]
 
 # Get the save data which might be packed with a sketch (for FX-enabled programs!)

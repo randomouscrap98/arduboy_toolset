@@ -26,6 +26,16 @@ def bytebit(byte, pos):
 def int_to_hex(integer, hexchars):
     return hex(integer).replace("0x", "").upper().zfill(hexchars)
 
+# Find the number of unused pages at the end of the given data block
+def count_unused_pages(data):
+    last_FF_index = 0 # Loop will exit without assignment if ALL are 0xFF
+    for i in range(len(data) - 1, -1, -1):
+        if data[i] != 0xFF:
+            last_FF_index = i + 1 # If the very last byte isn't FF, index will be outside range, math still works
+            break
+    unused_pages = (len(data) - last_FF_index) // FX_PAGESIZE
+    return unused_pages
+
 # Convert a block of arduboy image bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData, raw = False):
     byteLength = len(byteData)

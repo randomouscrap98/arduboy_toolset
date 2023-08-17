@@ -159,7 +159,7 @@ class SlotWidget(QWidget):
         if file_path:
             # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
             parsed = arduboy.arduhex.read(file_path)
-            self.parsed.data_raw = arduboy.arduhex.parse(parsed).flash_data_min()
+            self.parsed.program_raw = arduboy.arduhex.parse(parsed).flash_data_min()
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")
@@ -168,7 +168,16 @@ class SlotWidget(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER)
         if file_path:
             with open(file_path, "rb") as f:
-                self.parsed.data_raw = f.read()
+                data = f.read()
+            unused_pages = count_unused_pages(data)
+            if (unused_pages % (arduboy.fxcart.SAVE_ALIGNMENT // FX_PAGESIZE)) == 0:
+                # Ask if the user wants to create a save out of this
+                if gui_utils.yes_no("Save section discovered", 
+                                    "The data provided appears to have a save section at the end. This is normal when using the development binary. Do you want to strip the save and add it properly to the slot (recommended)?", 
+                                    self):
+                    self.parsed.save_raw = data[-unused_pages * FX_PAGESIZE:]
+                    data = data[:-unused_pages * FX_PAGESIZE]
+            self.parsed.data_raw = data
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited FX data for: {self.parsed.meta.title}")
@@ -187,10 +196,6 @@ class SlotWidget(QWidget):
         self.onchange.emit()
         debug_actions.global_debug.add_action_str(f"Edited tile image for: {self.parsed.meta.title}")
     
-    # # Set an entirely new slot
-    # def set_slot(self, slot):
-    #     self.parsed = slot
-    #     self.set_image_bytes()
 
 # Perform image conversion in a worker, since it actually does take a non-trivial amount of 
 # time. This speeds up the apparent rendering of the list
