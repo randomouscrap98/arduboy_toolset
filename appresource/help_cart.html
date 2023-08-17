@@ -5,6 +5,8 @@
     the new flashcart. 
 </p>
 
+<h2>About Arduboy flashcarts</h2>
+
 <p>
     What is a flashcart? The base model Arduboy from several years ago contained only 32KB of flash memory, intended
     to store one program. The community came up with a mod which would add a 16MB flash module, and wrote a special
@@ -14,10 +16,31 @@
     file, and can decompile + recompile it, allowing you to add or modify programs within it.
 </p>
 
-<h2>Using</h2>
+<h2>Finding games</h2>
 
 <p>
-    So to modify the cart on your Arduboy, you might:
+    You can get packages of pre-existing games from community-made places like the
+    <a href="http://www.bloggingadeadhorse.com/cart/Cart.html">Cart Builder website</a> or 
+    <a href="https://arduboy.ried.cl/">Erwin's Arduboy Collection</a>. The Cart Builder website is similar to this
+    cart builder in that you can customize a flashcart and download a compiled binary, which you 
+    can then flash directly to your Arduboy using any number of tools (including Arduboy Toolset). 
+    You can also open that compiled binary in this very cart editor and make modifications. Erwin's Collection
+    is a git repo full of individual games, setup to use his own tools to flash individual games to your Arduboy.
+    But you can still browse and download all the games, or even add them to your flashcart if you download the
+    relevant files.
+</p>
+
+<p>
+    You can also use the official <a href="https://community.arduboy.com/c/games/35">Arduboy forums</a> to 
+    find or post games. Note that you can add games to your cart in either <b>.hex</b> or <b>.arduboy</b> format,
+    the former is just the game, the latter contains additional information (such as screenshots) and can simplify 
+    the process of adding games.
+</p>
+
+<h2>Using the Cart Editor</h2>
+
+<p>
+    To modify the cart on your Arduboy, you might:
 </p>
 
 <ul>
@@ -26,8 +49,11 @@
     <li>Flash the updated cart back to the Arduboy once again using the <b>File</b> menu.</li>
 </ul>
 
+<h3>Fx save-game data</h3>
+
 <p>
-    If any games use the FX save feature, you will need to do this "direct" modification every time. It first loads
+    Some games store their saves directly on the cart itself, called "Fx saves".
+    Loading the flashcart directly off your Arduboy for editing preserves these saves. It first loads
     the FX flashcart data into memory, so <b>modifications are done locally</b> (and can be saved to your computer) before
     being written back to the Arduboy. Keep in mind that flashing older cart backups will <i>also</i> flash your older
     FX saves, so always work off the latest cart in your Arduboy if you want to preserve your FX saves.
@@ -37,7 +63,7 @@
 
 <p>
     When you load a flashcart into the UI, the cart items are displayed in a list. This is how it is stored in 
-    the flashcart: each item in the cart is called a "Slot", and each Slot holds either a progrma or a category.
+    the flashcart: each item in the cart is called a "Slot", and each Slot holds either a program or a category.
     A category encompasses all programs that follow it, up until the next category. Note that Arduboy expects 
     the first category to always be empty (this will be enforced whenever the cart is compiled).
 </p>

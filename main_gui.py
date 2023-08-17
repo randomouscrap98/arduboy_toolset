@@ -109,6 +109,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         if hasattr(self, 'help_window'):
             self.help_window.close()
+        if hasattr(self, 'about_window'):
+            self.about_window.close()
 
 
 class ConnectionInfo(QWidget):

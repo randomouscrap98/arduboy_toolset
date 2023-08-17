@@ -224,6 +224,10 @@ class CartWindow(QMainWindow):
         # -------------------------------
         # Create an action for opening the help window
         help_menu = menu_bar.addMenu("About")
+
+        open_about_action = QAction("About", self)
+        open_about_action.triggered.connect(self.open_about_window)
+        help_menu.addAction(open_about_action)
         
         open_help_action = QAction("Help", self)
         open_help_action.setShortcut(QtGui.QKeySequence(Qt.Key.Key_F1))
@@ -274,6 +278,8 @@ class CartWindow(QMainWindow):
             self.modified = False
             if hasattr(self, 'help_window'):
                 self.help_window.close()
+            if hasattr(self, 'about_window'):
+                self.about_window.close()
             event.accept()
         else:
             # User did not choose an action, do not exit.
@@ -773,6 +779,10 @@ class CartWindow(QMainWindow):
     def open_help_window(self):
         self.help_window = gui_utils.HtmlWindow("Arduboy Cart Editor Help", "help_cart.html")
         self.help_window.show()
+
+    def open_about_window(self):
+        self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
+        self.about_window.show()
     
 
 # --------------------------------------
