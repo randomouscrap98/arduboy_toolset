@@ -172,10 +172,12 @@ class SlotWidget(QWidget):
             unused_pages = count_unused_pages(data)
             if (unused_pages % (arduboy.fxcart.SAVE_ALIGNMENT // FX_PAGESIZE)) == 0:
                 # Ask if the user wants to create a save out of this
-                if gui_utils.yes_no("Save section discovered", 
+                if gui_utils.yes_no("Split save section out",
                                     "The data provided appears to have a save section at the end. This is normal when using the development binary. Do you want to strip the save and add it properly to the slot (recommended)?", 
                                     self):
-                    self.parsed.save_raw = data[-unused_pages * FX_PAGESIZE:]
+                    if not len(self.parsed.save_raw) or gui_utils.yes_no("Warn: Overwrite existing save",
+                                                                         "Data set to truncate. However, there's already a save section, do you want to overwrite the existing save (not recommended)?", self):
+                        self.parsed.save_raw = data[-unused_pages * FX_PAGESIZE:]
                     data = data[:-unused_pages * FX_PAGESIZE]
             self.parsed.data_raw = data
             self.update_metalabel()

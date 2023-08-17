@@ -1,3 +1,12 @@
+## 0.4.0
+
+* Fixed major bug where setting program actually sets fx data (sorry!!)
+* Added silly + simple .arduboy package creator to toolset (for now it's a duplicate of the slot widget, may have more fields later)
+* Added ability to tack on FX dev data on sketch upload
+* Detect when FX data has save at the end, alert + ask if you want to split
+* Stop logging every time arduboy is pinged from main app (fills logs with useless junk)
+* Make arduboy parser prefer an image called "title.png" if available (for title)
+
 ## 0.3.1
 
 Small changes, export to .arduboy
