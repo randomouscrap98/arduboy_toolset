@@ -21,9 +21,8 @@ from PIL import Image
 
 # Info input field's length limit. Just the field, not the data (though apparently the data is truncated
 # when placed in the field)
-INFO_MAX_LENGTH = 175
 CATEGORY_BLOCK_STYLE = "background: rgba(255,255,0,1); color: #000; font-weight: bold"
-FX_STYLE = "background: rgba(0,50,205,0.15)"
+FX_STYLE = "background: rgba(0,50,205,0.5)"
 
 class SlotWidget(QWidget):
     onchange = pyqtSignal()
@@ -113,7 +112,6 @@ class SlotWidget(QWidget):
             fields.append(self.author)
         self.info = gui_utils.new_selflabeled_edit("Info", self.parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
-        self.info.setMaxLength(INFO_MAX_LENGTH) # Max total length of meta in header is 199, this limit is just a warning
         fields.append(self.info)
         if self.mode == "all":
             self.genre = gui_utils.new_selflabeled_edit("Genre", arduparsed.genre)
@@ -166,6 +164,24 @@ class SlotWidget(QWidget):
     
     # Perform a simple meta field change. This is unfortunately DIFFERENT than the metalabel!
     def do_meta_change(self, new_text, field):
+        # Indicate with red background color, if available text field has exceeded total maximum length
+        max_length = 199 - 1 # One NUL character separating title from info
+        total_length = len(self.title.text()) + len(self.info.text())
+        if self.mode != "category":
+            total_length += len(self.version.text()) + len(self.author.text())
+            max_length -= 2 # Two extra NUL character separating the rest of the fields
+        
+        if total_length > max_length:
+            style = "background-color: rgba(255, 0, 0, 50%);"
+        else:
+            style = ""
+        
+        self.title.setStyleSheet(style)
+        self.info.setStyleSheet(style)
+        if self.mode != "category":
+            self.version.setStyleSheet(style)
+            self.author.setStyleSheet(style)
+        
         setattr(self.parsed.meta, field, new_text) # .title = new_text
         self.onchange.emit()
 
