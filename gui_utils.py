@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 EMOJIFONT = None
 
 SUBDUEDCOLOR = "rgba(128,128,128,0.75)"
+WARNINGINPUT = "border: 1px solid rgba(255,0,0,1)"
 SUCCESSCOLOR = "#30c249"
 ERRORCOLOR = "#c23030"
 BACKUPCOLOR = "#308dc2"
