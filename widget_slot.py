@@ -21,8 +21,9 @@ from PIL import Image
 
 # Info input field's length limit. Just the field, not the data (though apparently the data is truncated
 # when placed in the field)
+INFO_TOOLTIP = "Info"
 CATEGORY_BLOCK_STYLE = "background: rgba(255,255,0,1); color: #000; font-weight: bold"
-FX_STYLE = "background: rgba(0,50,205,0.5)"
+FX_STYLE = "background: rgba(0,150,255,0.45)"
 
 class SlotWidget(QWidget):
     onchange = pyqtSignal()
@@ -110,7 +111,7 @@ class SlotWidget(QWidget):
             self.author = gui_utils.new_selflabeled_edit("Author", self.parsed.meta.developer)
             self.author.textChanged.connect(lambda t: self.do_meta_change(t, "developer"))
             fields.append(self.author)
-        self.info = gui_utils.new_selflabeled_edit("Info", self.parsed.meta.info)
+        self.info = gui_utils.new_selflabeled_edit(INFO_TOOLTIP, self.parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
         fields.append(self.info)
         if self.mode == "all":
@@ -164,25 +165,18 @@ class SlotWidget(QWidget):
     
     # Perform a simple meta field change. This is unfortunately DIFFERENT than the metalabel!
     def do_meta_change(self, new_text, field):
-        # Indicate with red background color, if available text field has exceeded total maximum length
-        max_length = 199 - 1 # One NUL character separating title from info
+        total_limit = arduboy.fxcart.META_HEADER_SIZE - 1 # Minus 1 for the delimiter
         total_length = len(self.title.text()) + len(self.info.text())
         if self.mode != "category":
-            total_length += len(self.version.text()) + len(self.author.text())
-            max_length -= 2 # Two extra NUL character separating the rest of the fields
-        
-        if total_length > max_length:
-            style = "background-color: rgba(255, 0, 0, 50%);"
+            total_length += len(self.author.text()) + len(self.version.text())
+            total_limit -= 2 # Extra delimiters between two extra fields
+        if total_length > total_limit:
+            self.info.setStyleSheet(gui_utils.WARNINGINPUT)
+            self.info.setToolTip(f"Info will be truncated; total metadata length must be <= {total_limit} (at {total_length})")
         else:
-            style = ""
-        
-        self.title.setStyleSheet(style)
-        self.info.setStyleSheet(style)
-        if self.mode != "category":
-            self.version.setStyleSheet(style)
-            self.author.setStyleSheet(style)
-        
-        setattr(self.parsed.meta, field, new_text) # .title = new_text
+            self.info.setStyleSheet("")
+            self.info.setToolTip(INFO_TOOLTIP)
+        setattr(self.parsed.meta, field, new_text)
         self.onchange.emit()
 
     def get_slot_data(self):
