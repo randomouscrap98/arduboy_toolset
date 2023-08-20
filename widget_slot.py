@@ -21,7 +21,6 @@ from PIL import Image
 
 # Info input field's length limit. Just the field, not the data (though apparently the data is truncated
 # when placed in the field)
-INFO_MAX_LENGTH = 175
 INFO_TOOLTIP = "Info"
 CATEGORY_BLOCK_STYLE = "background: rgba(255,255,0,1); color: #000; font-weight: bold"
 FX_STYLE = "background: rgba(0,150,255,0.45)"
@@ -114,7 +113,6 @@ class SlotWidget(QWidget):
             fields.append(self.author)
         self.info = gui_utils.new_selflabeled_edit(INFO_TOOLTIP, self.parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
-        self.info.setMaxLength(INFO_MAX_LENGTH) # Max total length of meta in header is 199, this limit is just a warning
         fields.append(self.info)
         if self.mode == "all":
             self.genre = gui_utils.new_selflabeled_edit("Genre", arduparsed.genre)
