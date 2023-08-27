@@ -1,5 +1,8 @@
 from arduboy.constants import *
 
+import slugify
+import io
+
 from PIL import Image
 from dataclasses import dataclass
 
@@ -52,75 +55,65 @@ def convert_titlescreen(image):
     return image
 
 
+# Determine if image has transparency. Can pass raw pixels (must be list created from getdata)
+def has_transparency(image):
+    if isinstance(image, Image.Image):
+        pixels = list(image.convert("RGBA").getdata())
+    else:
+        pixels = image
+    for i in pixels:
+        if i[3] < 255:
+            return True
+    return False
+
 
 @dataclass
-class ConvertImageConfig:
+class TileConfig:
+    width: int      # Width of tile
+    height: int     # Height of tile
+    spacing: int    # Spacing between tiles (all around?)
+    use_mask: bool  # Whether to use transparency as mask data
+
 
 # Convert the given image (already loaded) to the header data + fxdata
-# (returns a tuple)
-def convert_image(image: Image) -> (str, bytearray):
+# (returns a tuple). Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/image-converter.py
+def convert_image(image: Image, name: str, config: TileConfig = None) -> (str, bytearray):
+    if not config:
+        config = TileConfig()
+    spriteName = slugify.slugify(name).replace("-","_")
+    img = img.convert("RGBA")
+    pixels = list(img.getdata())
 
-fxOutut = "-fx" in os.path.basename(sys.argv[0]).lower()
-if len(sys.argv) < 2 : usage()
-for filenumber in range (1,len(sys.argv)): #support multiple files
-  filename = sys.argv[filenumber]
-  print("converting '{}'".format(filename))
-  ## parse filename ## FILENAME_[WxH]_[S].[EXT]"
-  spriteWidth = 0
-  spriteHeight = 0
-  spacing = 0  
-  elements = os.path.basename(os.path.splitext(filename)[0]).split("_")
-  lastElement = len(elements)-1
-  #get width and height from filename
-  i = lastElement
-  while i > 0:
-    if "x" in elements[i]:
-      spriteWidth = int(elements[i].split("x")[0])
-      spriteHeight = int(elements[i].split("x")[1])
-      if i < lastElement:
-        spacing = int(elements[i+1])
-      break
-    else: i -= 1  
-  else:
-    i = lastElement
-  #get sprite name (may contain underscores) from filename
-  name = elements[0]
-  for j in range(1,i):
-    name += "_" + elements[j] 
-  spriteName = name.replace("-","_")
-  #load image
-  img = Image.open(filename).convert("RGBA")
-  pixels = list(img.getdata())
-  #check for transparency
-  transparency = False
-  for i in pixels:
-   if i[3] < 255:
-    transparency = True
-    break
-  
-  # check for multiple frames/tiles
-  if spriteWidth > 0:
-    hframes = (img.size[0] - spacing) // (spriteWidth + spacing)
-  else:
-    spriteWidth = img.size[0] - 2 * spacing 
-    hframes = 1
-  if spriteHeight > 0:
-    vframes = (img.size[1] - spacing) // (spriteHeight + spacing)
-  else:
-    spriteHeight = img.size[1] - 2* spacing
-    vframes = 1
-  
-  #create byte array for bin file
-  size = (spriteHeight+7) // 8 * spriteWidth * hframes * vframes
-  if transparency:
-    size += size
-  bytes = bytearray([spriteWidth >> 8, spriteWidth & 0xFF, spriteHeight >> 8, spriteHeight & 0xFF])
-  bytes += bytearray(size)
-  i = 4
-  b = 0
-  m = 0
-  with open(os.path.join(os.path.split(filename)[0], name) + ".h","w") as headerfile:
-    headerfile.write("#pragma once\n")
+    spriteWidth = config.width
+    spriteHeight = config.height
+    spacing = config.spacing
+    transparency = config.use_mask
+    
+    # check for multiple frames/tiles
+    if spriteWidth > 0:
+        hframes = (img.size[0] - spacing) // (spriteWidth + spacing)
+    else:
+        spriteWidth = img.size[0] - 2 * spacing 
+        hframes = 1
+    if spriteHeight > 0:
+        vframes = (img.size[1] - spacing) // (spriteHeight + spacing)
+    else:
+        spriteHeight = img.size[1] - 2* spacing
+        vframes = 1
+    
+    #create byte array for bin file
+    size = (spriteHeight+7) // 8 * spriteWidth * hframes * vframes
+    if transparency:
+        size += size
+    bytes = bytearray([spriteWidth >> 8, spriteWidth & 0xFF, spriteHeight >> 8, spriteHeight & 0xFF])
+    bytes += bytearray(size)
+    i = 4
+    b = 0
+    m = 0
+
+    headerfile = io.StringIO()
+    
+    # headerfile.write("#pragma once\n")
     headerfile.write("constexpr uint8_t {}Width = {};\n".format(spriteName, spriteWidth))
     headerfile.write("constexpr uint8_t {}Height = {};\n".format(spriteName,spriteHeight))
     headerfile.write("\n")
@@ -130,42 +123,42 @@ for filenumber in range (1,len(sys.argv)): #support multiple files
     fy = spacing
     frames = 0
     for v in range(vframes):
-      fx = spacing
-      for h in range(hframes):
-        headerfile.write("  //Frame {}\n".format(frames))
-        for y in range (0,spriteHeight,8):
-          line = "  "
-          for x in range (0,spriteWidth):
-            for p in range (0,8):
-              b = b >> 1  
-              m = m >> 1
-              if (y + p) < spriteHeight: #for heights that are not a multiple of 8 pixels
-                if pixels[(fy + y + p) * img.size[0] + fx + x][1] > 64:
-                  b |= 0x80 #white pixel
-                if pixels[(fy + y + p) * img.size[0] + fx + x][3] > 64:
-                  m |= 0x80 #opaque pixel
-                else:
-                  b &= 0x7F #for transparent pixel clear possible white pixel 
-            bytes[i] = b
-            line += "0x{:02X}, ".format(b)
-            i += 1
-            if transparency:
-              bytes[i] = m 
-              line += "0x{:02X}, ".format(m)
-              i += 1
-          lastline = (v+1 == vframes) and (h+1 == hframes) and (y+8 >= spriteHeight)
-          if lastline:
-            line = line [:-2]
-          headerfile.write(line + "\n")
-        if not lastline: 
-          headerfile.write("\n")
-        frames += 1  
-        fx += spriteWidth + spacing
-      fy += spriteHeight + spacing
+        fx = spacing
+        for h in range(hframes):
+            headerfile.write("  //Frame {}\n".format(frames))
+            for y in range (0,spriteHeight,8):
+                line = "  "
+                for x in range (0,spriteWidth):
+                    for p in range (0,8):
+                        b = b >> 1  
+                        m = m >> 1
+                        if (y + p) < spriteHeight: #for heights that are not a multiple of 8 pixels
+                            if pixels[(fy + y + p) * img.size[0] + fx + x][1] > 64:
+                                b |= 0x80 #white pixel
+                            if pixels[(fy + y + p) * img.size[0] + fx + x][3] > 64:
+                                m |= 0x80 #opaque pixel
+                            else:
+                                b &= 0x7F #for transparent pixel clear possible white pixel 
+                    bytes[i] = b
+                    line += "0x{:02X}, ".format(b)
+                    i += 1
+                    if transparency:
+                        bytes[i] = m 
+                        line += "0x{:02X}, ".format(m)
+                        i += 1
+                lastline = (v+1 == vframes) and (h+1 == hframes) and (y+8 >= spriteHeight)
+                if lastline:
+                    line = line [:-2]
+                headerfile.write(line + "\n")
+            if not lastline: 
+                headerfile.write("\n")
+            frames += 1  
+            fx += spriteWidth + spacing
+        fy += spriteHeight + spacing
+
     headerfile.write("};\n")
-    headerfile.close()
+
+    headerfile.seek(0)
+        
+    return headerfile.read(),bytes
     
-  if fxOutut:
-    with open(os.path.join(os.path.split(filename)[0], name) + ".bin", "wb") as binfile:
-      binfile.write(bytes)
-      binfile.close
