@@ -7,6 +7,7 @@ import constants
 import gui_utils
 import utils
 import widget_progress
+import debug_actions
 
 import logging
 
@@ -85,7 +86,9 @@ class SketchWidget(QWidget):
                 arduboy.serial.flash_fx(fx_data, -1, s_port, report_progress=repprog)
             arduboy.serial.exit_bootloader(s_port) # NOTE! THIS MIGHT BE THE ONLY PLACE WE EXIT THE BOOTLOADER!
 
-        widget_progress.do_progress_work(do_work, "Upload Sketch")
+        dialog = widget_progress.do_progress_work(do_work, "Upload Sketch")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Uploaded sketch {filepath} to Arduboy")
 
 
     def do_backup(self): 
@@ -101,4 +104,6 @@ class SketchWidget(QWidget):
                 f.write(sketchdata)
             arduboy.serial.exit_normal(s_port)
 
-        widget_progress.do_progress_work(do_work, "Backup Sketch")
+        dialog = widget_progress.do_progress_work(do_work, "Backup Sketch")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Backuped Arduboy sketch to {filepath}")

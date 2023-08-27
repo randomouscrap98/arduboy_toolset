@@ -4,6 +4,7 @@ import widget_progress
 import constants
 import gui_utils
 import utils
+import debug_actions
 
 import logging
 
@@ -51,7 +52,9 @@ class EEPROMWidget(QWidget):
             arduboy.serial.write_eeprom(eepromdata, s_port)
             arduboy.serial.exit_bootloader(s_port) # Eh, might as well do bootloader here too
 
-        widget_progress.do_progress_work(do_work, "Restore EEPROM")
+        dialog = widget_progress.do_progress_work(do_work, "Restore EEPROM")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Restored EEPROM {filepath} to Arduboy")
 
     def do_backup(self): 
         filepath = self.backup_picker.check_filepath(self) 
@@ -66,7 +69,9 @@ class EEPROMWidget(QWidget):
                 f.write(eepromdata)
             arduboy.serial.exit_normal(s_port) 
 
-        widget_progress.do_progress_work(do_work, "Backup EEPROM")
+        dialog = widget_progress.do_progress_work(do_work, "Backup EEPROM")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Backed up Arduboy EEPROM to {filepath}")
 
     def do_erase(self): 
         if not gui_utils.yes_no("ERASE EEPROM", f"EEPROM is a 1KB area for save data. Are you SURE you want to erase EEPROM?", self):
@@ -79,4 +84,6 @@ class EEPROMWidget(QWidget):
             arduboy.serial.erase_eeprom(s_port)
             arduboy.serial.exit_bootloader(s_port) 
 
-        widget_progress.do_progress_work(do_work, "ERASE EEPROM")
+        dialog = widget_progress.do_progress_work(do_work, "ERASE EEPROM")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Erased Arduboy EEPROM")

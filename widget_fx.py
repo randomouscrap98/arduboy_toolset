@@ -5,6 +5,7 @@ import widget_progress
 import constants
 import gui_utils
 import utils
+import debug_actions
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QCheckBox, QLabel
 
@@ -63,7 +64,9 @@ class FxWidget(QWidget):
             arduboy.serial.flash_fx(flashbytes, 0, s_port, True, repprog)
             arduboy.serial.exit_normal(s_port) 
 
-        widget_progress.do_progress_work(do_work, "Upload FX Flash")
+        dialog = widget_progress.do_progress_work(do_work, "Upload FX Flash")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Uploaded flashcart {filepath} to Arduboy")
 
     def do_backup(self): 
         filepath = self.backup_fx_picker.check_filepath(self) 
@@ -80,4 +83,6 @@ class FxWidget(QWidget):
                 f.write(bindata)
             arduboy.serial.exit_normal(s_port) 
 
-        widget_progress.do_progress_work(do_work, "Backup FX Flash")
+        dialog = widget_progress.do_progress_work(do_work, "Backup FX Flash")
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Backed up Arduboy flash to {filepath}")
