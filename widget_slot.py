@@ -1,6 +1,7 @@
 import arduboy.fxcart
 import arduboy.shortcuts
 import arduboy.arduhex
+import arduboy.image
 
 import gui_utils
 import constants
@@ -12,11 +13,9 @@ from arduboy.common import *
 import datetime
 
 from typing import List
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
-from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLabel, QFileDialog
 from PyQt6 import QtGui
-from PyQt6.QtGui import QAction
-from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread
+from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from PIL import Image
 
 # Info input field's length limit. Just the field, not the data (though apparently the data is truncated
@@ -248,7 +247,7 @@ class ImageConvertWorker(QThread):
         self.image = image
     def run(self):
         try:
-            self.image_done.emit(bin_to_pilimage(self.image, raw=True))
+            self.image_done.emit(arduboy.image.bin_to_pilimage(self.image, raw=True))
         except Exception as ex:
             self.on_error.emit(ex)
 
@@ -287,7 +286,7 @@ class TitleImageWidget(QLabel):
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Title Image File", "", constants.IMAGE_FILEFILTER)
             if file_path:
                 # We convert to bytes to send over the wire (emit) and to set our own image. Yes, we will be converting it back in set_image_bytes
-                image_bytes = pilimage_to_bin(Image.open(file_path)) 
+                image_bytes = arduboy.image.pilimage_to_bin(Image.open(file_path)) 
                 self.set_image_bytes(image_bytes)
-                self.onimage_bytes.emit(image_bytes) #arduboy.utils.pilimage_to_bin(image))
+                self.onimage_bytes.emit(image_bytes)
 

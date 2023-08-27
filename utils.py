@@ -1,6 +1,7 @@
 import arduboy.fxcart
 import arduboy.arduhex
 import arduboy.shortcuts
+import arduboy.image
 
 from constants import *
 from arduboy.constants import *
@@ -116,7 +117,7 @@ def export_slots_as_arduboy(slots: List[arduboy.fxcart.FxParsedSlot], folderpath
             program = 0
             current_path = os.path.join(folderpath, export_slots_name(slot, category))
             os.mkdir(current_path)
-            arduboy.arduhex.bin_to_pilimage(slot.image_raw).save(os.path.join(current_path, "category.png"))
+            arduboy.image.bin_to_pilimage(slot.image_raw).save(os.path.join(current_path, "category.png"))
             data = { "title" : slot.meta.title, "info" : slot.meta.info, "image" : "category.png" }
             demjson3.encode_to_file(os.path.join(current_path, "category.json"), data, compactly = False)
         else:

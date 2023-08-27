@@ -1,6 +1,7 @@
 import logging
 import arduboy.arduhex
 import arduboy.fxcart
+import arduboy.image
 
 from arduboy.common import *
 from arduboy.constants import *
@@ -21,7 +22,7 @@ def empty_parsed_arduboy() -> arduboy.arduhex.ArduboyParsed:
 def new_parsed_slot_from_category(title: str, info : str = "", image : Image = None, category_id : int = 0) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         category_id,
-        pilimage_to_bin(image) if image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
+        arduboy.image.pilimage_to_bin(image) if image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
         bytearray(),
         bytearray(),
         bytearray(),
@@ -32,7 +33,7 @@ def new_parsed_slot_from_category(title: str, info : str = "", image : Image = N
 def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> arduboy.fxcart.FxParsedSlot:
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
-        pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
+        arduboy.image.pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
         arduboy.arduhex.parse(parsed).flash_data_min(),
         parsed.data_raw,
         parsed.save_raw,
@@ -47,7 +48,7 @@ def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot) -> arduboy.arduhex.Ardu
         slot.meta.version,
         slot.meta.developer,
         slot.meta.info,
-        bin_to_pilimage(slot.image_raw),
+        arduboy.image.bin_to_pilimage(slot.image_raw),
         slot.data_raw,
         slot.save_raw
     )

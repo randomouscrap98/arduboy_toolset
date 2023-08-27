@@ -3,6 +3,7 @@ import arduboy.arduhex
 import arduboy.serial
 import arduboy.fxcart
 import arduboy.shortcuts
+import arduboy.image
 
 from arduboy.constants import *
 from arduboy.common import *
@@ -373,7 +374,7 @@ class CartWindow(QMainWindow):
             for slot,widget in slots:
                 if not slot.has_image():
                     pilimage = utils.make_titlescreen_from_slot(slot)
-                    slot.image_raw = pilimage_to_bin(pilimage)
+                    slot.image_raw = arduboy.image.pilimage_to_bin(pilimage)
                     widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
             repstatus("Compiling FX cart")
             fxbin = arduboy.fxcart.compile([x for x,_ in slots], repprog)
