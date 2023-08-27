@@ -11,14 +11,17 @@ import gui_utils
 import main_cart
 import constants
 import widget_slot
+import widget_sketch
+import widget_fx
+import widget_eeprom
 import debug_actions
 
 import logging
 import os
 import sys
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
-from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox, QFileDialog, QComboBox
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
+from PyQt6.QtWidgets import QCheckBox, QGroupBox, QFileDialog
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt
@@ -186,62 +189,18 @@ class ActionTable(QTabWidget):
         super().__init__()
 
         # Create and add tabs
-        tab1 = QWidget()
-        tab2 = QWidget()
-        tab3 = QWidget()
+        self.sketchtab = widget_sketch.SketchWidget()
+        self.fxtab = widget_fx.FxWidget()
+        self.eepromtab = widget_eeprom.EEPROMWidget()
         tab4 = QWidget()
         
-        self.addTab(tab1, "Sketch")
-        self.addTab(tab2, "Flashcart")
-        self.addTab(tab3, "EEPROM")
+        self.addTab(self.sketchtab, "Sketch")
+        self.addTab(self.fxtab, "Flashcart")
+        self.addTab(self.eepromtab, "EEPROM")
         self.addTab(tab4, "Package")
 
         # Create layouts for each tab
-        sketch_layout = QVBoxLayout()
-        fx_layout = QVBoxLayout()
-        eeprom_layout = QVBoxLayout()
         utilities_layout = QVBoxLayout()
-
-        # Add widgets to fx tab 
-        self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        self.upload_fx_button = QPushButton("Upload")
-        self.upload_fx_button.clicked.connect(self.do_uploadfx)
-        uploadfxgroup, layout = gui_utils.make_file_action("Upload Flashcart", self.upload_fx_picker, self.upload_fx_button, "⬆️", gui_utils.SUCCESSCOLOR)
-        self.fxu_contrast_number = gui_utils.ContrastPicker()
-        fxu_pcon_container, self.fxu_contrast_cb = gui_utils.make_toggleable_element("Patch contrast", self.fxu_contrast_number, nostretch=True)
-        self.fxu_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
-        layout.addWidget(fxu_pcon_container)
-        layout.addWidget(self.fxu_ssd1309_cb)
-
-        self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
-        self.backup_fx_button = QPushButton("Backup")
-        self.backup_fx_button.clicked.connect(self.do_backupfx)
-        backupfxgroup, layout = gui_utils.make_file_action("Backup Flashcart", self.backup_fx_picker, self.backup_fx_button, "⬇️", gui_utils.BACKUPCOLOR)
-        self.fxb_trim = QCheckBox("Trim flashcart (excludes dev data!)")
-        self.fxb_trim.setChecked(True)
-        layout.addWidget(self.fxb_trim)
-
-        warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
-        warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
-
-        gui_utils.add_children_nostretch(fx_layout, [uploadfxgroup, backupfxgroup, warninglabel])
-
-        # Add widgets to eeprom tab 
-        self.upload_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        self.upload_eeprom_button = QPushButton("Restore")
-        self.upload_eeprom_button.clicked.connect(self.do_uploadeeprom)
-        uploadeepromgroup, layout = gui_utils.make_file_action("Restore EEPROM", self.upload_eeprom_picker, self.upload_eeprom_button, "⬆️", gui_utils.SUCCESSCOLOR)
-
-        self.backup_eeprom_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
-        self.backup_eeprom_button = QPushButton("Backup")
-        self.backup_eeprom_button.clicked.connect(self.do_backupeeprom)
-        backupeepromgroup, layout = gui_utils.make_file_action("Backup EEPROM", self.backup_eeprom_picker, self.backup_eeprom_button, "⬇️", gui_utils.BACKUPCOLOR)
-
-        self.erase_eeprom_button = QPushButton("ERASE")
-        self.erase_eeprom_button.clicked.connect(self.do_eraseeeprom)
-        eraseeepromgroup, layout = gui_utils.make_file_action("Erase EEPROM", None, self.erase_eeprom_button, "❎", gui_utils.ERRORCOLOR)
-
-        gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
         package_group = QGroupBox("Package .arduboy")
         self.package_layout = QVBoxLayout()
@@ -267,27 +226,19 @@ class ActionTable(QTabWidget):
         ])
 
         # Set layouts for each tab
-        tab1.setLayout(sketch_layout)
-        tab2.setLayout(fx_layout)
-        tab3.setLayout(eeprom_layout)
         tab4.setLayout(utilities_layout)
-        tab5.setLayout()
     
-
-    def make_sketch_tab(self):
-        tab1 = QWidget()
-
 
     # Set the status of the table entries based on the device connected status. Sets them directly,
     # this is not a signal (you can use it IN a signal...)
     def set_device_connected(self, connected):
-        self.upload_sketch_button.setEnabled(connected)
-        self.backup_sketch_button.setEnabled(connected)
-        self.upload_fx_button.setEnabled(connected)
-        self.backup_fx_button.setEnabled(connected)
-        self.upload_eeprom_button.setEnabled(connected)
-        self.backup_eeprom_button.setEnabled(connected)
-        self.erase_eeprom_button.setEnabled(connected)
+        self.sketchtab.upload_button.setEnabled(connected)
+        self.sketchtab.backup_button.setEnabled(connected)
+        self.fxtab.upload_button.setEnabled(connected)
+        self.fxtab.backup_button.setEnabled(connected)
+        self.eepromtab.upload_button.setEnabled(connected)
+        self.eepromtab.backup_button.setEnabled(connected)
+        self.eepromtab.erase_button.setEnabled(connected)
     
     def make_slot_widget(self, arduparsed: arduboy.arduhex.ArduboyParsed = None):
         if not arduparsed:
@@ -331,93 +282,6 @@ class ActionTable(QTabWidget):
         # self.cart_windows.append(new_window)
         new_window.show()
     
-    def do_uploadfx(self): 
-        filepath = self.upload_fx_picker.check_filepath(self) 
-        if not filepath: return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Reading FX bin file...")
-            flashbytes = arduboy.fxcart.read(filepath)
-            if self.fxu_ssd1309_cb.isChecked():
-                count = arduboy.patch.patch_all_screen(flashbytes, ssd1309=True)
-                if count:
-                    logging.info(f"Patched {count} programs in cart for SSD1309")
-                else:
-                    logging.warning("Flagged for SSD1309 patching but not a single LCD boot program found! Not patched!")
-            s_port = device.connect_serial()
-            # TODO: Let users set the page number?
-            repstatus("Uploading FX bin file...")
-            arduboy.serial.flash_fx(flashbytes, 0, s_port, True, repprog)
-            arduboy.serial.exit_normal(s_port) 
-
-        gui_utils.do_progress_work(do_work, "Upload FX Flash")
-
-    def do_backupfx(self): 
-        filepath = self.backup_fx_picker.check_filepath(self) 
-        if not filepath: return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Saving FX Flash to file...")
-            s_port = device.connect_serial()
-            # arduboy.serial.backup_fx(s_port, filepath, repprog)
-            bindata = arduboy.serial.backup_fx(s_port, repprog)
-            if self.fxb_trim.isChecked():
-                repstatus("Trimming FX file...")
-                bindata = arduboy.fxcart.trim(bindata)
-            with open (filepath,"wb") as f:
-                f.write(bindata)
-            arduboy.serial.exit_normal(s_port) 
-
-        gui_utils.do_progress_work(do_work, "Backup FX Flash")
-
-    def do_uploadeeprom(self): 
-        filepath = self.upload_eeprom_picker.check_filepath(self) 
-        if not filepath: return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Restoring EEPROM from file...")
-            with open (filepath,"rb") as f:
-                eepromdata = bytearray(f.read())
-            s_port = device.connect_serial()
-            logging.info(f"Restoring eeprom from {filepath} into {device}")
-            arduboy.serial.write_eeprom(eepromdata, s_port)
-            arduboy.serial.exit_bootloader(s_port) # Eh, might as well do bootloader here too
-
-        gui_utils.do_progress_work(do_work, "Restore EEPROM")
-
-    def do_backupeeprom(self): 
-        filepath = self.backup_eeprom_picker.check_filepath(self) 
-        if not filepath: return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Saving EEPROM to file...")
-            s_port = device.connect_serial()
-            logging.info(f"Backing up eeprom from {device} into {filepath}")
-            eepromdata = arduboy.serial.read_eeprom(s_port)
-            with open (filepath,"wb") as f:
-                f.write(eepromdata)
-            arduboy.serial.exit_normal(s_port) 
-
-        gui_utils.do_progress_work(do_work, "Backup EEPROM")
-
-    def do_eraseeeprom(self): 
-        confirmation = QMessageBox.question(
-            self, "ERASE EEPROM",
-            f"EEPROM is a 1KB area for save data. Are you SURE you want to erase EEPROM?", 
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
-
-        if confirmation != QMessageBox.StandardButton.Yes:
-            return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("ERASING EEPROM...")
-            s_port = device.connect_serial()
-            logging.info(f"Erasing eeprom in {device}")
-            arduboy.serial.erase_eeprom(s_port)
-            arduboy.serial.exit_bootloader(s_port) 
-
-        gui_utils.do_progress_work(do_work, "ERASE EEPROM")
-
 
 
 

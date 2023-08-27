@@ -8,6 +8,7 @@ import arduboy.image
 from arduboy.constants import *
 from arduboy.common import *
 
+import widget_progress
 import constants
 import utils
 import gui_utils
@@ -378,7 +379,7 @@ class CartWindow(QMainWindow):
                     widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
             repstatus("Compiling FX cart")
             fxbin = arduboy.fxcart.compile([x for x,_ in slots], repprog)
-        dialog = gui_utils.do_progress_work(do_work, "Compiling FX", simple = True)
+        dialog = widget_progress.do_progress_work(do_work, "Compiling FX", simple = True)
         if dialog.error_state:
             return None
         else:
@@ -454,7 +455,7 @@ class CartWindow(QMainWindow):
                     rest = rest << 1
         self.list_widget.blockSignals(True)
         try:
-            dialog = gui_utils.do_progress_work(do_work, "Parsing binary", simple = True)
+            dialog = widget_progress.do_progress_work(do_work, "Parsing binary", simple = True)
             if not dialog.error_state:
                 if filepath:
                     self.filepath = filepath
@@ -490,7 +491,7 @@ class CartWindow(QMainWindow):
                 bindata = arduboy.serial.backup_fx(s_port, repprog)
                 repstatus("Trimming FX file...")
                 bindata = arduboy.fxcart.trim(bindata)
-            dialog = gui_utils.do_progress_work(do_work, "Load FX Flash")
+            dialog = widget_progress.do_progress_work(do_work, "Load FX Flash")
             if not dialog.error_state:
                 self.filepath = None # There is no file anymore
                 self.loadcart(bindata)
@@ -512,7 +513,7 @@ class CartWindow(QMainWindow):
             s_port = device.connect_serial()
             repstatus("Flashing FX Cart...")
             arduboy.serial.flash_fx(bindata, 0, s_port, verify=True, report_progress=repprog)
-        dialog = gui_utils.do_progress_work(do_work, "Flash FX Cart")
+        dialog = widget_progress.do_progress_work(do_work, "Flash FX Cart")
         if not dialog.error_state:
             debug_actions.global_debug.add_action_str(f"Flashed cart to Arduboy")
         else:
@@ -542,7 +543,7 @@ class CartWindow(QMainWindow):
         if filepath:
             def do_work(repprog, repstatus):
                 utils.export_slots_as_arduboy(slots, filepath, repprog)
-            dialog = gui_utils.do_progress_work(do_work, "Export slots as .arduboy", simple = True)
+            dialog = widget_progress.do_progress_work(do_work, "Export slots as .arduboy", simple = True)
             debug_actions.global_debug.add_action_str(f"Exported slots as .arduboy")
 
 
