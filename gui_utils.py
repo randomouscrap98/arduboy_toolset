@@ -8,7 +8,7 @@ import sys
 
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
-from PyQt6.QtWidgets import  QCheckBox, QApplication
+from PyQt6.QtWidgets import  QCheckBox, QApplication, QComboBox
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
@@ -116,7 +116,7 @@ def make_file_group_generic(picker, endcap, symbol = None, symbol_color = None):
     file_action_parent.setLayout(innerlayout)
     return file_action_parent, symbolwidg
 
-def make_toggleable_element(text, element: QWidget, toggled = False):
+def make_toggleable_element(text: str, element: QWidget, toggled = False, nostretch = False):
     toggle_parent = QWidget()
     toggle_layout = QHBoxLayout()
     checker = QCheckBox(text)
@@ -124,8 +124,11 @@ def make_toggleable_element(text, element: QWidget, toggled = False):
     checker.stateChanged.connect(check_event)
     checker.setChecked(toggled)
     check_event()
-    toggle_layout.addWidget(checker)
-    toggle_layout.addWidget(element)
+    if nostretch:
+        add_children_nostretch(toggle_layout, [checker, element])
+    else:
+        toggle_layout.addWidget(checker)
+        toggle_layout.addWidget(element)
     toggle_layout.setContentsMargins(0,0,0,0)
     toggle_parent.setLayout(toggle_layout)
     return toggle_parent, checker
@@ -242,6 +245,22 @@ class FilePicker(QWidget):
         return filepath
 
 
+class ContrastPicker(QComboBox):
+    def __init__(self):
+        super().__init__()
+        self.addItem("Max Contrast", arduboy.patch.CONTRAST_HIGHEST)
+        self.addItem("Normal", arduboy.patch.CONTRAST_NORMAL)
+        self.addItem("Dim", arduboy.patch.CONTRAST_DIM)
+        self.addItem("Dimmer", arduboy.patch.CONTRAST_DIMMER)
+        self.addItem("Dimmest", arduboy.patch.CONTRAST_DIMMEST)
+        self.setCurrentIndex(1)
+    
+    def get_contrast(self):
+        return self.itemData(self.currentIndex())
+    
+    def get_contrast_str(self):
+        return hex(self.get_contrast())
+
 
 class HtmlWindow(QTextBrowser):
     def __init__(self, title, resource):
@@ -253,118 +272,6 @@ class HtmlWindow(QTextBrowser):
         self.setWindowTitle(title)
         self.resize(500,500)
         self.setOpenExternalLinks(True)
-
-
-class ProgressWindow(QDialog):
-    def __init__(self, title, device = None, simple = False):
-        super().__init__()
-        layout = QVBoxLayout()
-
-        self.setWindowTitle(title)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint & ~Qt.WindowType.WindowMaximizeButtonHint)
-        self.error_state = False
-        self.simple = simple
-
-        if simple:
-            self.resize(300, 100)
-        else:
-            self.resize(400, 200)
-
-            self.status_label = QLabel("Waiting...")
-            self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            mod_font_size(self.status_label, 2)
-            layout.addWidget(self.status_label)
-
-            self.device_label = QLabel(device if device else "~")
-            self.device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.device_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
-            layout.addWidget(self.device_label)
-
-        self.progress_bar = QProgressBar()
-        layout.addWidget(self.progress_bar)
-
-        if not simple:
-            self.ok_button = QPushButton("OK")
-            self.ok_button.clicked.connect(self.accept)  # Connect to the accept() method
-            self.ok_button.hide()  # Hide the OK button initially
-            layout.addWidget(self.ok_button, alignment=Qt.AlignmentFlag.AlignCenter)
-
-        self.setLayout(layout)
-    
-    def set_device(self, device):
-        if self.simple:
-            logging.warning("Tried to set device when progress is set to simple! Ignoring!")
-        else:
-            self.device_label.setText(device)
-
-    def set_status(self, status):
-        if self.simple:
-            self.setWindowTitle(status)
-        else:
-            self.status_label.setText(status)
-
-    def set_complete(self):
-        if self.simple:
-            self.accept()
-        else:
-            result = "Failed" if self.error_state else "Complete"
-            self.status_label.setText(f"{self.windowTitle()}: {result}!")
-            self.progress_bar.setValue(0 if self.error_state else 100)
-            self.ok_button.show()
-    
-    def report_progress(self, current, max):
-        self.progress_bar.setValue(int(current / max * 100))
-    
-    def report_error(self, ex: Exception):
-        self.error_state = True
-        QMessageBox.critical(self, f"Error during '{self.windowTitle()}'", str(ex), QMessageBox.StandardButton.Ok)
-        logging.exception(ex)
-        self.accept()
-
-
-class ProgressWorkerThread(QThread):
-    update_progress = pyqtSignal(int, int)
-    update_status = pyqtSignal(str)
-    update_device = pyqtSignal(str)
-    report_error = pyqtSignal(Exception)
-
-    def __init__(self, work, simple = False):
-        super().__init__()
-        self.work = work
-        self.simple = simple
-
-    def run(self):
-        try:
-            if self.simple:
-                # Yes, when simple, the work actually doesn't take the extra data. Be careful! This is dumb design!
-                self.work(lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
-            else:
-                self.update_status.emit("Waiting for bootloader...")
-                device = arduboy.device.find_single()
-                self.update_device.emit(device.display_name())
-                self.work(device, lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
-        except Exception as ex:
-            self.report_error.emit(ex)
-    
-    # Connect this worker thread to the given progress window by connecting up all the little signals
-    def connect(self, pwindow):
-        self.update_progress.connect(pwindow.report_progress)
-        self.update_status.connect(pwindow.set_status)
-        self.update_device.connect(pwindow.set_device)
-        self.report_error.connect(pwindow.report_error)
-        self.finished.connect(pwindow.set_complete)
-
-
-# Perform the given work, which can report both progress and status updates through two lambdas,
-# within a dialog made for reporting progress. The dialog cannot be exited, since I think exiting
-# in the middle of flashing tasks is like... really bad?
-def do_progress_work(work, title, simple = False):
-    dialog = ProgressWindow(title, simple = simple)
-    worker_thread = ProgressWorkerThread(work, simple = simple)
-    worker_thread.connect(dialog)
-    worker_thread.start()
-    dialog.exec()
-    return dialog
 
 
 # Most gui "apps" all have the same setup
@@ -385,3 +292,17 @@ def yes_no(title, question, parent):
         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         QMessageBox.StandardButton.No
     ) == QMessageBox.StandardButton.Yes
+
+def screen_patch(flash_data: bytearray, ssd1309_cb : QCheckBox = None, contrast_cb : QCheckBox = None, contrast_picker : ContrastPicker = None):
+    ssd1309_checked = ssd1309_cb is not None and ssd1309_cb.isChecked()
+    contrast_checked = contrast_cb is not None and contrast_picker is not None and contrast_cb.isChecked()
+    if ssd1309_checked or contrast_checked:
+        patch_message = []
+        if ssd1309_checked: patch_message.append("SSD1309")
+        if contrast_checked: patch_message.append(f"CONTRAST:{contrast_picker.get_contrast_str()}")
+        patch_message = "[" + ",".join(patch_message) + "]"
+        contrast_value = contrast_picker.get_contrast() if contrast_checked else None
+        if arduboy.patch.patch_all_screen(flash_data, ssd1309=ssd1309_checked, contrast=contrast_value):
+            logging.info(f"Patched upload for {patch_message}")
+        else:
+            logging.warning(f"Flagged for {patch_message} patching but no LCD boot program found! Not patched!")

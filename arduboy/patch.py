@@ -16,7 +16,7 @@ MENUBUTTONPATCH = b'\x0f\x92\x0f\xb6\x8f\x93\x9f\x93\xef\x93\xff\x93\x80\x91\xcc
                   b'\x0f\x90\x18\x95'
 
 CONTRAST_NOCHANGE = None
-CONSTRAST_NORMAL = 0xCF
+CONTRAST_NORMAL = 0xCF
 CONTRAST_DIM = 0x7F
 CONTRAST_DIMMER = 0x2F
 CONTRAST_DIMMEST = 0x00
@@ -104,14 +104,17 @@ def patch_menubuttons(program):
 # Given binary data, apply various screen-related patches
 def patch_all_screen(flashdata: bytearray, ssd1309: bool = False, contrast: int = None):
     lcdBootProgram_addr = 0
+    found = 0
     while lcdBootProgram_addr >= 0:
       lcdBootProgram_addr = flashdata.find(LCDBOOTPROGRAM[:7], lcdBootProgram_addr)
       if lcdBootProgram_addr >= 0 and flashdata[lcdBootProgram_addr+8:lcdBootProgram_addr+13] == LCDBOOTPROGRAM[8:]:
+        found += 1
         if ssd1309:
           flashdata[lcdBootProgram_addr+2] = 0xE3
           flashdata[lcdBootProgram_addr+3] = 0xE3
         if contrast is not None:
           flashdata[lcdBootProgram_addr+7] = contrast
+    return found
 
 # Given binary data, patch EVERY instance of wrong LED polarity for Micro
 # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py

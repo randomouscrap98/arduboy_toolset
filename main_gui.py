@@ -4,6 +4,7 @@ import arduboy.serial
 import arduboy.fxcart
 import arduboy.patch
 import arduboy.shortcuts
+import arduboy.image
 
 import utils
 import gui_utils
@@ -17,7 +18,7 @@ import os
 import sys
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLabel, QTabWidget
-from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox, QFileDialog
+from PyQt6.QtWidgets import QMessageBox, QCheckBox, QGroupBox, QFileDialog, QComboBox
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt
@@ -201,34 +202,15 @@ class ActionTable(QTabWidget):
         eeprom_layout = QVBoxLayout()
         utilities_layout = QVBoxLayout()
 
-        # Add widgets to sketch tab 
-        self.upload_sketch_picker = gui_utils.FilePicker(constants.ARDUHEX_FILEFILTER)
-        self.upload_sketch_button = QPushButton("Upload")
-        self.upload_sketch_button.clicked.connect(self.do_uploadsketch)
-        uploadsketchgroup, templay = gui_utils.make_file_action("Upload Sketch", self.upload_sketch_picker, self.upload_sketch_button, "⬆️", gui_utils.SUCCESSCOLOR)
-        self.upload_sketch_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
-        fx_enabled_container, self.upload_sketch_fx_enabled = gui_utils.make_toggleable_element("Include FX dev data", self.upload_sketch_fx_picker)
-        self.su_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
-        self.su_microled_cb = QCheckBox("Patch for Micro LED polarity")
-        templay.addWidget(fx_enabled_container)
-        templay.addWidget(self.su_ssd1309_cb)
-        templay.addWidget(self.su_microled_cb)
-
-        self.backup_sketch_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_sketch_backup_filename)
-        self.backup_sketch_button = QPushButton("Backup")
-        self.backup_sketch_button.clicked.connect(self.do_backupsketch)
-        backupsketchgroup, layout = gui_utils.make_file_action("Backup Sketch", self.backup_sketch_picker, self.backup_sketch_button, "⬇️", gui_utils.BACKUPCOLOR)
-        self.sb_includebootloader_cb = QCheckBox("Include bootloader in backup")
-        layout.addWidget(self.sb_includebootloader_cb)
-
-        gui_utils.add_children_nostretch(sketch_layout, [uploadsketchgroup, backupsketchgroup])
-
         # Add widgets to fx tab 
         self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
         self.upload_fx_button = QPushButton("Upload")
         self.upload_fx_button.clicked.connect(self.do_uploadfx)
         uploadfxgroup, layout = gui_utils.make_file_action("Upload Flashcart", self.upload_fx_picker, self.upload_fx_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        self.fxu_contrast_number = gui_utils.ContrastPicker()
+        fxu_pcon_container, self.fxu_contrast_cb = gui_utils.make_toggleable_element("Patch contrast", self.fxu_contrast_number, nostretch=True)
         self.fxu_ssd1309_cb = QCheckBox("Patch for screen SSD1309")
+        layout.addWidget(fxu_pcon_container)
         layout.addWidget(self.fxu_ssd1309_cb)
 
         self.backup_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
@@ -261,14 +243,6 @@ class ActionTable(QTabWidget):
 
         gui_utils.add_children_nostretch(eeprom_layout, [uploadeepromgroup, backupeepromgroup, eraseeepromgroup])
 
-        # Add widgets to tab4
-        # tools_group = QGroupBox("Extra Tools")
-        # tools_layout = QHBoxLayout()
-        # cart_editor_button = QPushButton("Cart Builder")
-        # cart_editor_button.clicked.connect(self.do_open_cartbuilder)
-        # tools_layout.addWidget(cart_editor_button)
-        # tools_group.setLayout(tools_layout)
-
         package_group = QGroupBox("Package .arduboy")
         self.package_layout = QVBoxLayout()
         self.package_slot = self.make_slot_widget()
@@ -290,7 +264,6 @@ class ActionTable(QTabWidget):
 
         gui_utils.add_children_nostretch(utilities_layout, [
             package_group,
-            # tools_group,
         ])
 
         # Set layouts for each tab
@@ -298,6 +271,12 @@ class ActionTable(QTabWidget):
         tab2.setLayout(fx_layout)
         tab3.setLayout(eeprom_layout)
         tab4.setLayout(utilities_layout)
+        tab5.setLayout()
+    
+
+    def make_sketch_tab(self):
+        tab1 = QWidget()
+
 
     # Set the status of the table entries based on the device connected status. Sets them directly,
     # this is not a signal (you can use it IN a signal...)
@@ -352,56 +331,6 @@ class ActionTable(QTabWidget):
         # self.cart_windows.append(new_window)
         new_window.show()
     
-    def do_uploadsketch(self): 
-        filepath = self.upload_sketch_picker.check_filepath(self) 
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Checking file...")
-            pard = arduboy.arduhex.read(filepath)
-            parsed = arduboy.arduhex.parse(pard)
-            fx_data = None
-            if self.su_ssd1309_cb.isChecked():
-                if arduboy.patch.patch_all_screen(parsed.flash_data, ssd1309=True):
-                    logging.info("Patched upload for SSD1309")
-                else:
-                    logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
-            if self.su_microled_cb.isChecked():
-                arduboy.patch.patch_microled(parsed.flash_data)
-                logging.info("Patched upload for Arduino Micro LED polarity")
-            if self.upload_sketch_fx_enabled.isChecked():
-                fx_filepath = self.upload_sketch_fx_picker.check_filepath(self)
-                fx_data = arduboy.fxcart.read_data(fx_filepath)
-                logging.info("Adding FX data to cart")
-            logging.debug(f"Info on hex file: {parsed.flash_page_count} pages, is_caterina: {parsed.overwrites_caterina}")
-            s_port = device.connect_serial()
-            if parsed.overwrites_caterina and arduboy.serial.is_caterina(s_port):
-                raise Exception("Upload will likely corrupt the bootloader (device is caterina + sketch too large).")
-            repstatus("Flashing sketch...")
-            arduboy.serial.flash_arduhex(parsed, s_port, repprog) 
-            repstatus("Verifying sketch...")
-            arduboy.serial.verify_arduhex(parsed, s_port, repprog) 
-            if fx_data:
-                repstatus("Flashing FX dev data...")
-                arduboy.serial.flash_fx(fx_data, -1, s_port, report_progress=repprog)
-            arduboy.serial.exit_bootloader(s_port) # NOTE! THIS MIGHT BE THE ONLY PLACE WE EXIT THE BOOTLOADER!
-
-        gui_utils.do_progress_work(do_work, "Upload Sketch")
-
-    def do_backupsketch(self): 
-        filepath = self.backup_sketch_picker.check_filepath(self) 
-        if not filepath: return
-
-        def do_work(device, repprog, repstatus):
-            repstatus("Reading sketch...")
-            s_port = device.connect_serial()
-            sketchdata = arduboy.serial.backup_sketch(s_port, self.sb_includebootloader_cb.isChecked())
-            repstatus("Writing sketch to filesystem...")
-            with open (filepath,"wb") as f:
-                f.write(sketchdata)
-            arduboy.serial.exit_normal(s_port)
-
-        gui_utils.do_progress_work(do_work, "Backup Sketch")
-
     def do_uploadfx(self): 
         filepath = self.upload_fx_picker.check_filepath(self) 
         if not filepath: return
@@ -488,6 +417,8 @@ class ActionTable(QTabWidget):
             arduboy.serial.exit_bootloader(s_port) 
 
         gui_utils.do_progress_work(do_work, "ERASE EEPROM")
+
+
 
 
 if __name__ == "__main__":
