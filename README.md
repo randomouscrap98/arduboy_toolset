@@ -10,21 +10,24 @@ made as a learning exercise. I wanted to understand what makes Arduboy tick, whi
 providing a slightly easier way to manage Arduboy. 
 
 The toolset allows you to:
-* Upload and backup sketches
+* Upload and backup sketches + eeprom
 * Upload and backup FX flash data (carts of games)
-* Upload, backup, and erase eeprom
-* Add extra games to your Arduboy FX
-* Update existing games on your Arduboy FX
-* Create custom flashcarts with custom categories
+* Add/update games in the flashcart of your Arduboy (FX or otherwise)
+* Create/edit custom flashcarts with custom categories
+* Create/edit rudimentary `.arduboy` package files
+* Convert images into code for use with the Arduboy2 library
 
 ## Quickstart
 
-* Get the latest release from https://github.com/randomouscrap98/arduboy_toolset/releases. There are releases for 
-Windows, Linux, and the latest MacOS (sorry if you have an older MacOS, toolchains sort of lock me in!!)
-* Extract to a folder somewhere
-* Run `arduboy_toolset.exe` for the standard GUI application
+* Get the latest release from https://github.com/randomouscrap98/arduboy_toolset/releases. 
+* For **Windows**: just run the exe
+* For **MacOS** (requires a modern version, sorry!): mount the `.dmg` and run the tool directly from within. There is no installer
+* For **Linux**, you probably need to add yourself to a dialout group, or run the program as sudo:
+  * `sudo usermod -a -G dialout <username>`, just once
+  * The download is not an archive, it's the executable itself. `chmod 700 arduboy_toolset_whatever` then run from command line
 
-The first window is the basic toolset, letting you upload and download stuff from your Arduboy. 
+The first window is the basic toolset, letting you upload and download stuff from your Arduboy. Most of the tools
+are here, including the `.arduboy` package creator and image converter.
 
 If you want to add or update games on your Arduboy FX, use the `File` menu to open the cart builder. From here, you 
 can use the newly opened window's `File` menu to read the FX cart off your Arduboy FX. It will take sometime to load.
@@ -43,7 +46,7 @@ I don't take any responsibility for lost data (I'm sorry!).
 
 ### Prince of Arabia + other FX titles, 2023
 
-Using this tool will usually preserve the FX saves used by the more complex "FX" games, such as 
+Using the Cart Editor will usually preserve the FX saves used by the more complex "FX" games, such as 
 [Prince Of Arabia](https://github.com/Press-Play-On-Tape/PrinceOfArabia). However, we've found that sometimes
 the carts were not configured properly from the cart builder website, and your save data may be located in the
 development area at the end of the flashcart. As such, there is a chance that updating your cart will
@@ -69,8 +72,9 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-python main_cli.py
-# Or for gui, use main_gui.py
+python main_gui.py
+# You can also run the cart builder directly (anything named main_* can be run directly)
+python main_cart.py
 ```
 
 ## Creating a standalone
@@ -84,22 +88,14 @@ cd arduboy_toolset
 # python -m venv .venv
 # source .venv/bin/activate
 pip install -r requirements.txt
-pyinstaller arduboy_toolset_cli.spec
 pyinstaller arduboy_toolset.spec
-mv dist/arduboy_toolset_cli dist/arduboy_toolset
-mv dist/arduboy_tooset/arduboy_toolset dist/arduboy_toolset/
+# For MacOS, need to then package it into a dmg (command will be added later)
 ```
 
-Notes: 
+## Notes: 
+- There used to be a CLI app, and the code is still there if you want to use it, but I'm no longer
+  supporting it. I plan on making a separate, far more robust CLI
 - The GUI is a "onefile" app, it will startup slower but you can take that single file
-  and put it anywhere.
-- The GUI has the console removed; this is the main reason for having a separate GUI
-  and CLI application
-- The CLI application, to increase startup speed (because of how it might be used),
-  requires all files in that folder (other than the GUI)
-- The MacOS release, due to difficulties on that OS, does not have the CLI program (sorry!)
-- The icon HAS to be a .ico file for windows
-
-## Plans
-- Add some of the cool extra features still left from Mr.Blinky's tools (like image display, development FX stuff, etc)
-- Maybe spruce up the UI a bit?
+  and put it anywhere. This may change in the future to increase startup time
+- The GUI has the console removed; if you're looking for logs, the program logs
+  to a txt file next to the executable

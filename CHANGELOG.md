@@ -1,3 +1,9 @@
+## 0.4.2
+
+* Added visual alert when info section will get cut off in cart builder (thank you @steka)
+* Added image converter
+* Decommissioned CLI app (will make another one later)
+
 ## 0.4.1
 
 * Added more fields to arduboy package creator (including auto-set hidden date)
