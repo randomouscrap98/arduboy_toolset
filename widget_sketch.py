@@ -1,8 +1,7 @@
 import arduboy.arduhex
 import arduboy.fxcart
 import arduboy.patch
-
-from arduboy.constants import *
+import arduboy.serial
 
 import constants
 import gui_utils
@@ -93,7 +92,7 @@ class SketchWidget(QWidget):
         filepath = self.backup_picker.check_filepath(self) 
         if not filepath: return
 
-        def do_work(device, repprog, repstatus):
+        def do_work(device, _, repstatus):
             repstatus("Reading sketch...")
             s_port = device.connect_serial()
             sketchdata = arduboy.serial.backup_sketch(s_port, self.includebootloader_cb.isChecked())

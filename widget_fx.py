@@ -1,8 +1,5 @@
-import arduboy.arduhex
 import arduboy.fxcart
-import arduboy.patch
-
-from arduboy.constants import *
+import arduboy.serial
 
 import widget_progress
 import constants
@@ -48,6 +45,8 @@ class FxWidget(QWidget):
         warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
 
         gui_utils.add_children_nostretch(fx_layout, [upload_group, backup_group, warninglabel])
+
+        self.setLayout(fx_layout)
 
 
     def do_upload(self): 

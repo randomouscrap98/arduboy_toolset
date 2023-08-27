@@ -1,8 +1,4 @@
-import arduboy.arduhex
-import arduboy.fxcart
-import arduboy.patch
-
-from arduboy.constants import *
+import arduboy.serial
 
 import widget_progress
 import constants
@@ -57,7 +53,7 @@ class EEPROMWidget(QWidget):
 
         widget_progress.do_progress_work(do_work, "Restore EEPROM")
 
-    def do_backupeeprom(self): 
+    def do_backup(self): 
         filepath = self.backup_picker.check_filepath(self) 
         if not filepath: return
 
@@ -72,7 +68,7 @@ class EEPROMWidget(QWidget):
 
         widget_progress.do_progress_work(do_work, "Backup EEPROM")
 
-    def do_eraseeeprom(self): 
+    def do_erase(self): 
         if not gui_utils.yes_no("ERASE EEPROM", f"EEPROM is a 1KB area for save data. Are you SURE you want to erase EEPROM?", self):
             return
 
