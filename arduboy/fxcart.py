@@ -360,7 +360,7 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
         currentpage = nextpage
         if report_progress:
             report_progress(games + categories, len(parsed_slots))
-
-    result += bytearray(b'\xFF' * 256)
+    if nextpage < 65536:
+        result += bytearray(b'\xFF' * 256)
     logging.info(f"Compiled fx flashcart, {len(result)} bytes, {games} games, {categories} categories")
     return result

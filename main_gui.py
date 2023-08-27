@@ -361,7 +361,7 @@ class ActionTable(QTabWidget):
             parsed = arduboy.arduhex.parse(pard)
             fx_data = None
             if self.su_ssd1309_cb.isChecked():
-                if arduboy.patch.patch_all_ssd1309(parsed.flash_data):
+                if arduboy.patch.patch_all_screen(parsed.flash_data, ssd1309=True):
                     logging.info("Patched upload for SSD1309")
                 else:
                     logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
@@ -410,7 +410,7 @@ class ActionTable(QTabWidget):
             repstatus("Reading FX bin file...")
             flashbytes = arduboy.fxcart.read(filepath)
             if self.fxu_ssd1309_cb.isChecked():
-                count = arduboy.utils.patch_all_ssd1309(flashbytes)
+                count = arduboy.patch.patch_all_screen(flashbytes, ssd1309=True)
                 if count:
                     logging.info(f"Patched {count} programs in cart for SSD1309")
                 else:

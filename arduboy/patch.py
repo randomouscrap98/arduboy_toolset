@@ -15,6 +15,13 @@ MENUBUTTONPATCH = b'\x0f\x92\x0f\xb6\x8f\x93\x9f\x93\xef\x93\xff\x93\x80\x91\xcc
                   b'\xff\xcf\x90\x93\xFF\x0A\xff\x91\xef\x91\x9f\x91\x8f\x91\x0f\xbe'+ \
                   b'\x0f\x90\x18\x95'
 
+CONTRAST_NOCHANGE = None
+CONSTRAST_NORMAL = 0xCF
+CONTRAST_DIM = 0x7F
+CONTRAST_DIMMER = 0x2F
+CONTRAST_DIMMEST = 0x00
+CONTRAST_HIGHEST = 0xFF
+
 # Special constants for menu button patch
 MBP_fract_lds = 14
 MBP_fract_sts = 26
@@ -94,22 +101,17 @@ def patch_menubuttons(program):
         return (True, 'Menu patch applied')
 
 
-# NOTE: this is for things which are HIGHER than fxcart and arduhex! Those lower modules
-# should NOT import this one!!
-
-# Given binary data, patch EVERY instance of the lcd boot program for ssd1309
-# Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py.
-def patch_all_ssd1309(flashdata: bytearray):
-    logging.debug("Patching all LCD boot programs for SSD1309 displays")
+# Given binary data, apply various screen-related patches
+def patch_all_screen(flashdata: bytearray, ssd1309: bool = False, contrast: int = None):
     lcdBootProgram_addr = 0
-    found = 0
     while lcdBootProgram_addr >= 0:
-      lcdBootProgram_addr = flashdata.find(LCDBOOTPROGRAM, lcdBootProgram_addr)
-      if lcdBootProgram_addr >= 0:
-        flashdata[lcdBootProgram_addr+2] = 0xE3;
-        flashdata[lcdBootProgram_addr+3] = 0xE3;
-        found += 1
-    return found
+      lcdBootProgram_addr = flashdata.find(LCDBOOTPROGRAM[:7], lcdBootProgram_addr)
+      if lcdBootProgram_addr >= 0 and flashdata[lcdBootProgram_addr+8:lcdBootProgram_addr+13] == LCDBOOTPROGRAM[8:]:
+        if ssd1309:
+          flashdata[lcdBootProgram_addr+2] = 0xE3
+          flashdata[lcdBootProgram_addr+3] = 0xE3
+        if contrast is not None:
+          flashdata[lcdBootProgram_addr+7] = contrast
 
 # Given binary data, patch EVERY instance of wrong LED polarity for Micro
 # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py

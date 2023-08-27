@@ -151,7 +151,7 @@ def sketchupload_action(args):
     pard = arduboy.arduhex.read(infile)
     parsed = arduboy.arduhex.parse(pard)
     if args.SSD1309:
-        if arduboy.patch.patch_all_ssd1309(parsed.flash_data):
+        if arduboy.patch.patch_all_screen(parsed.flash_data, ssd1309=True):
             logging.info("Patched upload for SSD1309")
         else:
             logging.warning("Flagged for SSD1309 patching but no LCD boot program found! Not patched!")
@@ -186,7 +186,7 @@ def fxupload_action(args):
     infile = get_required_input(args)
     flashbytes = arduboy.fxcart.read(infile)
     if args.SSD1309:
-        count = arduboy.patch.patch_all_ssd1309(flashbytes)
+        count = arduboy.patch.patch_all_screen(flashbytes, ssd1309=True)
         if count:
             logging.info(f"Patched {count} programs in cart for SSD1309")
         else:
