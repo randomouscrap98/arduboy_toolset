@@ -110,6 +110,7 @@ class ImageConvertWidget(QWidget):
         controls_layout.addWidget(self.convert_fx_button)
     
         config_layout.addWidget(controls_widget)
+        config_layout.setStretchFactor(controls_widget, 99)
 
         # Setup the output box
         # ---------------------------------------
@@ -122,8 +123,10 @@ class ImageConvertWidget(QWidget):
         # ---------------------------------------
         top_layout.addWidget(image_widget)
         top_layout.addWidget(config_widget)
-        top_layout.setStretchFactor(image_widget, 2)
-        top_layout.setStretchFactor(config_widget, 3)
+        # top_layout.setStretchFactor(image_widget, 2)
+        # top_layout.setStretchFactor(config_widget, 3)
+        top_layout.setStretchFactor(image_widget, 1)
+        top_layout.setStretchFactor(config_widget, 0)
 
         full_layout.addWidget(top_widget)
         full_layout.addWidget(self.output_box)
