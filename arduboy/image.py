@@ -76,6 +76,7 @@ class TileConfig:
     height: int = field(default=0)          # Height of tile
     spacing: int = field(default=0)         # Spacing between tiles (all around?)
     use_mask: bool = field(default=False)   # Whether to use transparency as mask data
+    separate_mask: bool = field(default=False)
 
 
 # Calculate individaul sprite width, height, horizontal count, and vertical count
@@ -98,6 +99,7 @@ def expand_tileconfig(config: TileConfig, img: Image) -> (int, int, int, int):
     
     return spriteWidth, spriteHeight, hframes, vframes
 
+
 # Convert the given image (already loaded) to the header data + fxdata
 # (returns a tuple). Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/image-converter.py
 def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, bytearray):
@@ -108,36 +110,47 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     pixels = list(img.getdata())
 
     spriteWidth, spriteHeight, hframes, vframes = expand_tileconfig(config, img)
+
+    if spriteWidth > 255 or spriteHeight > 255:
+        raise Exception("Image sections too large! Must be < 256 in both dimensions (sections only)!")
+    
     spacing = config.spacing
     transparency = config.use_mask
-    
+    interleavem = transparency and not config.separate_mask
+
     #create byte array for bin file
     size = (spriteHeight+7) // 8 * spriteWidth * hframes * vframes
-    if transparency:
-        size += size
     bytes = bytearray([spriteWidth >> 8, spriteWidth & 0xFF, spriteHeight >> 8, spriteHeight & 0xFF])
-    bytes += bytearray(size)
+    bytes += bytearray(size + (size if interleavem else 0))
+    maskbytes = bytearray(size) # This might not be used but we track it anyway!
     i = 4
+    mi = 0
     b = 0
     m = 0
 
     headerfile = io.StringIO()
-    
-    # headerfile.write("#pragma once\n")
+    headermask = io.StringIO()  # We track the separate mask even if we don't end up using it.
+
     headerfile.write("constexpr uint8_t {}Width = {};\n".format(spriteName, spriteWidth))
     headerfile.write("constexpr uint8_t {}Height = {};\n".format(spriteName,spriteHeight))
     headerfile.write("\n")
-    headerfile.write("constexpr uint8_t PROGMEM {}[] =\n".format(spriteName,))
+    headerfile.write("constexpr uint8_t {}[] PROGMEM\n".format(spriteName,))
     headerfile.write("{\n")
     headerfile.write("  {}Width, {}Height,\n\n".format(spriteName, spriteName))
+
+    headermask.write(f"constexpr uint8_t {spriteName}_Mask[]\n{{\n")
+
     fy = spacing
     frames = 0
+
     for v in range(vframes):
         fx = spacing
         for h in range(hframes):
             headerfile.write("  //Frame {}\n".format(frames))
+            headermask.write("  //Mask Frame {}\n".format(frames))
             for y in range (0,spriteHeight,8):
                 line = "  "
+                maskline = "  "
                 for x in range (0,spriteWidth):
                     for p in range (0,8):
                         b = b >> 1  
@@ -150,23 +163,37 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
                             else:
                                 b &= 0x7F #for transparent pixel clear possible white pixel 
                     bytes[i] = b
+                    maskbytes[mi] = m
                     line += "0x{:02X}, ".format(b)
+                    maskline += "0x{:02X}, ".format(m)
                     i += 1
-                    if transparency:
+                    mi += 1
+                    if interleavem: # Even though we always track mask separate anyway, we interleave the mask if desired
                         bytes[i] = m 
                         line += "0x{:02X}, ".format(m)
                         i += 1
                 lastline = (v+1 == vframes) and (h+1 == hframes) and (y+8 >= spriteHeight)
                 if lastline:
                     line = line [:-2]
+                    maskline = maskline[:-2]
                 headerfile.write(line + "\n")
+                headermask.write(maskline + "\n")
             if not lastline: 
                 headerfile.write("\n")
+                headermask.write("\n")
             frames += 1  
             fx += spriteWidth + spacing
         fy += spriteHeight + spacing
 
     headerfile.write("};\n")
+    headermask.write("};\n")
+
+    # We've been tracking mask separately. Go ahead and add the separate mask to the final data
+    # if that's the exact config desired.
+    if transparency and config.separate_mask:
+        headermask.seek(0)
+        headerfile.write("\n" + headermask.read())
+        bytes += maskbytes # Add maskbytes to end of byte array
 
     headerfile.seek(0)
         

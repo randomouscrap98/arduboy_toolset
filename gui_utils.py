@@ -318,6 +318,8 @@ class NumberOnlyLineEdit(QLineEdit):
 
 
 class CustomGraphicsView(QGraphicsView):
+    # onfiledrag = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         
@@ -326,6 +328,7 @@ class CustomGraphicsView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         
         self.zoom_factor = 1.0
+        # self.setAcceptDrops(True)
 
     def wheelEvent(self, event):
         num_degrees = event.angleDelta().y() / 8

@@ -21,6 +21,8 @@ class ImageConvertWidget(QWidget):
 
         self.rects = []
         self.pilimage = None
+        self.setAcceptDrops(True)
+
         full_layout = QVBoxLayout()
 
         # Image display + config portion is hbox layout
@@ -48,6 +50,9 @@ class ImageConvertWidget(QWidget):
         # self.image_view.setObjectName("imageviewer")
         # self.image_view.setStyleSheet("#imageviewer { background-color: red }")
         self.image_view.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
+        # self.image_view.onfiledrag.connect(self.load_image)
+        # self.image_view.setAcceptDrops(True)
+        # self.image_view.dra
 
         image_layout.addWidget(self.image_view)
 
@@ -64,6 +69,7 @@ class ImageConvertWidget(QWidget):
 
         self.tilesize = gui_utils.WidthHeightWidget()
         tilesize_container, self.tilesize_cb = gui_utils.make_toggleable_element("Tiled image", self.tilesize, nostretch=True)
+        self.tilesize_cb.setToolTip("Rearranges output data so tile pixels are grouped together; see help (F1)")
         config_layout.addWidget(tilesize_container)
         self.tilesize.onchange.connect(self.recalculate_rects)
         self.tilesize_cb.stateChanged.connect(self.recalculate_rects)
@@ -71,13 +77,19 @@ class ImageConvertWidget(QWidget):
         self.spacing_number = gui_utils.NumberOnlyLineEdit()
         self.spacing_number.setText("0")
         spacing_container, self.spacing_cb = gui_utils.make_toggleable_element("Tile spacing", self.spacing_number, nostretch=True)
+        self.spacing_cb.setToolTip("Trims space between tiles in the case of sparse tilesheets; see help (F1)")
         config_layout.addWidget(spacing_container)
         self.spacing_number.textChanged.connect(self.recalculate_rects)
         self.spacing_cb.stateChanged.connect(self.recalculate_rects)
 
-        self.mask_cb = QCheckBox("Use transparency to make mask")
-        self.mask_cb.setChecked(True)
-        config_layout.addWidget(self.mask_cb)
+        self.sepmask_cb = QCheckBox("/ Separate mask")
+        self.sepmask_cb.setToolTip("Make mask generate in a separate variable rather than interleaved with data")
+        self.sepmask_cb.stateChanged.connect(self.recalculate_rects)
+        mask_container, self.mask_cb = gui_utils.make_toggleable_element("Generate mask from transparency", self.sepmask_cb) #, toggled=True)
+        self.mask_cb.setToolTip("Note: if checked, mask data always included, even if no transparency found!")
+        # self.mask_cb = QCheckBox("Use transparency to make mask")
+        # self.mask_cb.setChecked(True)
+        config_layout.addWidget(mask_container) # self.mask_cb)
         self.mask_cb.stateChanged.connect(self.recalculate_rects)
 
         self.image_name = QLineEdit("MyImage")
@@ -148,6 +160,7 @@ class ImageConvertWidget(QWidget):
             except:
                 logging.warning(f"Bad width/height values, not setting tiling!")
         result.use_mask = self.mask_cb.isChecked()
+        result.separate_mask = self.sepmask_cb.isChecked()
         return result
 
     def recalculate_rects(self):
@@ -175,19 +188,6 @@ class ImageConvertWidget(QWidget):
                 fx += spriteWidth + spacing
             fy += spriteHeight + spacing
 
-    def do_load_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", constants.IMAGE_FILEFILTER)
-        if file_path:
-            pixmap = QPixmap(file_path)
-            self.image_item.setPixmap(pixmap)
-            if self.pilimage:
-                self.pilimage.close()
-            self.pilimage = Image.open(file_path)
-            rect = pixmap.rect()
-            self.image_view.setSceneRect(0, 0, rect.width(), rect.height())
-            debug_actions.global_debug.add_action_str(f"Loaded image into converter: {file_path}")
-            self.recalculate_rects()
-
     def validate_inputs(self):
         if not self.pilimage:
             raise Exception("No image selected!")
@@ -198,6 +198,24 @@ class ImageConvertWidget(QWidget):
         self.validate_inputs()
         return arduboy.image.convert_image(self.pilimage, self.image_name.text(), self.get_tileconfig())
     
+    def load_image(self, file_path):
+        if file_path:
+            pixmap = QPixmap(file_path)
+            self.image_item.setPixmap(pixmap)
+            if self.pilimage:
+                self.pilimage.close()
+            self.pilimage = Image.open(file_path)
+            rect = pixmap.rect()
+            self.image_view.setSceneRect(0, 0, rect.width(), rect.height())
+            debug_actions.global_debug.add_action_str(f"Loaded image into converter: {file_path}")
+            self.recalculate_rects()
+        else:
+            logging.warning("No image provided to load_image!")
+
+    def do_load_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", constants.IMAGE_FILEFILTER)
+        self.load_image(file_path)
+
     def do_convert(self):
         code, _ = self.convert_self()
         self.output_box.setPlainText(code)
@@ -208,7 +226,7 @@ class ImageConvertWidget(QWidget):
         if filepath:
             code, _ = self.convert_self()
             with open(filepath, "w") as f:
-                f.write("#pragma once\n\n#include <stdint.h>\n\n" + code)
+                f.write("#pragma once\n\n#include <stdint.h>\n#include <avr/pgmspace.h>\n\n" + code)
 
     def do_convert_fx(self):
         self.validate_inputs()
@@ -217,3 +235,14 @@ class ImageConvertWidget(QWidget):
             _, binary = self.convert_self()
             with open(filepath, "wb") as f:
                 f.write(binary)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+    
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            url = event.mimeData().urls()[0]
+            self.load_image(url.toLocalFile())
