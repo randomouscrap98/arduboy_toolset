@@ -7,7 +7,7 @@ import debug_actions
 
 import logging
 
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGraphicsView, QGraphicsScene, QGroupBox
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGraphicsView, QGraphicsScene, QGroupBox, QMessageBox
 from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit, QCheckBox, QLineEdit
 from PyQt6.QtGui import QPixmap, QPen, QRegularExpressionValidator
 from PyQt6.QtCore import QRectF, Qt, QRegularExpression
@@ -83,8 +83,8 @@ class ImageConvertWidget(QWidget):
         self.spacing_number.textChanged.connect(self.recalculate_rects)
         self.spacing_cb.stateChanged.connect(self.recalculate_rects)
 
-        self.sepmask_cb = QCheckBox("/ Separate mask")
-        self.sepmask_cb.setToolTip("Make mask generate in a separate variable rather than interleaved with data")
+        self.sepmask_cb = QCheckBox("Separate mask variable")
+        self.sepmask_cb.setToolTip("Make mask generate in a separate variable rather than interleaved with data, but NOT for fx data!")
         self.sepmask_cb.stateChanged.connect(self.recalculate_rects)
         mask_container, self.mask_cb = gui_utils.make_toggleable_element("Generate mask from transparency", self.sepmask_cb) #, toggled=True)
         self.mask_cb.setToolTip("Note: if checked, mask data always included, even if no transparency found!")
@@ -161,7 +161,7 @@ class ImageConvertWidget(QWidget):
             except:
                 logging.warning(f"Bad width/height values, not setting tiling!")
         result.use_mask = self.mask_cb.isChecked()
-        result.separate_mask = self.sepmask_cb.isChecked()
+        result.separate_header_mask = self.sepmask_cb.isChecked()
         return result
 
     def recalculate_rects(self):
@@ -231,6 +231,8 @@ class ImageConvertWidget(QWidget):
 
     def do_convert_fx(self):
         self.validate_inputs()
+        if self.mask_cb.isChecked() and self.sepmask_cb.isChecked():
+            QMessageBox.information(self, "Incompatible settings", "FX binaries with masks are always stored interleaved. The 'Separate mask' setting will be ignored")
         filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", self.image_name.text() + ".bin", constants.BIN_FILEFILTER)
         if filepath:
             _, binary = self.convert_self()

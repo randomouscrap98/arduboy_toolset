@@ -76,7 +76,7 @@ class TileConfig:
     height: int = field(default=0)          # Height of tile
     spacing: int = field(default=0)         # Spacing between tiles (all around?)
     use_mask: bool = field(default=False)   # Whether to use transparency as mask data
-    separate_mask: bool = field(default=False)
+    separate_header_mask: bool = field(default=False)
 
 
 # Calculate individaul sprite width, height, horizontal count, and vertical count
@@ -116,15 +116,12 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     
     spacing = config.spacing
     transparency = config.use_mask
-    interleavem = transparency and not config.separate_mask
 
     #create byte array for bin file
     size = (spriteHeight+7) // 8 * spriteWidth * hframes * vframes
     bytes = bytearray([spriteWidth >> 8, spriteWidth & 0xFF, spriteHeight >> 8, spriteHeight & 0xFF])
-    bytes += bytearray(size + (size if interleavem else 0))
-    maskbytes = bytearray(size) # This might not be used but we track it anyway!
+    bytes += bytearray(size + (size if transparency else 0))
     i = 4
-    mi = 0
     b = 0
     m = 0
 
@@ -163,15 +160,16 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
                             else:
                                 b &= 0x7F #for transparent pixel clear possible white pixel 
                     bytes[i] = b
-                    maskbytes[mi] = m
+                    i += 1
                     line += "0x{:02X}, ".format(b)
                     maskline += "0x{:02X}, ".format(m)
-                    i += 1
-                    mi += 1
-                    if interleavem: # Even though we always track mask separate anyway, we interleave the mask if desired
+                    if transparency: 
+                        # Must always interleave bytes of fx data, regardless of 'separate mask'
                         bytes[i] = m 
-                        line += "0x{:02X}, ".format(m)
                         i += 1
+                        # But you interleave header only if not separate set!
+                        if not config.separate_header_mask:
+                            line += "0x{:02X}, ".format(m)
                 lastline = (v+1 == vframes) and (h+1 == hframes) and (y+8 >= spriteHeight)
                 if lastline:
                     line = line [:-2]
@@ -190,10 +188,10 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
 
     # We've been tracking mask separately. Go ahead and add the separate mask to the final data
     # if that's the exact config desired.
-    if transparency and config.separate_mask:
+    if transparency and config.separate_header_mask:
         headermask.seek(0)
         headerfile.write("\n" + headermask.read())
-        bytes += maskbytes # Add maskbytes to end of byte array
+        # bytes += maskbytes # Add maskbytes to end of byte array
 
     headerfile.seek(0)
         
