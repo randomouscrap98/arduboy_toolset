@@ -13,6 +13,7 @@ import widget_sketch
 import widget_fx
 import widget_eeprom
 import widget_package
+import widget_imageconv
 
 import sys
 
@@ -54,11 +55,13 @@ class MainWindow(QMainWindow):
         self.fxtab = widget_fx.FxWidget()
         self.eepromtab = widget_eeprom.EEPROMWidget()
         self.packagetab = widget_package.PackageWidget()
+        self.imageconvtab = widget_imageconv.ImageConvertWidget()
         
         tabs.addTab(self.sketchtab, "Sketch")
         tabs.addTab(self.fxtab, "Flashcart")
         tabs.addTab(self.eepromtab, "EEPROM")
         tabs.addTab(self.packagetab, "Package")
+        tabs.addTab(self.imageconvtab, "Image")
 
         coninfo.device_connected_report.connect(lambda: self.set_device_connected(True))
         coninfo.device_disconnected_report.connect(lambda: self.set_device_connected(False))
