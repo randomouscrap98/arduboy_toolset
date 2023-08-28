@@ -8,8 +8,8 @@ import sys
 
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
-from PyQt6.QtWidgets import  QCheckBox, QApplication, QComboBox
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtWidgets import  QCheckBox, QApplication, QComboBox, QGraphicsView
+from PyQt6.QtGui import QIntValidator, QPainter
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None
@@ -306,3 +306,36 @@ def screen_patch(flash_data: bytearray, ssd1309_cb : QCheckBox = None, contrast_
             logging.info(f"Patched upload for {patch_message}")
         else:
             logging.warning(f"Flagged for {patch_message} patching but no LCD boot program found! Not patched!")
+
+
+class NumberOnlyLineEdit(QLineEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.validator = QIntValidator() # QValidator(self)
+        # self.validator.setRegExp(r'^[0-9]*$')  # Regular expression to match only digits
+        self.setValidator(self.validator)
+
+
+class CustomGraphicsView(QGraphicsView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        
+        self.zoom_factor = 1.0
+
+    def wheelEvent(self, event):
+        num_degrees = event.angleDelta().y() / 8
+        num_steps = num_degrees / 15
+        self.zoom_by_factor(num_steps)
+        event.accept()
+
+    def zoom_by_factor(self, factor):
+        self.set_zoom(self.zoom_factor * (1.2 ** factor))
+        self.setTransform(QtGui.QTransform().scale(self.zoom_factor, self.zoom_factor))
+    
+    def set_zoom(self, zoom):
+        self.zoom_factor = zoom
+        self.setTransform(QtGui.QTransform().scale(self.zoom_factor, self.zoom_factor))

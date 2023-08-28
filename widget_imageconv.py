@@ -6,7 +6,7 @@ import debug_actions
 import logging
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGraphicsView, QGraphicsScene, QGroupBox
-from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit
+from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit, QCheckBox
 from PyQt6.QtGui import QPixmap
 
 # A fully self contained widget which can upload and backup EEPROM from arduboy
@@ -35,7 +35,12 @@ class ImageConvertWidget(QWidget):
         self.image_scene.addItem(self.image_item)
 
         # The view is a window into a scene, this is what you put into the layout?
-        self.image_view = QGraphicsView(self.image_scene)
+        self.image_view = gui_utils.CustomGraphicsView()
+        self.image_view.setScene(self.image_scene)
+        self.image_view.set_zoom(4.0)
+        # self.image_view.setObjectName("imageviewer")
+        # self.image_view.setStyleSheet("#imageviewer { background-color: red }")
+        self.image_view.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
 
         image_layout.addWidget(self.image_view)
 
@@ -48,6 +53,15 @@ class ImageConvertWidget(QWidget):
         self.select_image_button = QPushButton("Select Image")
         self.select_image_button.clicked.connect(self.do_load_image)
         config_layout.addWidget(self.select_image_button)
+
+        self.spacing_number = gui_utils.NumberOnlyLineEdit()
+        self.spacing_number.setText("0")
+        spacing_container, self.spacing_cb = gui_utils.make_toggleable_element("Tile spacing", self.spacing_number, nostretch=True)
+        config_layout.addWidget(spacing_container)
+
+        self.mask_cb = QCheckBox("Use transparency to make mask")
+        self.mask_cb.setChecked(True)
+        config_layout.addWidget(self.mask_cb)
 
         # Lower controls for config
         # ---------------------------------------
@@ -84,11 +98,13 @@ class ImageConvertWidget(QWidget):
         # ---------------------------------------
         top_layout.addWidget(image_widget)
         top_layout.addWidget(config_widget)
-        top_layout.setStretchFactor(image_widget, 1)
+        top_layout.setStretchFactor(image_widget, 2)
         top_layout.setStretchFactor(config_widget, 3)
 
         full_layout.addWidget(top_widget)
         full_layout.addWidget(self.output_box)
+        full_layout.setStretchFactor(top_widget, 3)
+        full_layout.setStretchFactor(self.output_box, 2)
 
         self.setLayout(full_layout)
     
