@@ -364,7 +364,7 @@ class WidthHeightWidget(QWidget):
         self.width.textChanged.connect(lambda: self.onchange.emit())
         self.height.textChanged.connect(lambda: self.onchange.emit())
 
-        self.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
     
     def set_values(self, width, height):

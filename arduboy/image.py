@@ -124,9 +124,9 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     headerfile.write("constexpr uint8_t {}Width = {};\n".format(spriteName, spriteWidth))
     headerfile.write("constexpr uint8_t {}Height = {};\n".format(spriteName,spriteHeight))
     headerfile.write("\n")
-    headerfile.write("const uint8_t PROGMEM {}[] =\n".format(spriteName,))
+    headerfile.write("constexpr uint8_t PROGMEM {}[] =\n".format(spriteName,))
     headerfile.write("{\n")
-    headerfile.write("  {}Width, {}Height,\n".format(spriteName, spriteName))
+    headerfile.write("  {}Width, {}Height,\n\n".format(spriteName, spriteName))
     fy = spacing
     frames = 0
     for v in range(vframes):

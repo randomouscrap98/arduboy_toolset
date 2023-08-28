@@ -26,13 +26,14 @@ class ImageConvertWidget(QWidget):
         # Image display + config portion is hbox layout
         top_widget = QGroupBox("Image converter")
         top_layout = QHBoxLayout()
+        # top_layout.setSpacing(20)
         top_widget.setLayout(top_layout)
 
         # Image display by itself is another vbox
         # ---------------------------------------
         image_widget = QWidget()
         image_layout = QVBoxLayout()
-        image_layout.setContentsMargins(0, 0, 0, 0)
+        image_layout.setContentsMargins(5, 0, 5, 0)
         image_widget.setLayout(image_layout)
 
         # You put stuff in the scene. We go ahead and add our base image item
@@ -54,17 +55,12 @@ class ImageConvertWidget(QWidget):
         # ---------------------------------------
         config_widget = QWidget()
         config_layout = QVBoxLayout()
+        config_layout.setContentsMargins(5,0,5,0)
         config_widget.setLayout(config_layout)
 
         self.select_image_button = QPushButton("Select Image")
         self.select_image_button.clicked.connect(self.do_load_image)
         config_layout.addWidget(self.select_image_button)
-
-        self.image_name = QLineEdit("MyImage")
-        validator = QRegularExpressionValidator(QRegularExpression(r"[a-zA-Z_][a-zA-Z0-9_]*"), self)
-        self.image_name.setValidator(validator)
-        self.image_name.setToolTip("Exported image name (required)")
-        config_layout.addWidget(self.image_name)
 
         self.tilesize = gui_utils.WidthHeightWidget()
         tilesize_container, self.tilesize_cb = gui_utils.make_toggleable_element("Tiled image", self.tilesize, nostretch=True)
@@ -83,6 +79,13 @@ class ImageConvertWidget(QWidget):
         self.mask_cb.setChecked(True)
         config_layout.addWidget(self.mask_cb)
         self.mask_cb.stateChanged.connect(self.recalculate_rects)
+
+        self.image_name = QLineEdit("MyImage")
+        validator = QRegularExpressionValidator(QRegularExpression(r"[a-zA-Z_][a-zA-Z0-9_]*"), self)
+        self.image_name.setValidator(validator)
+        self.image_name.setToolTip("Exported image name (required)")
+        config_layout.addWidget(self.image_name)
+
 
         # Lower controls for config
         # ---------------------------------------
@@ -188,23 +191,26 @@ class ImageConvertWidget(QWidget):
         if not self.image_name.text():
             raise Exception("You must provide a name!")
     
-    def do_convert(self):
+    def convert_self(self):
         self.validate_inputs()
-        code, _ = arduboy.image.convert_image(self.pilimage)
+        return arduboy.image.convert_image(self.pilimage, self.image_name.text(), self.get_tileconfig())
+    
+    def do_convert(self):
+        code, _ = self.convert_self()
         self.output_box.setPlainText(code)
 
     def do_convert_file(self):
         self.validate_inputs()
         filepath, _ = QFileDialog.getSaveFileName(self, "Save image header", self.image_name.text() + ".h", constants.HEADER_FILEFILTER)
         if filepath:
-            code, _ = arduboy.image.convert_image(self.pilimage)
+            code, _ = self.convert_self()
             with open(filepath, "w") as f:
-                f.write(code)
+                f.write("#pragma once\n\n#include <stdint.h>\n\n" + code)
 
     def do_convert_fx(self):
         self.validate_inputs()
         filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", self.image_name.text() + ".bin", constants.BIN_FILEFILTER)
         if filepath:
-            _, binary = arduboy.image.convert_image(self.pilimage)
+            _, binary = self.convert_self()
             with open(filepath, "wb") as f:
                 f.write(binary)

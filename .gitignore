@@ -165,6 +165,7 @@ cython_debug/
 *.hex
 *.bin
 *.arduboy
+*.h
 ignore/
 !arduboy_toolset_cli.spec
 !arduboy_toolset.spec
