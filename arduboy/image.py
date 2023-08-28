@@ -74,6 +74,7 @@ class TileConfig:
     spacing: int = field(default=0)         # Spacing between tiles (all around?)
     use_mask: bool = field(default=False)   # Whether to use transparency as mask data
 
+
 # Calculate individaul sprite width, height, horizontal count, and vertical count
 def expand_tileconfig(config: TileConfig, img: Image) -> (int, int, int, int):
     spriteWidth = config.width

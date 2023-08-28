@@ -85,4 +85,4 @@ class PackageWidget(QWidget):
             # The slot is special and can have additional fields. Might as well get them now
             ardparsed = self.package_slot.compute_arduboy()
             arduboy.arduhex.write(ardparsed, filepath)
-        debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {slot.meta.title} to {filepath}")
+            debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {slot.meta.title} to {filepath}")

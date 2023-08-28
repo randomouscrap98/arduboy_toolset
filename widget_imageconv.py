@@ -8,9 +8,9 @@ import debug_actions
 import logging
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGraphicsView, QGraphicsScene, QGroupBox
-from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit, QCheckBox
-from PyQt6.QtGui import QPixmap, QPen, QColor
-from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit, QCheckBox, QLineEdit
+from PyQt6.QtGui import QPixmap, QPen, QRegularExpressionValidator
+from PyQt6.QtCore import QRectF, Qt, QRegularExpression
 from PIL import Image
 
 # A fully self contained widget which can upload and backup EEPROM from arduboy
@@ -59,6 +59,12 @@ class ImageConvertWidget(QWidget):
         self.select_image_button = QPushButton("Select Image")
         self.select_image_button.clicked.connect(self.do_load_image)
         config_layout.addWidget(self.select_image_button)
+
+        self.image_name = QLineEdit("MyImage")
+        validator = QRegularExpressionValidator(QRegularExpression(r"[a-zA-Z_][a-zA-Z0-9_]*"), self)
+        self.image_name.setValidator(validator)
+        self.image_name.setToolTip("Exported image name (required)")
+        config_layout.addWidget(self.image_name)
 
         self.tilesize = gui_utils.WidthHeightWidget()
         tilesize_container, self.tilesize_cb = gui_utils.make_toggleable_element("Tiled image", self.tilesize, nostretch=True)
@@ -175,12 +181,30 @@ class ImageConvertWidget(QWidget):
             self.image_view.setSceneRect(0, 0, rect.width(), rect.height())
             debug_actions.global_debug.add_action_str(f"Loaded image into converter: {file_path}")
             self.recalculate_rects()
+
+    def validate_inputs(self):
+        if not self.pilimage:
+            raise Exception("No image selected!")
+        if not self.image_name.text():
+            raise Exception("You must provide a name!")
     
     def do_convert(self):
-        pass
+        self.validate_inputs()
+        code, _ = arduboy.image.convert_image(self.pilimage)
+        self.output_box.setPlainText(code)
 
     def do_convert_file(self):
-        pass
+        self.validate_inputs()
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save image header", self.image_name.text() + ".h", constants.HEADER_FILEFILTER)
+        if filepath:
+            code, _ = arduboy.image.convert_image(self.pilimage)
+            with open(filepath, "w") as f:
+                f.write(code)
 
     def do_convert_fx(self):
-        pass
+        self.validate_inputs()
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", self.image_name.text() + ".bin", constants.BIN_FILEFILTER)
+        if filepath:
+            _, binary = arduboy.image.convert_image(self.pilimage)
+            with open(filepath, "wb") as f:
+                f.write(binary)
