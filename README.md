@@ -19,7 +19,7 @@ The toolset allows you to:
 * Add/update games in the flashcart of your Arduboy (FX or otherwise)
 * Create/edit custom flashcarts with custom categories
 * Create/edit rudimentary `.arduboy` package files
-* Convert images into code for use with the Arduboy2 library
+* Convert images into code or data for use with the Arduboy2 or FX library
 
 ## Quickstart
 

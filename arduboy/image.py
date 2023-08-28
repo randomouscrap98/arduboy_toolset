@@ -99,6 +99,20 @@ def expand_tileconfig(config: TileConfig, img: Image) -> (int, int, int, int):
     
     return spriteWidth, spriteHeight, hframes, vframes
 
+# Raise exceptions based on various inconsistencies when generating code (not fx data)
+def validate_tileconfig_code(config: TileConfig, img: Image):
+    spriteWidth, spriteHeight, hframes, vframes = expand_tileconfig(config, img)
+    if spriteWidth > 255 or spriteHeight > 255:
+        raise Exception("Image frames too large for code generation! Must be < 256 in both dimensions (per frame)!")
+    if spriteWidth == 0 or spriteHeight == 0:
+        raise Exception("Can't generate images with a 0-length side!")
+
+# Raise exceptions based on various inconsistencies when generating fx data (not code)
+def validate_tileconfig_fx(config: TileConfig, img: Image):
+    spriteWidth, spriteHeight, hframes, vframes = expand_tileconfig(config, img)
+    if spriteWidth == 0 or spriteHeight == 0:
+        raise Exception("Can't generate images with a 0-length side!")
+
 
 # Convert the given image (already loaded) to the header data + fxdata
 # (returns a tuple). Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/image-converter.py
@@ -111,8 +125,8 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
 
     spriteWidth, spriteHeight, hframes, vframes = expand_tileconfig(config, img)
 
-    if spriteWidth > 255 or spriteHeight > 255:
-        raise Exception("Image sections too large! Must be < 256 in both dimensions (sections only)!")
+    # NOTE: images with sizes larger than uint8_t are technically invalid for the code generation,
+    # BUT valid for fx generation. As such, we let them be
     
     spacing = config.spacing
     transparency = config.use_mask

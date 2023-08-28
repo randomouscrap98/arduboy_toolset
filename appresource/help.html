@@ -95,7 +95,9 @@
     array with the width + height stored as the first 2 elements. However, the data is rearranged for tilesheets
     so each tile is stored one after the other, while images are stored fully continuously (it ends up as the 
     same amount of data, just different orders).
+</p>
 
+<p>
     You can enable tiling of the image using the controls on the right of the pane. The image displayed on the 
     left is a preview to help you see where the tiles line up. Spacing, if used, is removed from the data.
 </p>
@@ -103,5 +105,17 @@
 <p>
     Mask generation is controlled manually rather than automatically, so you can always know if mask data
     is being generated. Mask data increases the size of the data, and you must indicate to the Arduboy library
-    that you are utilizing masks.
+    that you are utilizing masks. The transparency data in the image is used to generate the mask (if selected),
+    even if no transparency exists.
 </p>
+
+<h3>Image Caveats</h3>
+
+<ul>
+    <li>If no tiling is set, the entire image will be used</li>
+    <li>Stored width/height is based on individual tilesize (which is entire image size if no tiling set)</li>
+    <li>Tile sizes must be 1 byte each (up to 255x255) if generating code, but can be 2 bytes each (up to 65535x65535) if exporting to FX data</li>
+    <li>When mask is used, it defaults to "interleaving" the mask with the image data, which is usable with the Arduboy call "drawPlusMask"</li>
+    <li>"Separate mask" is <b>only</b> for code generation. You'll get a warning if it's set for FX data generation, as FX images only support "No mask" or "PlusMask"</li>
+    <li>Currently, the threshold for "black" is &lt; 64 in the green channel. The same threshold is used for transparency (if generating mask), transparent is alpha &lt; 64</li>
+</ul>

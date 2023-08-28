@@ -195,9 +195,19 @@ class ImageConvertWidget(QWidget):
         if not self.image_name.text():
             raise Exception("You must provide a name!")
     
-    def convert_self(self):
+    def convert_self_fx(self):
         self.validate_inputs()
-        return arduboy.image.convert_image(self.pilimage, self.image_name.text(), self.get_tileconfig())
+        config = self.get_tileconfig()
+        arduboy.image.validate_tileconfig_fx(config, self.pilimage)
+        _, fx = arduboy.image.convert_image(self.pilimage, self.image_name.text(), config)
+        return fx
+    
+    def convert_self_code(self):
+        self.validate_inputs()
+        config = self.get_tileconfig()
+        arduboy.image.validate_tileconfig_code(config, self.pilimage)
+        code, _ = arduboy.image.convert_image(self.pilimage, self.image_name.text(), config)
+        return code
     
     def load_image(self, file_path):
         if file_path:
@@ -218,14 +228,13 @@ class ImageConvertWidget(QWidget):
         self.load_image(file_path)
 
     def do_convert(self):
-        code, _ = self.convert_self()
-        self.output_box.setPlainText(code)
+        self.output_box.setPlainText(self.convert_self_code())
 
     def do_convert_file(self):
         self.validate_inputs()
         filepath, _ = QFileDialog.getSaveFileName(self, "Save image header", self.image_name.text() + ".h", constants.HEADER_FILEFILTER)
         if filepath:
-            code, _ = self.convert_self()
+            code = self.convert_self_code()
             with open(filepath, "w") as f:
                 f.write("#pragma once\n\n#include <stdint.h>\n#include <avr/pgmspace.h>\n\n" + code)
 
@@ -235,7 +244,7 @@ class ImageConvertWidget(QWidget):
             QMessageBox.information(self, "Incompatible settings", "FX binaries with masks are always stored interleaved. The 'Separate mask' setting will be ignored")
         filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", self.image_name.text() + ".bin", constants.BIN_FILEFILTER)
         if filepath:
-            _, binary = self.convert_self()
+            binary = self.convert_self_fx()
             with open(filepath, "wb") as f:
                 f.write(binary)
 
