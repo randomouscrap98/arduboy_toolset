@@ -103,6 +103,7 @@ def patch_menubuttons(program):
 
 # Given binary data, apply various screen-related patches
 def patch_all_screen(flashdata: bytearray, ssd1309: bool = False, contrast: int = None):
+    logging.debug(f"Patching screen data: ssd1309={ssd1309}, contrast={contrast}")
     lcdBootProgram_addr = 0
     found = 0
     while lcdBootProgram_addr >= 0:
@@ -114,6 +115,7 @@ def patch_all_screen(flashdata: bytearray, ssd1309: bool = False, contrast: int 
           flashdata[lcdBootProgram_addr+3] = 0xE3
         if contrast is not None:
           flashdata[lcdBootProgram_addr+7] = contrast
+        lcdBootProgram_addr += 8
     return found
 
 # Given binary data, patch EVERY instance of wrong LED polarity for Micro

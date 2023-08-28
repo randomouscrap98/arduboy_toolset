@@ -69,14 +69,14 @@ class FxWidget(QWidget):
             debug_actions.global_debug.add_action_str(f"Uploaded flashcart {filepath} to Arduboy")
 
     def do_backup(self): 
-        filepath = self.backup_fx_picker.check_filepath(self) 
+        filepath = self.backup_picker.check_filepath(self) 
         if not filepath: return
 
         def do_work(device, repprog, repstatus):
             repstatus("Saving FX Flash to file...")
             s_port = device.connect_serial()
             bindata = arduboy.serial.backup_fx(s_port, repprog)
-            if self.fxb_trim.isChecked():
+            if self.trim_cb.isChecked():
                 repstatus("Trimming FX file...")
                 bindata = arduboy.fxcart.trim(bindata)
             with open (filepath,"wb") as f:
