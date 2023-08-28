@@ -50,6 +50,7 @@ class ImageConvertWidget(QWidget):
         # self.image_view.setObjectName("imageviewer")
         # self.image_view.setStyleSheet("#imageviewer { background-color: red }")
         self.image_view.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
+        self.image_view.setToolTip("Preview image with tiling. Note: PyQt doesn't let you drag+drop here (you can drag+drop anywhere else to load an image)")
         # self.image_view.onfiledrag.connect(self.load_image)
         # self.image_view.setAcceptDrops(True)
         # self.image_view.dra

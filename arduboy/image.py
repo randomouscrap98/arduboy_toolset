@@ -138,7 +138,7 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     headerfile.write("{\n")
     headerfile.write("  {}Width, {}Height,\n\n".format(spriteName, spriteName))
 
-    headermask.write(f"constexpr uint8_t {spriteName}_Mask[]\n{{\n")
+    headermask.write(f"constexpr uint8_t {spriteName}_Mask[] PROGMEM\n{{\n")
 
     fy = spacing
     frames = 0
