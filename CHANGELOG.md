@@ -2,6 +2,7 @@
 
 * Added visual alert when info section will get cut off in cart builder (thank you @steka)
 * Added image converter
+* Added contrast patch options to fx and sketch upload (thank you Mr.Blinky)
 * Decommissioned CLI app (will make another one later)
 
 ## 0.4.1

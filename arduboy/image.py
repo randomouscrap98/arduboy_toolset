@@ -6,6 +6,9 @@ import io
 from PIL import Image
 from dataclasses import dataclass, field
 
+# Should probably not be a constant... some kind of config?
+IMAGE_THRESHOLD = 64
+
 # Convert a block of arduboy image bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData, raw = False):
     byteLength = len(byteData)
@@ -100,7 +103,7 @@ def expand_tileconfig(config: TileConfig, img: Image) -> (int, int, int, int):
 def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, bytearray):
     if not config:
         config = TileConfig()
-    spriteName = slugify.slugify(name).replace("-","_")
+    spriteName = slugify.slugify(name, lowercase=False).replace("-","_")
     img = img.convert("RGBA")
     pixels = list(img.getdata())
 
@@ -140,9 +143,9 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
                         b = b >> 1  
                         m = m >> 1
                         if (y + p) < spriteHeight: #for heights that are not a multiple of 8 pixels
-                            if pixels[(fy + y + p) * img.size[0] + fx + x][1] > 64:
+                            if pixels[(fy + y + p) * img.size[0] + fx + x][1] > IMAGE_THRESHOLD:
                                 b |= 0x80 #white pixel
-                            if pixels[(fy + y + p) * img.size[0] + fx + x][3] > 64:
+                            if pixels[(fy + y + p) * img.size[0] + fx + x][3] > IMAGE_THRESHOLD:
                                 m |= 0x80 #opaque pixel
                             else:
                                 b &= 0x7F #for transparent pixel clear possible white pixel 
