@@ -80,3 +80,28 @@
     which contains these extra fields, they will <b>not</b> be saved back when you save the 
     package. Use this package creator with caution. More fields may become available in the future.
 </p>
+
+<h2>Image</h2>
+
+<p>
+    To use images in Arduboy (such as sprites), they must be converted into code or FX data. This
+    utility lets you convert images to C++ code, either directly or saved as a <b>.h</b> file. It also
+    lets you generate a .bin file for use in fx data, though you must merge it with other FX data 
+    on your own.
+</p>
+
+<p>
+    The arduboy library doesn't distinguish between images and tilesheets; they are both stored in a contiguous
+    array with the width + height stored as the first 2 elements. However, the data is rearranged for tilesheets
+    so each tile is stored one after the other, while images are stored fully continuously (it ends up as the 
+    same amount of data, just different orders).
+
+    You can enable tiling of the image using the controls on the right of the pane. The image displayed on the 
+    left is a preview to help you see where the tiles line up. Spacing, if used, is removed from the data.
+</p>
+
+<p>
+    Mask generation is controlled manually rather than automatically, so you can always know if mask data
+    is being generated. Mask data increases the size of the data, and you must indicate to the Arduboy library
+    that you are utilizing masks.
+</p>

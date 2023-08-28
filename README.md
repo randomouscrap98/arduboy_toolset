@@ -4,6 +4,10 @@
 <img alt="Main window" src="https://github.com/randomouscrap98/arduboy_toolset/blob/main/appresource/screenshot_tools_main.png?raw=true" height=250>
 <img alt="Cart builder" src="https://github.com/randomouscrap98/arduboy_toolset/blob/main/appresource/screenshot_cartbuilder_main.png?raw=true" height=250>
 </p>
+<p float="left">
+<img alt="Package editor" src="https://github.com/randomouscrap98/arduboy_toolset/blob/main/appresource/screenshot_package_main.png?raw=true" height=250>
+<img alt="Image converter" src="https://github.com/randomouscrap98/arduboy_toolset/blob/main/appresource/screenshot_imageconvert_main.png?raw=true" height=250>
+</p>
 
 A set of personal tools derived heavily from https://github.com/MrBlinky/Arduboy-Python-Utilities
 made as a learning exercise. I wanted to understand what makes Arduboy tick, while also maybe
