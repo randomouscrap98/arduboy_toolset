@@ -1,3 +1,5 @@
+import arduboy.image
+
 import constants
 import gui_utils
 import utils
@@ -7,7 +9,9 @@ import logging
 
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGraphicsView, QGraphicsScene, QGroupBox
 from PyQt6.QtWidgets import QGraphicsPixmapItem, QFileDialog, QHBoxLayout, QPlainTextEdit, QCheckBox
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPen, QColor
+from PyQt6.QtCore import QRectF, Qt
+from PIL import Image
 
 # A fully self contained widget which can upload and backup EEPROM from arduboy
 class ImageConvertWidget(QWidget):
@@ -15,6 +19,8 @@ class ImageConvertWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.rects = []
+        self.pilimage = None
         full_layout = QVBoxLayout()
 
         # Image display + config portion is hbox layout
@@ -54,14 +60,23 @@ class ImageConvertWidget(QWidget):
         self.select_image_button.clicked.connect(self.do_load_image)
         config_layout.addWidget(self.select_image_button)
 
+        self.tilesize = gui_utils.WidthHeightWidget()
+        tilesize_container, self.tilesize_cb = gui_utils.make_toggleable_element("Tiled image", self.tilesize, nostretch=True)
+        config_layout.addWidget(tilesize_container)
+        self.tilesize.onchange.connect(self.recalculate_rects)
+        self.tilesize_cb.stateChanged.connect(self.recalculate_rects)
+
         self.spacing_number = gui_utils.NumberOnlyLineEdit()
         self.spacing_number.setText("0")
         spacing_container, self.spacing_cb = gui_utils.make_toggleable_element("Tile spacing", self.spacing_number, nostretch=True)
         config_layout.addWidget(spacing_container)
+        self.spacing_number.textChanged.connect(self.recalculate_rects)
+        self.spacing_cb.stateChanged.connect(self.recalculate_rects)
 
         self.mask_cb = QCheckBox("Use transparency to make mask")
         self.mask_cb.setChecked(True)
         config_layout.addWidget(self.mask_cb)
+        self.mask_cb.stateChanged.connect(self.recalculate_rects)
 
         # Lower controls for config
         # ---------------------------------------
@@ -108,15 +123,58 @@ class ImageConvertWidget(QWidget):
 
         self.setLayout(full_layout)
     
+    def get_tileconfig(self):
+        result = arduboy.image.TileConfig()
+        if self.spacing_cb.isChecked():
+            try:
+                result.spacing = int(self.spacing_number.text())
+            except:
+                logging.warning(f"Bad spacing value: {self.spacing_number.text()}, not setting spacing!")
+        if self.tilesize_cb.isChecked():
+            try:
+                result.width, result.height = self.tilesize.get_values()
+            except:
+                logging.warning(f"Bad width/height values, not setting tiling!")
+        result.use_mask = self.mask_cb.isChecked()
+        return result
+
+    def recalculate_rects(self):
+        if not self.pilimage:
+            logging.error("No image set in image converter widget, can't recalculate rectangles!")
+            return
+        # gather all the relevant values
+        tileconfig = self.get_tileconfig()
+        # Clear out the old rects
+        for r in self.rects:
+            self.image_scene.removeItem(r)
+        self.rects = []
+        pen = QPen(Qt.GlobalColor.red, 0.2, Qt.PenStyle.SolidLine)
+
+        # Now let's figure out where all the rects should go!
+        spriteWidth, spriteHeight, hframes, vframes = arduboy.image.expand_tileconfig(tileconfig, self.pilimage)
+        spacing = tileconfig.spacing
+
+        fy = spacing
+        for _ in range(vframes):
+            fx = spacing
+            for _ in range(hframes):
+                rect = QRectF(fx, fy, spriteWidth, spriteHeight)
+                self.rects.append(self.image_scene.addRect(rect, pen=pen))
+                fx += spriteWidth + spacing
+            fy += spriteHeight + spacing
 
     def do_load_image(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Image", "", constants.IMAGE_FILEFILTER)
         if file_path:
             pixmap = QPixmap(file_path)
             self.image_item.setPixmap(pixmap)
+            if self.pilimage:
+                self.pilimage.close()
+            self.pilimage = Image.open(file_path)
             rect = pixmap.rect()
             self.image_view.setSceneRect(0, 0, rect.width(), rect.height())
             debug_actions.global_debug.add_action_str(f"Loaded image into converter: {file_path}")
+            self.recalculate_rects()
     
     def do_convert(self):
         pass

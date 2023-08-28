@@ -10,6 +10,7 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
 from PyQt6.QtWidgets import  QCheckBox, QApplication, QComboBox, QGraphicsView
 from PyQt6.QtGui import QIntValidator, QPainter
+from PyQt6.QtCore import pyqtSignal
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None
@@ -339,3 +340,36 @@ class CustomGraphicsView(QGraphicsView):
     def set_zoom(self, zoom):
         self.zoom_factor = zoom
         self.setTransform(QtGui.QTransform().scale(self.zoom_factor, self.zoom_factor))
+
+
+class WidthHeightWidget(QWidget):
+    onchange = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        layout = QHBoxLayout()
+
+        self.width = NumberOnlyLineEdit()
+        self.width.setToolTip("Width")
+        layout.addWidget(self.width)
+        the_x = QLabel("X")
+        layout.addWidget(the_x)
+        self.height = NumberOnlyLineEdit()
+        self.height.setToolTip("Height")
+        layout.addWidget(self.height)
+
+        self.set_values(0, 0)
+
+        self.width.textChanged.connect(lambda: self.onchange.emit())
+        self.height.textChanged.connect(lambda: self.onchange.emit())
+
+        self.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+    
+    def set_values(self, width, height):
+        self.width.setText(str(width))
+        self.height.setText(str(height))
+
+    def get_values(self):
+        return int(self.width.text()), int(self.height.text())

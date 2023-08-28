@@ -4,7 +4,7 @@ import slugify
 import io
 
 from PIL import Image
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Convert a block of arduboy image bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData, raw = False):
@@ -69,25 +69,16 @@ def has_transparency(image):
 
 @dataclass
 class TileConfig:
-    width: int      # Width of tile
-    height: int     # Height of tile
-    spacing: int    # Spacing between tiles (all around?)
-    use_mask: bool  # Whether to use transparency as mask data
+    width: int = field(default=0)           # Width of tile
+    height: int = field(default=0)          # Height of tile
+    spacing: int = field(default=0)         # Spacing between tiles (all around?)
+    use_mask: bool = field(default=False)   # Whether to use transparency as mask data
 
-
-# Convert the given image (already loaded) to the header data + fxdata
-# (returns a tuple). Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/image-converter.py
-def convert_image(image: Image, name: str, config: TileConfig = None) -> (str, bytearray):
-    if not config:
-        config = TileConfig()
-    spriteName = slugify.slugify(name).replace("-","_")
-    img = img.convert("RGBA")
-    pixels = list(img.getdata())
-
+# Calculate individaul sprite width, height, horizontal count, and vertical count
+def expand_tileconfig(config: TileConfig, img: Image) -> (int, int, int, int):
     spriteWidth = config.width
     spriteHeight = config.height
     spacing = config.spacing
-    transparency = config.use_mask
     
     # check for multiple frames/tiles
     if spriteWidth > 0:
@@ -100,6 +91,21 @@ def convert_image(image: Image, name: str, config: TileConfig = None) -> (str, b
     else:
         spriteHeight = img.size[1] - 2* spacing
         vframes = 1
+    
+    return spriteWidth, spriteHeight, hframes, vframes
+
+# Convert the given image (already loaded) to the header data + fxdata
+# (returns a tuple). Taken almost directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/image-converter.py
+def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, bytearray):
+    if not config:
+        config = TileConfig()
+    spriteName = slugify.slugify(name).replace("-","_")
+    img = img.convert("RGBA")
+    pixels = list(img.getdata())
+
+    spriteWidth, spriteHeight, hframes, vframes = expand_tileconfig(config, img)
+    spacing = config.spacing
+    transparency = config.use_mask
     
     #create byte array for bin file
     size = (spriteHeight+7) // 8 * spriteWidth * hframes * vframes
