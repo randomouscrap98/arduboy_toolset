@@ -1,4 +1,12 @@
-from arduboy.constants import *
+"""
+A collection of simple functions used for non-specific tasks in Arduboy
+
+This file should not have any dependent or specific code. i.e. it should not 
+be tied to FX, Arduhex, images, devices, patches, serial, etc. It is only
+for self-contained, simple functions which are helpful in any Arduboy task.
+"""
+
+from .constants import *
 
 def pad_data(data: bytearray, multsize, pad = b'\xFF'):
     """Pad data to a multiple of the given size.

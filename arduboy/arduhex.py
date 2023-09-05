@@ -1,5 +1,9 @@
-from arduboy.constants import *
-from arduboy.common import *
+"""
+Functions and classes related to Arduboy sketches and hex files, which I've dubbed "Arduhex". 
+"""
+
+from .constants import *
+from .common import *
 
 import logging
 import os
@@ -8,16 +12,31 @@ import zipfile
 import demjson3
 import binascii
 
+from pathlib import Path
 from typing import List
 from dataclasses import dataclass, field
 from PIL import Image
 
+"""Number of default bytes per record when writing a .hex file"""
 BYTES_PER_RECORD = 16
 
-# Represents maximum data pulled from SOME kind of sketch file
+# @dataclass
+# class ArduboyBinary:
+#     """A single "binary" field from a .arduboy file"""
+#     device: str = field(default="")
+#     rawhex: str = field(default="")
+#     data_raw: bytearray = field(default_factory=lambda:bytearray())
+#     save_raw: bytearray = field(default_factory=lambda:bytearray())
+
 @dataclass
 class ArduboyParsed:
+    """Represents as much data as possible pulled from either a .arduboy file or a .hex sketch.
+    
+    Only fields which were found will be set; all fields have reasonable defaults.
+    """
     original_filename: str
+
+    # binaries: List[ArduboyBinary] = field(default=[])
     rawhex: str = field(default="")
 
     # I believe all of this could be stored in a .arduboy file.
@@ -46,7 +65,13 @@ class ArduboyParsed:
     def __str__(self) -> str:
         return f"{self.original_filename}"
     
-    def fill_generic(self, info, func):
+    def _fill_generic(info, func):
+        """Using given function, assign fields from a .arduboy item into a ArduboyParsed object
+        
+        In other words, this function represents the mapping between .arduboy json and the ArduboyParsed 
+        fields. If you construct a function which takes a json object, the json field, and the ArduboyParsed
+        field, you could pass that to this function to run it on all field associations.
+        """
         func(info, "title")
         func(info, "author", "developer")
         func(info, "description", "info")
@@ -65,10 +90,12 @@ class ArduboyParsed:
 
     
     def fill_with_info(self, info):
-        self.fill_generic(info, self._set_self)
+        """Fill self with the info given. In other words, convert info json into a ArduboyParsed"""
+        ArduboyParsed._fill_generic(info, self._set_self)
 
     def fill_info(self, info):
-        self.fill_generic(info, self._set_info)
+        """Fill info with data from self. In other words, convert ArduboyParsed into info json"""
+        ArduboyParsed._fill_generic(info, self._set_info)
     
     def _set_self(self, info, field, prop = None):
         if not prop:
@@ -86,9 +113,9 @@ class ArduboyParsed:
         return value
 
 
-# Represents a parsed arduboy hex file. Not sure if it's really necessary tbh...
 @dataclass 
 class ArduhexParsed:
+    """Represents a parsed arduboy hex file. This probably isn't necessary and may be removed in the future"""
     arduboy_data: ArduboyParsed
     flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
     flash_page_count: int = field(default=0)
@@ -96,12 +123,20 @@ class ArduhexParsed:
     overwrites_caterina: bool = field(default=False)
 
     def flash_data_min(self):
+        """Get the minimal slice of data which actually houses used pages (i.e. a trim)"""
         return self.flash_data[:FLASH_PAGESIZE * self.flash_page_count]
 
 
-# Read raw data from the arduboy or hex file. Return an intermediate representation
-# which has as much data as possible filed in.
-def read(filepath) -> ArduboyParsed:
+def read(filepath: str) -> ArduboyParsed:
+    """Read some kind of sketch file, whether .arduboy or .hex, and parse into an intermediate representation.
+    
+    Note: only fields which could be read or computed are filled in. Unlike previous versions, this
+    uses the extension to determine how to load.
+    """
+    # path = Path()
+
+    # def read_arduboy(filepath: str) -> ArduboyParsed:
+
     logging.debug(f"Reading data from ardu/hex file: {filepath}")
     result = ArduboyParsed(os.path.splitext(os.path.basename(filepath))[0])
     try:

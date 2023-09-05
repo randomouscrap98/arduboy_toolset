@@ -1,3 +1,10 @@
+"""
+A collection of constants related to Arduboy
+
+These are not ALL constants related to Arduboy, just ones common to many modules. 
+Certain constants are only related to specific functionality, such as device IDs or locations of 
+data within the FX header. Those constants go with their respective modules
+"""
 
 FLASH_PAGESIZE = 128        # Not sure if this is the true page size but it's what a lot of this program uses
 FLASHSIZE = 32768         # Size of the onboard flash (default chip whatever, atmega etc)
