@@ -11,6 +11,7 @@ import tempfile
 import zipfile
 import demjson3
 import binascii
+import slugify
 
 from pathlib import Path
 from typing import List
@@ -20,13 +21,20 @@ from PIL import Image
 """Number of default bytes per record when writing a .hex file"""
 BYTES_PER_RECORD = 16
 
-# @dataclass
-# class ArduboyBinary:
-#     """A single "binary" field from a .arduboy file"""
-#     device: str = field(default="")
-#     rawhex: str = field(default="")
-#     data_raw: bytearray = field(default_factory=lambda:bytearray())
-#     save_raw: bytearray = field(default_factory=lambda:bytearray())
+DEVICE_ARDUBOY = "Arduboy"
+DEVICE_ARDUBOYFX = "ArduboyFX"
+DEVICE_ARDUBOYMINI = "ArduboyMini"
+DEVICE_UNKNOWN = "Unknown"
+
+
+@dataclass
+class ArduboyBinary:
+    """A single "binary" field from a .arduboy file"""
+    device: str = field(default="")
+    rawhex: str = field(default="")
+    data_raw: bytearray = field(default_factory=lambda:bytearray())
+    save_raw: bytearray = field(default_factory=lambda:bytearray())
+
 
 @dataclass
 class ArduboyParsed:
@@ -36,8 +44,8 @@ class ArduboyParsed:
     """
     original_filename: str
 
-    # binaries: List[ArduboyBinary] = field(default=[])
-    rawhex: str = field(default="")
+    binaries: List[ArduboyBinary] = field(default_factory=lambda: [])
+    # rawhex: str = field(default="")
 
     # I believe all of this could be stored in a .arduboy file.
     # TODO: go research the format of arduboy zip files!
@@ -46,8 +54,8 @@ class ArduboyParsed:
     developer: str = field(default="")
     info: str = field(default="")
     image: Image = field(default=None)
-    data_raw: bytearray = field(default_factory=lambda:bytearray())
-    save_raw: bytearray = field(default_factory=lambda:bytearray())
+    # data_raw: bytearray = field(default_factory=lambda:bytearray())
+    # save_raw: bytearray = field(default_factory=lambda:bytearray())
 
     # Some optional fields
     date : str = field(default=None)
@@ -133,67 +141,72 @@ def read(filepath: str) -> ArduboyParsed:
     Note: only fields which could be read or computed are filled in. Unlike previous versions, this
     uses the extension to determine how to load.
     """
-    # path = Path()
+    path = Path(filepath)
+    if path.suffix == ".arduboy":
+        return read_arduboy(filepath)
+    elif path.suffix == ".hex":
+        return read_hex(filepath)
+    else:
+        raise Exception(f"Unknown file format: {path.suffix}")
 
-    # def read_arduboy(filepath: str) -> ArduboyParsed:
+def read_hex(filepath: str, device: str = DEVICE_UNKNOWN) -> ArduboyParsed:
+    """Read a single hex file as a full ArduboyParsed object. Most fields will be unset"""
+    logging.debug(f"Reading data from hex file: {filepath}")
+    result = ArduboyParsed(Path(filepath).stem)
+    with open(filepath,"r") as f:
+        binary = ArduboyBinary(device = device, rawhex = f.read())
+        result.binaries.append(binary)
+    return result
 
-    logging.debug(f"Reading data from ardu/hex file: {filepath}")
-    result = ArduboyParsed(os.path.splitext(os.path.basename(filepath))[0])
-    try:
-        # First, we try to open the file as a zip. This apparently handles both .zip and .arduboy
-        # files; this is how Mr.Blink's arduboy python utilities works (mostly)
-        with zipfile.ZipFile(filepath) as zip_ref:
-            logging.debug(f"Input file {filepath} is zip archive, scanning for hex file")
-            # Create a temporary directory to hold the files we extract temporarily
-            with tempfile.TemporaryDirectory() as temp_dir:
-                def extract(fn): # Simple function to extract a file, it's always the same
-                    zip_ref.extract(fn, temp_dir)
-                    extract_file = os.path.join(temp_dir, fn)
-                    logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
-                    return extract_file
-                datafile = "fxdata.bin"
-                savefile = "fxsave.bin"
-                progfile = None
-                try:
-                    extract_file = extract("info.json")
-                    info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
-                    result.fill_with_info(info)
-                    if "binaries" in info:
-                        firstbin = info["binaries"][0]
-                        if "filename" in firstbin: progfile = firstbin["filename"]
-                        if "flashdata" in firstbin: datafile = firstbin["flashdata"]
-                        if "flashsave" in firstbin: savefile = firstbin["flashsave"]
-                        if not result.title and "title" in firstbin: result.title = firstbin["title"]
-                except Exception as ex:
-                    logging.warning(f"Arduboy file {filepath} has no info.json, or parse failed! Will still try to get files out: {ex}")
-                for filename in zip_ref.namelist():
-                    if (progfile is not None and progfile.lower() == filename.lower()) or (progfile is None and filename.lower().endswith(".hex")):
+def read_arduboy(filepath: str) -> ArduboyParsed:
+    """Read an entire arduboy file, pulling as much data as possible out of it.
+    
+    Note: info.json must exist, and binaries must be described using the 'binaries' array in info.json
+    """
+    logging.debug(f"Reading data from arduboy file: {filepath}")
+    result = ArduboyParsed(Path(filepath).stem)
+    with zipfile.ZipFile(filepath) as zip_ref:
+        # Create a temporary directory to hold the files we extract temporarily
+        with tempfile.TemporaryDirectory() as temp_dir:
+            def extract(fn): # Simple function to extract a file, it's always the same
+                zip_ref.extract(fn, temp_dir)
+                extract_file = os.path.join(temp_dir, fn)
+                logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
+                return extract_file
+            extract_file = extract("info.json")
+            info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
+            result.fill_with_info(info)
+            # Now we must go manually extract some files! Binaries are a complicated business!
+            if "binaries" in info:
+                for binary in [x for x in info["binaries"] if "title" in x]:
+                    title = binary["title"]
+                    if "filename" not in binary:
+                        raise Exception(f"No filename set for binary '{title}', can't parse arduboy archive!")
+                    if "device" not in binary:
+                        raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
+                    binresult = ArduboyBinary(binary["device"])
+                    with open(extract(binary["filename"]),"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
+                        binresult.rawhex = f.read()
+                    if "flashdata" in binary:
+                        with open(extract(binary["flashdata"]), "rb") as f:
+                            binresult.data_raw = f.read()
+                    if "flashsave" in binary:
+                        with open(extract(binary["flashsave"]), "rb") as f:
+                            binresult.save_raw = f.read()
+                    result.binaries.append(binresult)
+            # And now to get data which isn't described in the info.json
+            for filename in zip_ref.namelist():
+                if filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
+                    try:
                         extract_file = extract(filename)
-                        with open(extract_file,"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
-                            result.rawhex = f.read()
-                    elif filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
-                        try:
-                            extract_file = extract(filename)
-                            # NOTE: we don't resize the image, since we don't know what people want to do with it!
-                            with Image.open(extract_file) as img:
-                                result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
-                        except Exception as ex:
-                            logging.warning(f"Couldn't load title image: {ex} (ignoring)")
-                    elif filename.lower() == datafile.lower():
-                        extract_file = extract(filename)
-                        with open(extract_file, "rb") as f:
-                            result.data_raw = f.read()
-                    elif filename.lower() == savefile.lower():
-                        extract_file = extract(filename)
-                        with open(extract_file, "rb") as f:
-                            result.save_raw = f.read()
+                        # NOTE: we don't resize the image, since we don't know what people want to do with it!
+                        with Image.open(extract_file) as img:
+                            result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
+                    except Exception as ex:
+                        logging.warning(f"Couldn't load title image: {ex} (ignoring)")
 
-            if not result.rawhex:
-                raise Exception("No .hex file read from arduboy file!")
-    except:
-        logging.debug(f"Reading potential hex file {filepath} (validating later)")
-        with open(filepath,"r") as f:
-            result.rawhex = f.read()
+        if not result.rawhex:
+            raise Exception("No .hex file read from arduboy file!")
     return result
 
 # Write the given parsed arduboy back to the filesystem
@@ -202,31 +215,29 @@ def write(ard_parsed: ArduboyParsed, filepath: str):
     with tempfile.TemporaryDirectory() as tempdir:
         files = []
         # First, let's create the object that will be json later. We may modify it!
-        info = { "schemaVersion" : 3 }
-        binary = { }
+        info = { 
+            "schemaVersion" : 3, 
+            "binaries" : [], 
+        }
         ard_parsed.fill_info(info)
-        if ard_parsed.title: 
-            binary["title"] = ard_parsed.title
-        # First, let's write the title image
+        # Make SURE there is a title, even though fill_info sets it if it exists!
+        info["title"] = ard_parsed.title or ard_parsed.original_filename or Path(filepath).stem 
+        # Write the title image
         files.append(os.path.join(tempdir, "title.png"))
         ard_parsed.image.save(files[-1])
-        # Next, write the hex
-        binary["filename"] = "program.hex"
-        files.append(os.path.join(tempdir, binary["filename"]))
-        with open(files[-1], "w") as f:
-            f.write(ard_parsed.rawhex)
-        # Then IF there's data and save, write them.
-        if ard_parsed.data_raw and len(ard_parsed.data_raw) > 0:
-            binary["flashdata"] = "fxdata.bin"
-            files.append(os.path.join(tempdir, binary["flashdata"]))
-            with open(files[-1], "wb") as f:
-                f.write(ard_parsed.data_raw)
-        if ard_parsed.save_raw and len(ard_parsed.save_raw) > 0:
-            binary["flashsave"] = "fxsave.bin"
-            files.append(os.path.join(tempdir, binary["flashsave"]))
-            with open(files[-1], "wb") as f:
-                f.write(ard_parsed.save_raw)
-        info["binaries"] = [ binary ]
+        # Next, write all the binaries
+        for binary in ard_parsed.binaries:
+            bindata = { "device" : binary.device or DEVICE_UNKNOWN }
+            bindata["title"] = info["title"] + "_" + bindata["device"]
+            def write_bin(data, field, nameappend, mode):
+                if data and len(data) > 0:
+                    bindata[field] = slugify(bindata["title"]) + nameappend
+                    files.append(os.path.join(tempdir, bindata[field]))
+                    with open(files[-1], mode) as f:
+                        f.write(data)
+            write_bin(binary.rawhex, "filename", ".hex", "w")
+            write_bin(binary.data_raw, "flashdata", "_data.bin", "wb")
+            write_bin(binary.save_raw, "flashsave", "_save.bin", "wb")
         # Finally, write the info.json file
         files.append(os.path.join(tempdir, "info.json"))
         demjson3.encode_to_file(files[-1], info, compactly=False)
