@@ -111,19 +111,20 @@ def backup_sketch(s_port, include_bootloader = False):
 
 # Verify that the given arduboy hex file is correctly flashed to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
-def verify_arduhex(arduhex, s_port, report_progress: None):
-    logging.info("Verifying {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
+def verify_arduhex(bindata: bytearray, s_port, report_progress: None):
+    analysis = arduboy.arduhex.analyze_sketch(bindata)
+    logging.info("Verifying {} flash pages".format(analysis.total_pages))
     flash_page = 0
     for i in range (256) :
-        if arduhex.flash_page_used[i] :
+        if analysis.used_pages[i]:
             s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
             s_port.read(1)
             s_port.write(b"g\x00\x80F")
-            if s_port.read(128) != arduhex.flash_data[i * 128 : (i + 1) * 128] :
+            if s_port.read(128) != bindata[i * 128 : (i + 1) * 128]:
                 raise Exception("Verify failed at address {:04X}. Upload unsuccessful.".format(i * 128))
             flash_page += 1
             if report_progress:
-                report_progress(flash_page, arduhex.flash_page_count)
+                report_progress(flash_page, analysis.total_pages)
 
 # Read the 1k eeprom as a byte array. Cannot report progress (too small)
 def read_eeprom(s_port):
@@ -166,7 +167,7 @@ def get_and_verify_jdec_bootloader(s_port):
 # Write the given flash blob (of exact size?) to the given exact page offset in fx.
 # Taken almost verbatim from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-writer.py.
 # This one strays from the design of the other flashing functions because the verification is builtin.
-def flash_fx(flashdata, pagenumber, s_port, verify = True, report_progress = None):
+def flash_fx(flashdata: bytearray, pagenumber: int, s_port, verify = True, report_progress = None):
 
     if not len(flashdata):
         raise Exception("No flash data provided!")
@@ -283,9 +284,3 @@ def backup_fx(s_port, report_progress = None):
 
     return bytearray(result)
 
-
-# NOTE: So in the flashcart-upload.py utility, it's an if/else. So, you either flash "utility" data,
-# or you flash "fx" data. This significantly simplifies writing the fx data for this version of the 
-# tools. Eventually, you should do the extra data like in the tools, but I think it requires more knowledge
-# of how it's used before you attempt to come up with the best strategy for having people use it. Dont' 
-# want to make something too difficult to use...

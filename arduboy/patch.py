@@ -121,7 +121,7 @@ def patch_all_screen(flashdata: bytearray, ssd1309: bool = False, contrast: int 
 # Given binary data, patch EVERY instance of wrong LED polarity for Micro
 # Taken directly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
 def patch_microled(flashdata: bytearray):
-    for i in range(0,FLASHSIZE-4,2):
+    for i in range(0,FLASH_SIZE-4,2):
         if flashdata[i:i+2] == b'\x28\x98':   # RXLED1
             flashdata[i+1] = 0x9a
         elif flashdata[i:i+2] == b'\x28\x9a': # RXLED0

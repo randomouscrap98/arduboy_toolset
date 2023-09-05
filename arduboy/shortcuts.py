@@ -29,26 +29,30 @@ def new_parsed_slot_from_category(title: str, info : str = "", image : Image = N
         arduboy.fxcart.FxSlotMeta(title, "", "", info)
     )
 
+# TODO: this function is very important but you now have to choose which binary to use! How will that work??
+# Just a simple parameter passed in?
 # Given a parsed arduhex file, generate a reasonable slot file
-def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> arduboy.fxcart.FxParsedSlot:
-    return arduboy.fxcart.FxParsedSlot(
-        0, # Might not matter
-        arduboy.image.pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
-        arduboy.arduhex.parse(parsed).flash_data_min(),
-        parsed.data_raw,
-        parsed.save_raw,
-        arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
-    )
+# def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> arduboy.fxcart.FxParsedSlot:
+#     return arduboy.fxcart.FxParsedSlot(
+#         0, # Might not matter
+#         arduboy.image.pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
+#         arduboy.arduhex.parse(parsed).flash_data_min(),
+#         parsed.data_raw,
+#         parsed.save_raw,
+#         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
+#     )
 
-def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot) -> arduboy.arduhex.ArduboyParsed:
-    return arduboy.arduhex.ArduboyParsed(
-        "unknown.arduboy",
-        arduboy.arduhex.unparse(slot.program_raw),
-        slot.meta.title,
-        slot.meta.version,
-        slot.meta.developer,
-        slot.meta.info,
-        arduboy.image.bin_to_pilimage(slot.image_raw),
-        slot.data_raw,
-        slot.save_raw
-    )
+# TODO: this will require the same treatment, where the correct binary must be generated! By that I just 
+# mean the proper device must be set
+# def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot) -> arduboy.arduhex.ArduboyParsed:
+#     return arduboy.arduhex.ArduboyParsed(
+#         "unknown.arduboy",
+#         arduboy.arduhex.unparse(slot.program_raw),
+#         slot.meta.title,
+#         slot.meta.version,
+#         slot.meta.developer,
+#         slot.meta.info,
+#         arduboy.image.bin_to_pilimage(slot.image_raw),
+#         slot.data_raw,
+#         slot.save_raw
+#     )
