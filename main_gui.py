@@ -107,6 +107,10 @@ class MainWindow(QMainWindow):
         open_help_action.setShortcut(QtGui.QKeySequence(Qt.Key.Key_F1))
         about_menu.addAction(open_help_action)
 
+        open_faq_action = QAction("Arduboy FAQ", self)
+        open_faq_action.triggered.connect(self.open_faq_window)
+        about_menu.addAction(open_faq_action)
+
 
     # Set the status of the table entries based on the device connected status. Sets them directly,
     # this is not a signal (you can use it IN a signal...)
@@ -127,6 +131,10 @@ class MainWindow(QMainWindow):
     def open_about_window(self):
         self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
         self.about_window.show()
+
+    def open_faq_window(self):
+        self.faq_window = gui_utils.HtmlWindow("Arduboy FAQ", "device_faqs.html")
+        self.faq_window.show()
     
     def open_newcart(self):
         new_window = main_cart.CartWindow()
@@ -137,6 +145,8 @@ class MainWindow(QMainWindow):
             self.help_window.close()
         if hasattr(self, 'about_window'):
             self.about_window.close()
+        if hasattr(self, 'faq_window'):
+            self.faq_window.close()
 
 
 class ConnectionInfo(QWidget):

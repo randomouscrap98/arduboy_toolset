@@ -1,0 +1,76 @@
+<h1>Frequently Asked Questions on Arduboy</h1>
+
+
+<h2>Terms</h2>
+
+<h3>What is a "sketch"?</h3>
+<p>
+    A sketch is a program for Arduino. When you hear "sketch", you can think of a single "game" or "program".
+    Arduboys can run one sketch at a time, and some can only store one sketch at a time.
+</p>
+
+<h3>What is a "bootloader"?</h3>
+<p>
+    The bootloader is a program that runs when the device starts up, and manages communication with the computer
+    and running user sketches. It is just another program, but it is special in that it is always the first to run
+    and is protected from being overwritten. The bootloader is always run before a sketch.
+    Even if your sketch does bad things, you can always reset your Arduboy to get back to the bootloader.
+</p>
+
+<h3>What is a "flashcart"?</h3>
+<p>
+    The flashcart is a binary blob full of sketches which is stored on an extra, larger flash memory on certain 
+    Arduboy devices (Arduboy FX, Arduboy Mini). A special bootloader written by Mr.Blinky, called Cathy3K 
+    (preinstalled on Arduboy FX and Arduboy Mini), is able to detect the presence of this larger flash memory 
+    and boot into a menu which lets you select a game/program off the flashcart. When you flash sketches onto your 
+    Arduboy when programming, the sketch does NOT go into the flashcart, you must modify the flashcart
+    manually to include your game (this program can do that).
+</p>
+
+
+<h2>Arduboy vs. Arduboy FX vs. Arduboy Mini etc.</h2>
+
+<h3>What is the difference between Arduboy and Arduboy FX and the FX modchip?</h3>
+<p>
+    In the beginning, there was just the Arduboy with no "flashcart". It only had the 
+    basic 32Kib flash used for a single "sketch", so you always had to connect your Arduboy
+    to the computer to change the game. Then the community came up with an "FX" modchip you
+    could add to the original Arduboy which added 16Mib of 'external' flash (external to the chipset,
+    but still within the body of the Arduboy). With this and a new bootloader, now you could flash
+    sketches off the big flashcart using a menu, effectively giving you access to hundreds of games
+    on the same device. An official FX modchip was sold based of the community design for adding into
+    your original Arduboy.
+</p>
+<p>
+    Later, an official "Arduboy FX" was released which incorporated the 16Mib "FX" flash memory 
+    directly, so you got an all-in-one package. Functionally, they are equivalent to an FX modded
+    original Arduboy.
+</p>
+<p>
+    Still later, an official "Arduboy Mini" was released, which is a smaller version of an Arduboy FX
+    but with a slightly different configuration. Games which do not access the FX memory directly
+    (most do not) can be run on all three devices, but games which do are compiled slightly differently,
+    and are thus <b>not intercompatible</b>. So, if you see an FX enabled game, you must find the 
+    mini-specific version if you have an Arduboy Mini.
+</p>
+
+<h2>FX-Enabled games</h2>
+
+<h3>What is an FX-enabled game?</h3>
+<p>
+    Most sketches do nothing with the larger FX memory, they just operate within the bounds of their 
+    own program. But some programs, using a special library, can read and write to the larger FX
+    flash, greatly increasing the amount of data they have access to.
+</p>
+<p>
+    There are two features FX-enabled games can use: they can read <b>data</b> from the flashcart
+    for things like map data, sprites, text, etc, or they can read and write <b>save</b> data for
+    larger saves. The Arduboy comes with a single 1024 byte EEPROM for saves, but all games share
+    this same save area, so many clash with each other. Instead, a game can write its save in 
+    4Kib chunks to the flashcart, making for way larger potential save data and no clashing
+    (since each game gets its own reserved save spot in the flashcart).
+</p>
+<p>
+    FX functionality is different between Arduboy FX + Arduboy Mini, so games which use this
+    must compile separate programs for each of those devices.
+</p>
