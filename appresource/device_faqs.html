@@ -27,8 +27,15 @@
     manually to include your game (this program can do that).
 </p>
 
+<h3>What is "Arduino?"</h3>
+<p>
+    Arduino is an open-source hardware and software platform + company. They provide inexpensive, off-the-shelf components
+    using simple RISC (reduced instruction set computer) architectures to build small computing platforms, often used for
+    robotics or other interesting small-scale computing requirements. Or in this case, to make fun 8-bit gaming consoles.
+</p>
 
-<h2>Arduboy vs. Arduboy FX vs. Arduboy Mini etc.</h2>
+
+<h2>Devices</h2>
 
 <h3>What is the difference between Arduboy and Arduboy FX and the FX modchip?</h3>
 <p>
@@ -54,7 +61,8 @@
     mini-specific version if you have an Arduboy Mini.
 </p>
 
-<h2>FX-Enabled games</h2>
+
+<h2>Programs</h2>
 
 <h3>What is an FX-enabled game?</h3>
 <p>
@@ -73,4 +81,51 @@
 <p>
     FX functionality is different between Arduboy FX + Arduboy Mini, so games which use this
     must compile separate programs for each of those devices.
+</p>
+
+
+<h2>Other</h2>
+
+<h3>Why Arduino? Why Arduboy?</h3>
+<p>
+    There's many kinds of hardware out there;
+    most consumer hardware is proprietary and thus not easily modified or customized. Most consumer software (up until recently)
+    is compiled for "x86" or other CISC (complex instruction set computer) architectures. These are so complicated that
+    it requires layers and layers of systems to work, from special compilers to entire operating systems. There's kernels
+    and security and the hardware is complicated and is thus expensive and requires a lot of power (and heat) to run.
+    But small problems require small solutions; you wouldn't want to spend a bunch of money and time setting up a big
+    hot processor and motherboard and all that just to make several motors spin on command. This is where platforms like
+    Arduino shine: they use RISC (reduced instruction set computer) architectures and open, simple hardware designs and 
+    basic tooling to give you low-cost hardware that you can "fully" program. You can usually get at every hardware line, 
+    every interface/bus, every byte of memory at a very low level and do whatever you want, so it's very popular with 
+    DIY hobbyists, robotics, and various simple devices.
+</p>
+<p>
+    But also, some people just like to work in a simpler environment. Yes you can program big cool games in Unity or 
+    simpler games in pygame or Godot or anything you want, but it's often daunting to consider the scope. If you want others
+    to play your game, you have to consider multiple operating systems and hardware setups and weird resolutions,
+    and you have to worry about assets and attribution or compensation for art + music and then distribution and aaaa 
+    it's a lot. Sometimes it's nice to sit back and enjoy something simpler, or something where you can touch and see
+    all the parts. Making a game on regular platforms usually means going through an insane amount of layers just to
+    get something to show up on the screen; you're so far abstracted from the actual hardware and there's actually no
+    reasonable way to see the "moving parts". Just as an example: about the lowest level for graphics is to program
+    directly in OpenGL or Vulkan or some other library. Even that is an abstraction layer on top of the 
+    numerous video interfaces + drivers that are possible, which then still has to go through the operating system
+    before you get to the inscrutible (and usually proprietary) drivers for graphics devices, drivers for processors
+    (because you still have to use the CPU when doing graphics), special protection rings, virtualization layers, 
+    and even if you get down to the assembly, it still gets converted to proprietary microcode before the processor
+    even does anything. And then graphics commands are sent over PCI, which is itself another protocol, through various buses,
+    and then the graphics hardware is still an entire system on its own, with its own memory and... well you get the point,
+    it's such a huge amount to take in if you want to get into the nitty-gritty. So it can often feel like you're programming
+    in <i>someone else's</i> environment, like if you drew some art but then it has to go through a byzantine network
+    of experts and scribes and notarizations and processes before coming out the other side. 
+</p>
+<p>
+    With Arduboy, if you wanted to, you could program directly in AVR assembly. There aren't many instructions,
+    and all the cycle counts and side effects are well documented. Or, you could write your own compiler, if that's
+    your thing. You don't have to use the community libraries, like Arduboy2 or the FX library, you could write them
+    yourself. You could even write your own bootloader. You could replace the screen with something entirely different,
+    or just build an entirely custom system from scratch. You could put a full color screen on there if you wanted!
+    None of the existing programs would be compatible, but you could! It's all simple and open enough that real people
+    can actually make the hardware do what they want, and that's really cool.
 </p>
