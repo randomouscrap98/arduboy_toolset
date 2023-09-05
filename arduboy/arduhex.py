@@ -249,7 +249,7 @@ def bin_to_hex(rawbin: bytearray, recordsize: int = 16) -> str:
     """Convert raw bytearray to intel hex string.
     
     Returns:
-        A string representing the hex file, with unused pages trimmed
+        A string representing the hex file, completely unchanged
     """
     buffer = BytesIO(rawbin)
     ihex = IntelHex()
