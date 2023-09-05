@@ -39,6 +39,15 @@ class TestArduhex(unittest.TestCase):
         self.assertTrue(len(analysis.trimmed_data) < FLASH_SIZE // 2)
         self.assertTrue(len(analysis.trimmed_data) > FLASH_SIZE // 4)
     
+    def test_analyze_sketch_small(self):
+        bindata = makebytearray(5)
+        analysis = arduboy.arduhex.analyze_sketch(bindata)
+        self.assertFalse(analysis.overwrites_caterina)
+        self.assertEqual(analysis.total_pages, 1)
+        self.assertEqual(len(analysis.trimmed_data), 5)
+        for i in range(FLASH_PAGECOUNT):
+            self.assertEqual(analysis.used_pages[i], i == 0)
+    
     def test_bin_to_hex(self):
         with open(TESTHEX_PATH, "r") as f:
             hexdata = f.read()
@@ -92,12 +101,6 @@ class TestArduhex(unittest.TestCase):
         # I'm wary of the hex; on the filesystem it's \r\n but here it's \n. How are they equal? Are we doing something fancy?
         self.assertEqual(parsed.binaries[0].rawhex, parsed2.binaries[0].rawhex)
 
-        # for n in ["title", "version", "developer", "info", "date", "genre", "publisher", "idea", "code", "art", "sound", "url", "sourceUrl", "email", "companion"]:
-        #     self.assertEqual(getattr(parsed, n), getattr(parsed2, n))
-        
-        # self.assertEqual(parsed.image, parsed2.image)
-        # self.assertEqual(len(parsed.binaries), len(parsed2.binaries))
-        # self.assertEqual(parsed.binaries[0], parsed2.binaries[0])
 
 if __name__ == '__main__':
     unittest.main()

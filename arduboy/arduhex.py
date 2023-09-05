@@ -267,19 +267,19 @@ class SketchAnalysis:
     trimmed_data: bytearray = field(default_factory=lambda: bytearray())
 
 def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
-    """Analyze a fullsize sketch binary for various information.
+    """Analyze a sketch binary for various information.
     
     Returns:
         A SketchAnalysis object with information such as the used pages, total pages, and a 
-        copy of the data but trimmed to a page-aligned minimum size.
+        copy of the data but trimmed to a page-aligned minimum size. If no trimming was performed,
+        the trimmed size is the exact size of the input, without any page alignment
     """
     result = SketchAnalysis()
-    if len(bindata) != FLASH_SIZE:
-        raise Exception(f"Bindata not right size, expected {FLASH_SIZE}")
     # Some of this is guesswork but it should be good enough I think...
     lastpage = FLASH_PAGECOUNT
     for page in range(FLASH_PAGECOUNT):
-        if sum(bindata[page * FLASH_PAGESIZE : (page + 1) * FLASH_PAGESIZE]) != 0xFF * FLASH_PAGESIZE:
+        start = page * FLASH_PAGESIZE
+        if len(bindata) > start and sum(bindata[page * FLASH_PAGESIZE : (page + 1) * FLASH_PAGESIZE]) != 0xFF * FLASH_PAGESIZE:
             result.used_pages[page] = True
             result.total_pages += 1
             lastpage = page
