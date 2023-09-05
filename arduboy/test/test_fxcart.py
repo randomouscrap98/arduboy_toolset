@@ -1,21 +1,9 @@
 import unittest
 import arduboy.fxcart
 
-import logging
-import demjson3
-
 from arduboy.constants import *
 from .common import *
-from io import BytesIO
-
 from pathlib import Path
-
-def makebytearray(length: int) -> bytearray:
-    buffer = BytesIO()
-    for i in range(length):
-        buffer.write(int.to_bytes(i & 0xFF, 1, 'little')) # [i & 0xFF])
-    return bytearray(buffer.getvalue())
-
 
 class TestFxCart(unittest.TestCase):
 

@@ -1,5 +1,7 @@
 import unittest
+
 import arduboy.arduhex
+import arduboy.image
 
 from arduboy.constants import *
 from .common import *
@@ -48,6 +50,54 @@ class TestArduhex(unittest.TestCase):
         # not be the real size, but it's the safest amount
         complength = len(hexdata) - 48
         self.assertEqual(newhexdata[:complength], hexdata[:complength])
+    
+    # A transparency test is very important: although it doesn't verify the correctness of the individual
+    # fields, it at least ensures reading and writing are exactly the same, and that nothing is missed
+    def test_arduboy_transparency(self):
+        # This is a BIG setup
+        tempfile = get_tempfile_name(self._testMethodName, ".arduboy")
+        parsed = arduboy.arduhex.ArduboyParsed(
+            Path(tempfile).stem,
+            [
+                arduboy.arduhex.ArduboyBinary(
+                    arduboy.arduhex.DEVICE_ARDUBOYFX,
+                    "ABC123\nHELLO(THIS IS NOT HEX)",
+                    makebytearray(200000),
+                    makebytearray(4096)
+                )
+            ],
+            "Hecking Game",
+            "0.6.8_r1",
+            "yomdor",
+            "It's a game about something! Press buttons and find out!",
+            arduboy.image.bin_to_pilimage(makebytearray(SCREEN_BYTES)),
+            "12/18/2001",
+            "Action",
+            "pubma",
+            "john",
+            "cody",
+            "michael",
+            "price",
+            "https://wow.nothing.com/hecking_game",
+            "https://github.whatever/git/gitagain/git/tig/git/hecking_game",
+            "no@no.com",
+            "what is this supposed to be?"
+        )
+        arduboy.arduhex.write_arduboy(parsed, tempfile)
+        parsed2 = arduboy.arduhex.read_arduboy(tempfile)
+
+        # Apparently, because these are dataclasses, they just have a mega equality comparison anyway. Do we trust it?
+        self.assertEqual(parsed, parsed2)
+
+        # I'm wary of the hex; on the filesystem it's \r\n but here it's \n. How are they equal? Are we doing something fancy?
+        self.assertEqual(parsed.binaries[0].rawhex, parsed2.binaries[0].rawhex)
+
+        # for n in ["title", "version", "developer", "info", "date", "genre", "publisher", "idea", "code", "art", "sound", "url", "sourceUrl", "email", "companion"]:
+        #     self.assertEqual(getattr(parsed, n), getattr(parsed2, n))
+        
+        # self.assertEqual(parsed.image, parsed2.image)
+        # self.assertEqual(len(parsed.binaries), len(parsed2.binaries))
+        # self.assertEqual(parsed.binaries[0], parsed2.binaries[0])
 
 if __name__ == '__main__':
     unittest.main()

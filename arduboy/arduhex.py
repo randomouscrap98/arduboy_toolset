@@ -178,8 +178,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                         with open(extract(binary["flashsave"]), "rb") as f:
                             binresult.save_raw = f.read()
                     result.binaries.append(binresult)
-                if len(result.binaries) == 0:
-                    raise Exception(f"No usable binaries found in arduboy file {filepath}")
+            if len(result.binaries) == 0:
+                raise Exception(f"No usable binaries found in arduboy file {filepath}")
             # And now to get data which isn't described in the info.json
             for filename in zip_ref.namelist():
                 if filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
@@ -218,7 +218,7 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
             bindata["title"] = info["title"] + "_" + bindata["device"]
             def write_bin(data, field, nameappend, mode):
                 if data and len(data) > 0:
-                    bindata[field] = slugify(bindata["title"]) + nameappend
+                    bindata[field] = slugify.slugify(bindata["title"]) + nameappend
                     files.append(os.path.join(tempdir, bindata[field]))
                     with open(files[-1], mode) as f:
                         f.write(data)
