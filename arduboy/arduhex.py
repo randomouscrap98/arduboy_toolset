@@ -119,20 +119,6 @@ class ArduboyParsed:
         return value
 
 
-# @dataclass 
-# class ArduhexParsed:
-#     """Represents a parsed arduboy hex file. This probably isn't necessary and may be removed in the future"""
-#     arduboy_data: ArduboyParsed
-#     flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
-#     flash_page_count: int = field(default=0)
-#     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
-#     overwrites_caterina: bool = field(default=False)
-# 
-#     def flash_data_min(self):
-#         """Get the minimal slice of data which actually houses used pages (i.e. a trim)"""
-#         return self.flash_data[:FLASH_PAGESIZE * self.flash_page_count]
-
-
 def read_any(filepath: str) -> ArduboyParsed:
     """Read some kind of sketch file, whether .arduboy or .hex, and parse into an intermediate representation.
     
@@ -281,6 +267,12 @@ class SketchAnalysis:
     trimmed_data: bytearray = field(default_factory=lambda: bytearray())
 
 def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
+    """Analyze a fullsize sketch binary for various information.
+    
+    Returns:
+        A SketchAnalysis object with information such as the used pages, total pages, and a 
+        copy of the data but trimmed to a page-aligned minimum size.
+    """
     result = SketchAnalysis()
     if len(bindata) != FLASH_SIZE:
         raise Exception(f"Bindata not right size, expected {FLASH_SIZE}")

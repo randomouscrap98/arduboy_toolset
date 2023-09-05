@@ -75,24 +75,24 @@ def is_caterina(s_port):
 
 # Flash the given arduboy hex file to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
-def flash_arduhex(arduhex: arduboy.arduhex.ArduhexParsed, s_port, report_progress: None):
-    if not len(arduhex.flash_data):
-        raise Exception("No flash data provided!")
+def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
+    # Analyze the bindata
+    analysis = arduboy.arduhex.analyze_sketch(bindata)
     # Just like fx flash rejects non-fx chips and bad bootloaders, this one too will reject "bad" bootloader
-    if arduhex.overwrites_caterina and is_caterina(s_port):
+    if analysis.overwrites_caterina and is_caterina(s_port):
         raise Exception("Upload will likely corrupt the bootloader.")
-    logging.info("Flashing {} bytes. ({} flash pages)".format(arduhex.flash_page_count * 128, arduhex.flash_page_count))
+    logging.info("Flashing {} pages".format(analysis.total_pages))
     flash_page = 0
-    for i in range (256):
-        if arduhex.flash_page_used[i]:
+    for i in range (FLASH_PAGECOUNT):
+        if analysis.used_pages[i]:
             s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
             s_port.read(1)
             s_port.write(b"B\x00\x80F")
-            s_port.write(arduhex.flash_data[i * 128 : (i + 1) * 128])
+            s_port.write(bindata[i * FLASH_PAGESIZE: (i + 1) * FLASH_PAGESIZE])
             s_port.read(1)
             flash_page += 1
             if report_progress:
-                report_progress(flash_page, arduhex.flash_page_count)
+                report_progress(flash_page, analysis.total_pages)
 
 # Read the sketch off arduboy. 
 def backup_sketch(s_port, include_bootloader = False):
