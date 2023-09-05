@@ -7,7 +7,8 @@ data within the FX header. Those constants go with their respective modules
 """
 
 FLASH_PAGESIZE = 128        # Not sure if this is the true page size but it's what a lot of this program uses
-FLASHSIZE = 32768         # Size of the onboard flash (default chip whatever, atmega etc)
+FLASH_SIZE = 32768          # Size of the onboard flash (default chip whatever, atmega etc)
+FLASH_PAGECOUNT = FLASH_SIZE // FLASH_PAGESIZE
 
 FX_PAGESIZE = 256       # The hardware page size in the FX modchip flash
 FX_BLOCKSIZE = 65536    # The hardware block size in the FX etc

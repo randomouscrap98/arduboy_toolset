@@ -10,9 +10,10 @@ import os
 import tempfile
 import zipfile
 import demjson3
-import binascii
 import slugify
 
+from intelhex import IntelHex
+from io import BytesIO, StringIO
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass, field
@@ -20,6 +21,7 @@ from PIL import Image
 
 """Number of default bytes per record when writing a .hex file"""
 BYTES_PER_RECORD = 16
+CATERINA_PAGE = 224
 
 DEVICE_ARDUBOY = "Arduboy"
 DEVICE_ARDUBOYFX = "ArduboyFX"
@@ -45,7 +47,6 @@ class ArduboyParsed:
     original_filename: str
 
     binaries: List[ArduboyBinary] = field(default_factory=lambda: [])
-    # rawhex: str = field(default="")
 
     # I believe all of this could be stored in a .arduboy file.
     # TODO: go research the format of arduboy zip files!
@@ -54,8 +55,6 @@ class ArduboyParsed:
     developer: str = field(default="")
     info: str = field(default="")
     image: Image = field(default=None)
-    # data_raw: bytearray = field(default_factory=lambda:bytearray())
-    # save_raw: bytearray = field(default_factory=lambda:bytearray())
 
     # Some optional fields
     date : str = field(default=None)
@@ -95,7 +94,6 @@ class ArduboyParsed:
         func(info, "sourceUrl")
         func(info, "email")
         func(info, "companion")
-
     
     def fill_with_info(self, info):
         """Fill self with the info given. In other words, convert info json into a ArduboyParsed"""
@@ -121,21 +119,21 @@ class ArduboyParsed:
         return value
 
 
-@dataclass 
-class ArduhexParsed:
-    """Represents a parsed arduboy hex file. This probably isn't necessary and may be removed in the future"""
-    arduboy_data: ArduboyParsed
-    flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
-    flash_page_count: int = field(default=0)
-    flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
-    overwrites_caterina: bool = field(default=False)
+# @dataclass 
+# class ArduhexParsed:
+#     """Represents a parsed arduboy hex file. This probably isn't necessary and may be removed in the future"""
+#     arduboy_data: ArduboyParsed
+#     flash_data: bytearray = field(default_factory=lambda: bytearray(b'\xFF' * FLASHSIZE))
+#     flash_page_count: int = field(default=0)
+#     flash_page_used: List[bool] = field(default_factory=lambda: [False] * 256)
+#     overwrites_caterina: bool = field(default=False)
+# 
+#     def flash_data_min(self):
+#         """Get the minimal slice of data which actually houses used pages (i.e. a trim)"""
+#         return self.flash_data[:FLASH_PAGESIZE * self.flash_page_count]
 
-    def flash_data_min(self):
-        """Get the minimal slice of data which actually houses used pages (i.e. a trim)"""
-        return self.flash_data[:FLASH_PAGESIZE * self.flash_page_count]
 
-
-def read(filepath: str) -> ArduboyParsed:
+def read_any(filepath: str) -> ArduboyParsed:
     """Read some kind of sketch file, whether .arduboy or .hex, and parse into an intermediate representation.
     
     Note: only fields which could be read or computed are filled in. Unlike previous versions, this
@@ -194,6 +192,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                         with open(extract(binary["flashsave"]), "rb") as f:
                             binresult.save_raw = f.read()
                     result.binaries.append(binresult)
+                if len(result.binaries) == 0:
+                    raise Exception(f"No usable binaries found in arduboy file {filepath}")
             # And now to get data which isn't described in the info.json
             for filename in zip_ref.namelist():
                 if filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
@@ -204,13 +204,14 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                             result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
                     except Exception as ex:
                         logging.warning(f"Couldn't load title image: {ex} (ignoring)")
-
-        if not result.rawhex:
-            raise Exception("No .hex file read from arduboy file!")
     return result
 
-# Write the given parsed arduboy back to the filesystem
-def write(ard_parsed: ArduboyParsed, filepath: str):
+
+def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
+    """Write the given parsed arduboy data back to the filesystem. 
+    
+    Note that no checks are performed; you may write back an unusable arduboy package.
+    """
     logging.debug(f"Writing data to arduboy file: {filepath}")
     with tempfile.TemporaryDirectory() as tempdir:
         files = []
@@ -238,6 +239,7 @@ def write(ard_parsed: ArduboyParsed, filepath: str):
             write_bin(binary.rawhex, "filename", ".hex", "w")
             write_bin(binary.data_raw, "flashdata", "_data.bin", "wb")
             write_bin(binary.save_raw, "flashsave", "_save.bin", "wb")
+            info["binaries"].append(bindata)
         # Finally, write the info.json file
         files.append(os.path.join(tempdir, "info.json"))
         demjson3.encode_to_file(files[-1], info, compactly=False)
@@ -246,67 +248,51 @@ def write(ard_parsed: ArduboyParsed, filepath: str):
             for fp in files:
                 zipf.write(fp, arcname=os.path.basename(fp))
 
-# Parse pages and data relevant for flashing out of the parsed arduboy file
-# Throws an exception if the records can't be validated. Taken almost verbatim from 
-# https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/uploader.py
-def parse(arduboy_data: ArduboyParsed):
-    logging.debug(f"Parsing arduboy data {arduboy_data}")
-    result = ArduhexParsed(arduboy_data)
-    records = arduboy_data.rawhex.splitlines()
-    flash_addr = 0
-    # NOTE: this is a simple Intel HEX format: https://en.wikipedia.org/wiki/Intel_HEX
-    for rcd in records :
-        # Assuming this is some kind of end symbol
-        if rcd == ":00000001FF": 
-            break
-        elif rcd[0] == ":" :
-            # This part is literally just copy + paste, the hex format seems complicated...
-            rcd_len  = int(rcd[1:3],16)
-            rcd_addr = int(rcd[3:7],16)
-            rcd_typ  = int(rcd[7:9],16)
-            rcd_end = 9 + rcd_len*2
-            rcd_sum  = int(rcd[rcd_end:rcd_end+2],16)
-            if (rcd_typ == 0) and (rcd_len > 0) :
-                flash_addr = rcd_addr
-                result.flash_page_used[int(rcd_addr / FLASH_PAGESIZE)] = True
-                result.flash_page_used[int((rcd_addr + rcd_len - 1) / FLASH_PAGESIZE)] = True
-                checksum = rcd_sum
-                for i in range(1,9+rcd_len*2, 2) :
-                    byte = int(rcd[i:i+2],16)
-                    checksum = (checksum + byte) & 0xFF
-                    if i >= 9:
-                        result.flash_data[flash_addr] = byte
-                        flash_addr += 1
-                if checksum != 0:
-                    raise Exception(f"Hex file contains errors! Checksum fail: {checksum}")
-    # Now count the pages and see if "caterina" (whatever that means). Note: You CANNOT simplify
-    # this into some simple array.count method! The check is if the flash page is used AND if it 
-    # goes beyond a certain threshold!
-    for i in range (256) :
-        if result.flash_page_used[i] :
-            result.flash_page_count += 1
-            if i >= 224 :
-                result.overwrites_caterina = True
 
+def hex_to_bin(rawhex: str) -> bytearray:
+    """Convert raw hex string (intel hex format) to raw bytearray
+    
+    Returns:
+        Full sketch binary (with padding, so 32kb)
+    """
+    buffer = StringIO(rawhex)
+    ihex = IntelHex(buffer)
+    return bytearray(ihex.tobinarray(start=0, size=FLASH_SIZE))
+
+def bin_to_hex(rawbin: bytearray, recordsize: int = 16) -> str:
+    """Convert raw bytearray to intel hex string.
+    
+    Returns:
+        A string representing the hex file, with unused pages trimmed
+    """
+    buffer = BytesIO(rawbin)
+    ihex = IntelHex()
+    ihex.loadbin(buffer)
+    outbuffer = StringIO()
+    ihex.write_hex_file(outbuffer, byte_count=recordsize)
+    return outbuffer.getvalue()
+
+
+@dataclass
+class SketchAnalysis:
+    overwrites_caterina: bool = field(default=False)
+    total_pages: int = field(default=0)
+    used_pages: List[bool] = field(default_factory=lambda: [False] * FLASH_PAGECOUNT)
+    trimmed_data: bytearray = field(default_factory=lambda: bytearray())
+
+def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
+    result = SketchAnalysis()
+    if len(bindata) != FLASH_SIZE:
+        raise Exception(f"Bindata not right size, expected {FLASH_SIZE}")
+    # Some of this is guesswork but it should be good enough I think...
+    lastpage = FLASH_PAGECOUNT
+    for page in range(FLASH_PAGECOUNT):
+        if sum(bindata[page * FLASH_PAGESIZE : (page + 1) * FLASH_PAGESIZE]) != 0xFF * FLASH_PAGESIZE:
+            result.used_pages[page] = True
+            result.total_pages += 1
+            lastpage = page
+            if page >= CATERINA_PAGE:
+                result.overwrites_caterina = True
+    result.trimmed_data = bindata[:(lastpage + 1) * FLASH_PAGESIZE]
     return result
 
-# Convert a raw binary back into hex! 
-def unparse(bindata: bytearray, bytes_per_record = BYTES_PER_RECORD) -> str:
-    logging.debug(f"UNParsing arduboy binary data ({len(bindata)} bytes) back to hex")
-    if bytes_per_record > 255:
-        raise Exception("Too many bytes per record! Limit 255")
-    hexstring = ""
-    # Hex files seem to start at 0, so we can reuse the index as the flash address
-    for flash_addr in range(0, len(bindata), bytes_per_record):
-        # Pull a limited number of bytes out of the data (based on bytes per record)
-        rec_bytes = bindata[flash_addr:flash_addr + bytes_per_record]
-        # First part of the line is the number of bytes, address, and record type (always 0)
-        line = hex(len(rec_bytes))[2:].zfill(2) + hex(flash_addr)[2:].zfill(4) + "00"
-        # Then the chosen number of bytes in hex
-        line += binascii.hexlify(rec_bytes).decode()
-        # THe checksum portion is the sum of all the bytes on the line other than the checksum itself and the initial symbols (: and etc)
-        checksum = sum(bytes.fromhex(line))
-        # but then least significant byte + two's compliment. LSB 
-        checksum = (~(checksum & 0xFF) + 1) & 0xFF
-        hexstring += ":" + (line + hex(checksum)[2:].zfill(2)).upper() + "\n"
-    return hexstring + ":00000001FF"
