@@ -222,7 +222,7 @@ def trim_file(infile, outfile = None):
 
 
 # Given an entire FX binary, parse absolutely everything out of it (in slot format)
-def parse(fulldata, report_progress = None):
+def parse(fulldata, report_progress = None) -> List[FxParsedSlot]:
 
     logging.debug(f"Full parsing FX cart ({len(fulldata)} bytes)")
     dindex = 0
@@ -273,7 +273,7 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
 
 # Compile a single slot (with the given page identifiers, VERY important) and return the result. If you're
 # just testing, the pages aren't required (but you won't get a valid frame)
-def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0):
+def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0) -> bytearray:
     if len(slot.image_raw) != SCREEN_BYTES:
         raise Exception(f"Title image for game {slot.meta.title} is incorrect size!! Expected: {SCREEN_BYTES}, was: {len(slot.image_raw)}")
     # All the raw data we're about to dump into the flashcart. Some may be modified later
