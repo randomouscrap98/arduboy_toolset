@@ -108,6 +108,10 @@ class ArduboyParsed:
             info[field] = value
         return value
 
+def empty_parsed_arduboy() -> ArduboyParsed:
+    """A fully empty arduboy data object. Is this useful?"""
+    return ArduboyParsed(None)
+
 
 def read_any(filepath: str) -> ArduboyParsed:
     """Read some kind of sketch file, whether .arduboy or .hex, and parse into an intermediate representation.

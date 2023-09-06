@@ -5,7 +5,15 @@ from arduboy.constants import *
 from .common import *
 from pathlib import Path
 
+
 class TestFxCart(unittest.TestCase):
+
+    def test_emptyslot(self):
+        empty_slot = arduboy.fxcart.empty_slot()
+        # There's not much we can test; an empty slot isn't well defined
+        self.assertIsNotNone(empty_slot.meta)
+        self.assertEqual(empty_slot.category, 0)
+        self.assertFalse(empty_slot.fx_enabled())
 
     # This is the major test here: it's just too much effort for me to test every little function.
     # If the conversion to and from a slot is fully transparent, then I'd call that a win for now.
@@ -38,6 +46,29 @@ class TestFxCart(unittest.TestCase):
         self.assertEqual(slot.data_raw, slot2.data_raw[:len(slot.data_raw)])
         self.assertEqual(slot.save_raw, slot2.save_raw)
         self.assertEqual(slot.meta, slot2.meta)
+    
+    def test_fxenabled_nolen_nofx(self):
+        slot = arduboy.fxcart.empty_slot()
+        slot.save_raw = bytearray()
+        slot.data_raw = bytearray()
+        self.assertFalse(slot.fx_enabled())
+
+    def test_fxenabled_none_nofx(self):
+        slot = arduboy.fxcart.empty_slot()
+        slot.save_raw = None
+        slot.data_raw = None
+        self.assertFalse(slot.fx_enabled())
+
+    def test_fxenabled_saveonly(self):
+        slot = arduboy.fxcart.empty_slot()
+        slot.save_raw = makebytearray(4096)
+        self.assertTrue(slot.fx_enabled())
+
+    def test_fxenabled_dataonly(self):
+        slot = arduboy.fxcart.empty_slot()
+        slot.data_raw = makebytearray(4096)
+        self.assertTrue(slot.fx_enabled())
+        
 
 if __name__ == '__main__':
     unittest.main()

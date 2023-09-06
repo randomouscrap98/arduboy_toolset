@@ -71,6 +71,12 @@ class FxParsedSlot:
     def fx_enabled(self):
         return (self.data_raw and len(self.data_raw) > 0) or (self.save_raw and len(self.save_raw) > 0)
 
+def empty_slot() -> FxParsedSlot:
+    """A fully empty slot, should still be usable in a cart builder or such though."""
+    return FxParsedSlot(
+        0, bytearray(SCREEN_BYTES), bytearray(), bytearray(), bytearray(), FxSlotMeta("", "", "", "")
+    )
+
 
 # Read and pad the fx flash image from the given file and return the bytearray
 def read(filename):

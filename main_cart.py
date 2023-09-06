@@ -557,7 +557,7 @@ class CartWindow(QMainWindow):
 
     def action_add_category(self):
         # Need to generate default images at some point!! You have the font!
-        newcat = SlotWidget(arduboy.shortcuts.new_parsed_slot_from_category("New Category"))
+        newcat = SlotWidget(arduboy.shortcuts.slot_from_category("New Category"))
         self.insert_slotwidget(newcat)
         debug_actions.global_debug.add_action_str(f"Added new category to cart")
 
@@ -566,7 +566,8 @@ class CartWindow(QMainWindow):
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
         if file_path:
             parsed = arduboy.arduhex.read(file_path)
-            newgame = SlotWidget(arduboy.shortcuts.new_parsed_slot_from_arduboy(parsed))
+            # TODO: FIGURE OUT BINARY
+            newgame = SlotWidget(arduboy.shortcuts.slot_from_arduboy(parsed))
             self.insert_slotwidget(newgame)
             debug_actions.global_debug.add_action_str(f"Added game to cart: {parsed.title}")
     
