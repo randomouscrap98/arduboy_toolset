@@ -16,7 +16,7 @@ from intelhex import IntelHex
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import List
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from PIL import Image
 
 """Number of default bytes per record when writing a .hex file"""
@@ -32,6 +32,7 @@ DEVICE_ARDUBOYFX = "ArduboyFX"
 DEVICE_ARDUBOYMINI = "ArduboyMini"
 
 DEVICE_DEFAULT = DEVICE_ARDUBOY
+ALLOWED_DEVICES = [ DEVICE_ARDUBOY, DEVICE_ARDUBOYFX, DEVICE_ARDUBOYMINI ]
 
 
 @dataclass
@@ -50,7 +51,6 @@ class ArduboyContributor:
     contributions: List[str] = field(default_factory=lambda: [])
     urls: List[str] = field(default_factory=lambda: [])
 
-
 @dataclass
 class ArduboyParsed:
     """Represents as much data as possible pulled from either a .arduboy file or a .hex sketch.
@@ -65,8 +65,8 @@ class ArduboyParsed:
     # Some of the more "required" fields
     title: str = field(default="")
     version: str = field(default="")
-    developer: str = field(default="")
-    info: str = field(default="")
+    author: str = field(default="")
+    description: str = field(default="")
 
     # Some optional fields
     date : str = field(default=None)
@@ -86,16 +86,8 @@ class ArduboyParsed:
         fields. If you construct a function which takes a json object, the json field, and the ArduboyParsed
         field, you could pass that to this function to run it on all field associations.
         """
-        func(info, "title")
-        func(info, "author", "developer")
-        func(info, "description", "info")
-        func(info, "version")
-        func(info, "genre")
-        func(info, "date")
-        func(info, "url")
-        func(info, "sourceUrl")
-        func(info, "email")
-        func(info, "companion")
+        for f in ["title", "author", "description", "version", "genre", "date", "url", "sourceUrl", "email", "companion"]:
+            func(info, f)
     
     def fill_with_info(self, info):
         """Fill self with the info given. In other words, convert info json into a ArduboyParsed"""
@@ -105,17 +97,13 @@ class ArduboyParsed:
         """Fill info with data from self. In other words, convert ArduboyParsed into info json"""
         ArduboyParsed._fill_generic(info, self._set_info)
     
-    def _set_self(self, info, field, prop = None):
-        if not prop:
-            prop = field
+    def _set_self(self, info, field):
         if field in info:
-            setattr(self, prop, info[field])
-        return getattr(self, prop)
+            setattr(self, field, info[field])
+        return getattr(self, field)
     
-    def _set_info(self, info, field, prop = None):
-        if not prop:
-            prop = field
-        value = getattr(self, prop)
+    def _set_info(self, info, field):
+        value = getattr(self, field)
         if value is not None:
             info[field] = value
         return value
@@ -140,7 +128,7 @@ def read_hex(filepath: str, device: str = DEVICE_DEFAULT) -> ArduboyParsed:
     logging.debug(f"Reading data from hex file: {filepath}")
     result = ArduboyParsed(Path(filepath).stem)
     with open(filepath,"r") as f:
-        binary = ArduboyBinary(device = device, data_raw = f.read())
+        binary = ArduboyBinary(device = device, hex_raw = f.read())
         result.binaries.append(binary)
     return result
 
@@ -180,12 +168,20 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                 key_program = "program"
                 key_data = "flashData"
                 key_save = "flashSave"
+            if "contributors" in info:
+                for contributor in info["contributors"]:
+                    rescon = ArduboyContributor(contributor["name"] if "name" in contributor else "UNKNOWN")
+                    if "contributions" in contributor:
+                        rescon.contributions = list(contributor["contributions"])
+                    if "urls" in contributor:
+                        rescon.urls = list(contributor["urls"])
+                    result.contributors.append(rescon)
             # Now we must go manually extract some files! Binaries are a complicated business!
             if "binaries" in info:
                 for binary in [x for x in info["binaries"] if "title" in x]:
                     title = binary["title"]
                     if key_program not in binary:
-                        raise Exception(f"No filename set for binary '{title}', can't parse arduboy archive!")
+                        raise Exception(f"No {key_program} set for binary '{title}', can't parse arduboy archive!")
                     if "device" not in binary:
                         raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
                     binresult = ArduboyBinary(binary["device"])
@@ -219,6 +215,7 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
         info = { 
             "schemaVersion" : DEFAULT_SCHEMA, 
             "binaries" : [], 
+            "contributors" : [ asdict(x) for x in ard_parsed.contributors ] # Just a mostly direct use, very simple
         }
         ard_parsed.fill_info(info) # All the easy info we don't have to worry about
         # Make SURE there is a title, even though fill_info sets it if it exists!
@@ -236,9 +233,9 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
                     filename = set_file_field(field, nameappend)
                     with open(filename, mode) as f:
                         f.write(data)
-            write_bin(binary.hex_raw, "filename", ".hex", "w")
-            write_bin(binary.data_raw, "flashdata", "_data.bin", "wb")
-            write_bin(binary.save_raw, "flashsave", "_save.bin", "wb")
+            write_bin(binary.hex_raw, "program", ".hex", "w")
+            write_bin(binary.data_raw, "flashData", "_data.bin", "wb")
+            write_bin(binary.save_raw, "flashSave", "_save.bin", "wb")
             # Write the title image
             if binary.cartImage:
                 filename = set_file_field("cartImage", "_cartimage.png")

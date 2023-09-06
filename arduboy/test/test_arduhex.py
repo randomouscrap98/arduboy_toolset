@@ -17,8 +17,8 @@ class TestArduhex(unittest.TestCase):
         name = Path(TESTHEX_PATH).stem
         self.assertEqual(result.original_filename, name)
         self.assertTrue(len(result.binaries) > 0, "No binaries read!")
-        self.assertTrue(len(result.binaries[0].rawhex) > 20000, "Not enough data in rawhex")
-        self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_UNKNOWN)
+        self.assertTrue(len(result.binaries[0].hex_raw) > 20000, "Not enough data in hex_raw")
+        self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_DEFAULT)
         # Nothing else is guaranteed to be set
     
     def test_hex_to_bin(self):
@@ -72,17 +72,23 @@ class TestArduhex(unittest.TestCase):
                     arduboy.arduhex.DEVICE_ARDUBOYFX,
                     "ABC123\nHELLO(THIS IS NOT HEX)",
                     makebytearray(200000),
-                    makebytearray(4096)
+                    makebytearray(4096),
+                    arduboy.image.bin_to_pilimage(makebytearray(SCREEN_BYTES)),
+                ),
+                arduboy.arduhex.ArduboyBinary(
+                    arduboy.arduhex.DEVICE_ARDUBOY,
+                    "MORE NOT HEX LOL"
                 )
             ],
             [
-
+                arduboy.arduhex.ArduboyContributor("Firstname Lastname", ["Coding", "Coder"]),
+                arduboy.arduhex.ArduboyContributor("Nobody"),
+                arduboy.arduhex.ArduboyContributor("Artistman", ["Art"], ["https://place.com", "https://art.com"]),
             ],
             "Hecking Game",
             "0.6.8_r1",
             "yomdor",
             "It's a game about something! Press buttons and find out!",
-            arduboy.image.bin_to_pilimage(makebytearray(SCREEN_BYTES)),
             "12/18/2001",
             "Action",
             "https://wow.nothing.com/hecking_game",
@@ -95,9 +101,6 @@ class TestArduhex(unittest.TestCase):
 
         # Apparently, because these are dataclasses, they just have a mega equality comparison anyway. Do we trust it?
         self.assertEqual(parsed, parsed2)
-
-        # I'm wary of the hex; on the filesystem it's \r\n but here it's \n. How are they equal? Are we doing something fancy?
-        self.assertEqual(parsed.binaries[0].rawhex, parsed2.binaries[0].rawhex)
 
 
 if __name__ == '__main__':
