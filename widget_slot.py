@@ -170,17 +170,18 @@ class SlotWidget(QWidget):
         return ardparsed
     
     def select_program(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy Hex File", "", constants.HEX_FILEFILTER)
         if file_path:
-            # NOTE: eventually, this should set the various fields based on the parsed arduboy file!!
-            parsed = arduboy.arduhex.read(file_path)
-            self.parsed.program_raw = arduboy.arduhex.parse(parsed).flash_data_min()
+            parsed = arduboy.arduhex.read_hex(file_path)
+            bindata = arduboy.arduhex.hex_to_bin(parsed.binaries[0].hex_raw)
+            analysis = arduboy.arduhex.analyze_sketch(bindata)
+            self.parsed.program_raw = analysis.trimmed_data
             self.update_metalabel()
             self.onchange.emit()
             debug_actions.global_debug.add_action_str(f"Edited program for: {self.parsed.meta.title}")
 
     def select_data(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Data File", "", constants.BIN_FILEFILTER)
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open FX Data File", "", constants.BIN_FILEFILTER)
         if file_path:
             with open(file_path, "rb") as f:
                 data = f.read()
@@ -200,7 +201,7 @@ class SlotWidget(QWidget):
             debug_actions.global_debug.add_action_str(f"Edited FX data for: {self.parsed.meta.title}")
 
     def select_save(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Open Save File", "", constants.BIN_FILEFILTER)
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open FX Save File", "", constants.BIN_FILEFILTER)
         if file_path:
             with open(file_path, "rb") as f:
                 self.parsed.save_raw = f.read()

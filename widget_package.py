@@ -17,6 +17,42 @@ class PackageWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+        full_layout = QVBoxLayout()
+
+        # Editor panes
+        editor_container = QWidget()
+        editor_layout = QHBoxLayout()
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_container.setLayout(editor_layout)
+
+        self.info_group = QGroupBox("Package Info")
+        self.binary_group = QGroupBox("Package Binaries")
+
+        editor_layout.addWidget(self.info_group)
+        editor_layout.addWidget(self.binary_group)
+
+        full_layout.addWidget(editor_container)
+        full_layout.setStretchFactor(editor_container, 1)
+
+        # Controls for saving/loading/etc packages
+        package_controls = QWidget() # QGroupBox("Package Controls")
+        package_controls_layout = QHBoxLayout()
+        package_controls.setLayout(package_controls_layout)
+        clear_package_button = QPushButton("Reset")
+        # clear_package_button.clicked.connect(self.do_reset_package)
+        package_controls_layout.addWidget(clear_package_button)
+        load_package_button = QPushButton("Load")
+        # load_package_button.clicked.connect(self.do_load_package)
+        package_controls_layout.addWidget(load_package_button)
+        save_package_button = QPushButton("Save")
+        # save_package_button.clicked.connect(self.do_save_package)
+        package_controls_layout.addWidget(save_package_button)
+
+        full_layout.addWidget(package_controls)
+        full_layout.setStretchFactor(package_controls, 0)
+
+        self.setLayout(full_layout)
+
         return
 
         full_layout = QVBoxLayout()
