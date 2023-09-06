@@ -4,7 +4,7 @@ import arduboy.patch
 
 from arduboy.constants import *
 
-import widget_slot
+# import widget_slot
 import constants
 import gui_utils
 import utils
@@ -16,6 +16,8 @@ class PackageWidget(QWidget):
 
     def __init__(self):
         super().__init__()
+
+        return
 
         full_layout = QVBoxLayout()
 
@@ -53,7 +55,7 @@ class PackageWidget(QWidget):
     def make_slot_widget(self, arduparsed: arduboy.arduhex.ArduboyParsed = None):
         if not arduparsed:
             arduparsed = arduboy.shortcuts.empty_parsed_arduboy()
-        result = widget_slot.SlotWidget(arduparsed=arduparsed)
+        result = QWidget() # widget_slot.SlotWidget(arduparsed=arduparsed)
         result.layout.setContentsMargins(5,5,5,5)
         return result
 
