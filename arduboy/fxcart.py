@@ -67,9 +67,9 @@ class FxParsedSlot:
     
     def has_image(self):
         return self.image_raw and sum(self.image_raw) > 0
-
-    # def progdata_hash(self):
-    #     sha256(self.p self.data_raw)
+    
+    def fx_enabled(self):
+        return (self.data_raw and len(self.data_raw) > 0) or (self.save_raw and len(self.save_raw) > 0)
 
 
 # Read and pad the fx flash image from the given file and return the bytearray

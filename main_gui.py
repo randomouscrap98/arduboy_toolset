@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
 
         file_menu = menu_bar.addMenu("File")
 
-        new_cart_action = QAction("Cart Builder", self)
+        new_cart_action = QAction("Cart Editor", self)
         new_cart_action.triggered.connect(self.open_newcart)
         file_menu.addAction(new_cart_action)
 

@@ -45,7 +45,7 @@ def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot, device: str) -> arduboy
         "unknown.arduboy",
         [
             arduboy.arduhex.ArduboyBinary(
-                device,
+                device if slot.fx_enabled() else arduboy.arduhex.DEVICE_ARDUBOY,
                 arduboy.arduhex.bin_to_hex(arduboy.arduhex.analyze_sketch(slot.program_raw).trimmed_data),
                 slot.data_raw,
                 slot.save_raw,

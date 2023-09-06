@@ -22,12 +22,11 @@ import sys
 import time
 
 from typing import List
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog, QComboBox
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread
-from PIL import Image
+from PyQt6.QtCore import pyqtSignal, Qt
 
 # TODO: 
 # - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
@@ -246,6 +245,15 @@ class CartWindow(QMainWindow):
         spacer = QWidget()
         footerlayout.addWidget(spacer)
         footerlayout.setStretchFactor(spacer, 1)
+
+        self.device_select = QComboBox()
+        self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYFX)
+        self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYMINI)
+        self.device_select.setStyleSheet("font-weight: bold")
+        self.device_select.setToolTip("The device which will use this flashcart.\nAn incorrect setting will make FX-enabled titles malfunction")
+        footerlayout.addWidget(self.device_select)
+        footerlayout.setStretchFactor(self.device_select, 0)
+
         self.counts_label = QLabel("Counts label...")
         footerlayout.addWidget(self.counts_label)
         footerlayout.setStretchFactor(self.counts_label, 0)

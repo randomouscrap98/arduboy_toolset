@@ -28,21 +28,12 @@ class SlotWidget(QWidget):
     onchange = pyqtSignal()
     
     # A slot must always have SOME parsed data associated with it!
-    def __init__(self, parsed: arduboy.fxcart.FxParsedSlot = None, arduparsed: arduboy.arduhex.ArduboyParsed = None): #force_all_fields = False):
+    def __init__(self, parsed: arduboy.fxcart.FxParsedSlot):
         super().__init__()
 
-        # !! BIG NOTE: widgets should NOT be able to change "modes", so we set up lots 
-        # of mode-specific stuff in the constructor! IE a category cannot become a program etc
-        if arduparsed:
-            self.mode = "all"
-            self.parsed = arduboy.shortcuts.new_parsed_slot_from_arduboy(arduparsed)
-        elif parsed:
-            self.mode = "category" if parsed.is_category() else "game"
-            self.parsed = parsed
-        else:
-            raise Exception("Must provide either slot or arduboy data!")
-
+        self.parsed = parsed
         self.layout = QHBoxLayout()
+        self.mode = "category" if parsed.is_category() else "game"
 
         # ---------------------------
         #  Left section (image, data)
@@ -113,16 +104,6 @@ class SlotWidget(QWidget):
         self.info = gui_utils.new_selflabeled_edit(INFO_TOOLTIP, self.parsed.meta.info)
         self.info.textChanged.connect(lambda t: self.do_meta_change(t, "info"))
         fields.append(self.info)
-        if self.mode == "all":
-            self.genre = gui_utils.new_selflabeled_edit("Genre", arduparsed.genre)
-            fields.append(self.genre)
-            self.url = gui_utils.new_selflabeled_edit("Url", arduparsed.url)
-            fields.append(self.url)
-            self.sourceurl = gui_utils.new_selflabeled_edit("Source Code Url", arduparsed.sourceUrl)
-            fields.append(self.sourceurl)
-            spacer = QWidget()
-            leftlayout.addWidget(spacer)
-            leftlayout.setStretchFactor(spacer, 99)
         
         self.category_bigtitle = None
 
@@ -151,11 +132,11 @@ class SlotWidget(QWidget):
 
     # Update the metadata label for this unit with whatever new information is stored locally
     def update_metalabel(self):
-        if self.mode == "category": #self.parsed.is_category():
+        if self.mode == "category":
             self.meta_label.setText("Category ↓")
         else:
             self.meta_label.setText(f"{len(self.parsed.program_raw)}  |  {len(self.parsed.data_raw)}  |  {len(self.parsed.save_raw)}")
-            if len(self.parsed.data_raw) or len(self.parsed.save_raw):
+            if self.parsed.fx_enabled():
                 self.leftwidget.setToolTip("FX-Enabled title")
                 self.leftwidget.setStyleSheet(f"#leftwidget {{ {FX_STYLE} }}")
             else:
@@ -183,13 +164,9 @@ class SlotWidget(QWidget):
     
     # Do a bit more work and get a computed arduboy file. Only really useful when this widget is used as
     # specifically an arduboy package editor
-    def compute_arduboy(self):
+    def compute_arduboy(self, device: str):
         slot = self.get_slot_data()
-        ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
-        ardparsed.date = datetime.datetime.utcnow().isoformat()
-        ardparsed.genre = self.genre.text()
-        ardparsed.url = self.url.text()
-        ardparsed.sourceUrl = self.sourceurl.text()
+        ardparsed = arduboy.shortcuts.arduboy_from_slot(slot, device)
         return ardparsed
     
     def select_program(self):
