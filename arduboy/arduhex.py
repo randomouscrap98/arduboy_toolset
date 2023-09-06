@@ -22,20 +22,33 @@ from PIL import Image
 """Number of default bytes per record when writing a .hex file"""
 BYTES_PER_RECORD = 16
 CATERINA_PAGE = 224
+DEFAULT_SCHEMA = 4  # Schema version for .arduboy package info.json
+
+DEFAULT_CARTIMAGE = "cart.png"
+INFO_FILE = "info.json"
 
 DEVICE_ARDUBOY = "Arduboy"
 DEVICE_ARDUBOYFX = "ArduboyFX"
 DEVICE_ARDUBOYMINI = "ArduboyMini"
-DEVICE_UNKNOWN = "Unknown"
+
+DEVICE_DEFAULT = DEVICE_ARDUBOY
 
 
 @dataclass
 class ArduboyBinary:
     """A single "binary" field from a .arduboy file"""
     device: str = field(default="")
-    rawhex: str = field(default="")
+    hex_raw: str = field(default="")
     data_raw: bytearray = field(default_factory=lambda:bytearray())
     save_raw: bytearray = field(default_factory=lambda:bytearray())
+    cartImage: Image = field(default=None)
+
+@dataclass
+class ArduboyContributor:
+    """One contributor on a project. Most fields are optional, other than the name"""
+    name: str = field()
+    contributions: List[str] = field(default_factory=lambda: [])
+    urls: List[str] = field(default_factory=lambda: [])
 
 
 @dataclass
@@ -47,23 +60,17 @@ class ArduboyParsed:
     original_filename: str
 
     binaries: List[ArduboyBinary] = field(default_factory=lambda: [])
+    contributors: List[ArduboyContributor] = field(default_factory=lambda: [])
 
-    # I believe all of this could be stored in a .arduboy file.
-    # TODO: go research the format of arduboy zip files!
+    # Some of the more "required" fields
     title: str = field(default="")
     version: str = field(default="")
     developer: str = field(default="")
     info: str = field(default="")
-    image: Image = field(default=None)
 
     # Some optional fields
     date : str = field(default=None)
     genre : str = field(default=None)
-    publisher : str = field(default=None)
-    idea : str = field(default=None)
-    code : str = field(default=None)
-    art : str = field(default=None)
-    sound : str = field(default=None)
     url : str = field(default=None)
     sourceUrl : str = field(default=None)
     email : str = field(default=None)
@@ -85,11 +92,6 @@ class ArduboyParsed:
         func(info, "version")
         func(info, "genre")
         func(info, "date")
-        func(info, "publisher")
-        func(info, "idea")
-        func(info, "code")
-        func(info, "art")
-        func(info, "sound")
         func(info, "url")
         func(info, "sourceUrl")
         func(info, "email")
@@ -133,12 +135,12 @@ def read_any(filepath: str) -> ArduboyParsed:
     else:
         raise Exception(f"Unknown file format: {path.suffix}")
 
-def read_hex(filepath: str, device: str = DEVICE_UNKNOWN) -> ArduboyParsed:
+def read_hex(filepath: str, device: str = DEVICE_DEFAULT) -> ArduboyParsed:
     """Read a single hex file as a full ArduboyParsed object. Most fields will be unset"""
     logging.debug(f"Reading data from hex file: {filepath}")
     result = ArduboyParsed(Path(filepath).stem)
     with open(filepath,"r") as f:
-        binary = ArduboyBinary(device = device, rawhex = f.read())
+        binary = ArduboyBinary(device = device, data_raw = f.read())
         result.binaries.append(binary)
     return result
 
@@ -157,39 +159,51 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                 extract_file = os.path.join(temp_dir, fn)
                 logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
                 return extract_file
-            extract_file = extract("info.json")
+            def extract_image(fn): # Simple function to get a parsed PIL.Image from the zip
+                extract_file = extract(fn)
+                with Image.open(extract_file) as img:
+                    return img.copy() # This seems stupid, sorry
+            extract_file = extract(INFO_FILE)
             info = demjson3.decode_file(extract_file, encoding="utf-8", strict=False)
-            result.fill_with_info(info)
+            result.fill_with_info(info) # Fills in all the boring easy fields
+            try:
+                default_cartimage = extract_image(DEFAULT_CARTIMAGE)
+            except Exception as ex:
+                logging.debug("No default cart image found")
+                default_cartimage = None
+            sversion = info["schemaVersion"] if "schemaVersion" in info else None
+            if sversion == 3:
+                key_program = "filename"
+                key_data = "flashdata"
+                key_save = "flashsave"
+            else:
+                key_program = "program"
+                key_data = "flashData"
+                key_save = "flashSave"
             # Now we must go manually extract some files! Binaries are a complicated business!
             if "binaries" in info:
                 for binary in [x for x in info["binaries"] if "title" in x]:
                     title = binary["title"]
-                    if "filename" not in binary:
+                    if key_program not in binary:
                         raise Exception(f"No filename set for binary '{title}', can't parse arduboy archive!")
                     if "device" not in binary:
                         raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
                     binresult = ArduboyBinary(binary["device"])
-                    with open(extract(binary["filename"]),"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
-                        binresult.rawhex = f.read()
-                    if "flashdata" in binary:
-                        with open(extract(binary["flashdata"]), "rb") as f:
+                    with open(extract(binary[key_program]),"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
+                        binresult.hex_raw = f.read()
+                    if key_data in binary:
+                        with open(extract(binary[key_data]), "rb") as f:
                             binresult.data_raw = f.read()
-                    if "flashsave" in binary:
-                        with open(extract(binary["flashsave"]), "rb") as f:
+                    if key_save in binary:
+                        with open(extract(binary[key_save]), "rb") as f:
                             binresult.save_raw = f.read()
+                    if "cartImage" in binary:
+                        binresult.cartImage = extract_image(binary["cartImage"])
+                    elif default_cartimage:
+                        binresult.cartImage = default_cartimage.copy()
                     result.binaries.append(binresult)
             if len(result.binaries) == 0:
                 raise Exception(f"No usable binaries found in arduboy file {filepath}")
-            # And now to get data which isn't described in the info.json
-            for filename in zip_ref.namelist():
-                if filename.lower() != "banner.png" and ((filename.lower().endswith(".png") and not result.image) or filename.lower() == "title.png"):
-                    try:
-                        extract_file = extract(filename)
-                        # NOTE: we don't resize the image, since we don't know what people want to do with it!
-                        with Image.open(extract_file) as img:
-                            result.image = img.copy() # Image.open(extract_file)  # pilimage_titlescreen(Image.open(extract_file))
-                    except Exception as ex:
-                        logging.warning(f"Couldn't load title image: {ex} (ignoring)")
     return result
 
 
@@ -203,28 +217,32 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
         files = []
         # First, let's create the object that will be json later. We may modify it!
         info = { 
-            "schemaVersion" : 3, 
+            "schemaVersion" : DEFAULT_SCHEMA, 
             "binaries" : [], 
         }
-        ard_parsed.fill_info(info)
+        ard_parsed.fill_info(info) # All the easy info we don't have to worry about
         # Make SURE there is a title, even though fill_info sets it if it exists!
         info["title"] = ard_parsed.title or ard_parsed.original_filename or Path(filepath).stem 
-        # Write the title image
-        files.append(os.path.join(tempdir, "title.png"))
-        ard_parsed.image.save(files[-1])
         # Next, write all the binaries
         for binary in ard_parsed.binaries:
-            bindata = { "device" : binary.device or DEVICE_UNKNOWN }
-            bindata["title"] = info["title"] + "_" + bindata["device"]
+            bindata = { "device" : binary.device or DEVICE_DEFAULT }
+            bindata["title"] = info["title"] + " - " + bindata["device"]
+            def set_file_field(field, nameappend):
+                bindata[field] = slugify.slugify(bindata["title"]) + nameappend
+                files.append(os.path.join(tempdir, bindata[field]))
+                return files[-1]
             def write_bin(data, field, nameappend, mode):
                 if data and len(data) > 0:
-                    bindata[field] = slugify.slugify(bindata["title"]) + nameappend
-                    files.append(os.path.join(tempdir, bindata[field]))
-                    with open(files[-1], mode) as f:
+                    filename = set_file_field(field, nameappend)
+                    with open(filename, mode) as f:
                         f.write(data)
-            write_bin(binary.rawhex, "filename", ".hex", "w")
+            write_bin(binary.hex_raw, "filename", ".hex", "w")
             write_bin(binary.data_raw, "flashdata", "_data.bin", "wb")
             write_bin(binary.save_raw, "flashsave", "_save.bin", "wb")
+            # Write the title image
+            if binary.cartImage:
+                filename = set_file_field("cartImage", "_cartimage.png")
+                binary.cartImage.save(filename)
             info["binaries"].append(bindata)
         # Finally, write the info.json file
         files.append(os.path.join(tempdir, "info.json"))

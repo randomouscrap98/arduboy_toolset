@@ -1,7 +1,7 @@
 <h1>Frequently Asked Questions on Arduboy</h1>
 
 
-<h2>Terms</h2>
+<h2>Common terms</h2>
 
 <h3>What is a "sketch"?</h3>
 <p>
@@ -32,6 +32,14 @@
     Arduino is an open-source hardware and software platform + company. They provide inexpensive, off-the-shelf components
     using simple RISC (reduced instruction set computer) architectures to build small computing platforms, often used for
     robotics or other interesting small-scale computing requirements. Or in this case, to make fun 8-bit gaming consoles.
+    You can read more about it <a href="https://en.wikipedia.org/wiki/Arduino">here (Wikipedia)</a>
+</p>
+
+<h3>What is "FX"?</h3>
+<p>
+    It's just a monicker for a modchip created by the community and then sold officially to upgrade the original
+    Arduboy to have much more flash memory. Newer Arduboys simply included this chip by default, so those are 
+    now "Arduboy FX".
 </p>
 
 
@@ -62,7 +70,45 @@
 </p>
 
 
-<h2>Programs</h2>
+<h3>What do I need to connect my Arduboy to the computer?</h3>
+<p>
+    Nothing other than a cable and the software you want to use with it. The Arduino IDE is not
+    required to communicate with your Arduboy; it uses a basic protocol that anyone can use 
+    over the standard COM/Serial interface.
+</p>
+
+<h3>What is this "SSD1306"?</h3>
+<p>
+    It's simply the parts number for the OLED screen used on the official Arduboy. You may see 
+    references to it throughout the community, as people try to build their own Arduboys.
+</p>
+
+<h3>What is "SSD1309"?</h3>
+<p>
+    It's the parts number for a different OLED screen that's often used for DIY Arduboys. 
+    It requires slightly different code to set up, so many programs offer a simple patch to 
+    support these screens. If you have an official Arduboy, whether original, FX, or Mini, 
+    you don't have to worry about that patch.
+</p>
+
+<h3>What is "Leonardo"?</h3>
+<p>
+    It's simply the codename for a set of Arduino boards. An Arduino Leonardo is used as the
+    basis for Arduboy; it includes the microprocessor and various headers for stuff like a
+    screen. If you wanted to build your own, you could buy an Arduino Leonardo
+    and wire everything up yourself!
+</p>
+
+<h3>What is "ATmega32"?</h3>
+<p>
+    It's a specific "off the shelf" microcontroller that's used in some Arduino boards, such
+    as the Arduino Leonardo used in Arduboy. It comes in several variants; only one is used
+    in the official Arduboy: ATmega32U4. It has the 8-bit processor, 32Kib flash memory, 
+    2.5Kib RAM, and 1Kib EEPROM all in one package.
+</p>
+
+
+<h2>Programs/Software</h2>
 
 <h3>What is an FX-enabled game?</h3>
 <p>
@@ -81,6 +127,35 @@
 <p>
     FX functionality is different between Arduboy FX + Arduboy Mini, so games which use this
     must compile separate programs for each of those devices.
+</p>
+
+<h3>What are .hex files?</h3>
+<p>
+    .hex files are compiled Arduboy/Arduino programs. You upload these to your arduboy, or put them into
+    a flashcart. They are just text files filled with hexadecimal.
+</p>
+
+<h3>What are .ino files?</h3>
+<p>
+    .ino files are Arduboy/Arduino C++ code files. Programmers start a sketch by creating a main .ino file
+    to house their game/program logic. These must be compiled before being put onto a device, as it's just code.
+</p>
+
+<h3>What are .arduboy files?</h3>
+<p>
+    .arduboy files are package files containing all the requisite data for an Arduboy program, along with 
+    information about the authors and some images. They are highly useful for distributing Arduboy games,
+    as some games require multiple files, and you can include multiple versions of your games (one for each 
+    device type). They are simply renamed .zip files with an "info.json" file inside to describe the files 
+    and package; you can extract them using any zip extractor. This program can read and write .arduboy files.
+</p>
+
+<h3>What is "AVR"?</h3>
+<p>
+    AVR is a processor architecture, kind of like ARM (but NOT ARM). It is the architecture used in a huge 
+    variety of microcontrollers. It uses a "Modified Harvard Architecture" 8-bit RISC instruction set,
+    which basically means it is a very small amount of instructions that do a very small amount of simple 
+    things. You can read more about it <a href="https://en.wikipedia.org/wiki/AVR_microcontrollers">here (Wikipedia)</a>.
 </p>
 
 

@@ -75,6 +75,9 @@ class TestArduhex(unittest.TestCase):
                     makebytearray(4096)
                 )
             ],
+            [
+
+            ],
             "Hecking Game",
             "0.6.8_r1",
             "yomdor",
@@ -82,11 +85,6 @@ class TestArduhex(unittest.TestCase):
             arduboy.image.bin_to_pilimage(makebytearray(SCREEN_BYTES)),
             "12/18/2001",
             "Action",
-            "pubma",
-            "john",
-            "cody",
-            "michael",
-            "price",
             "https://wow.nothing.com/hecking_game",
             "https://github.whatever/git/gitagain/git/tig/git/hecking_game",
             "no@no.com",

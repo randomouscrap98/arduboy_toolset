@@ -29,18 +29,16 @@ def new_parsed_slot_from_category(title: str, info : str = "", image : Image = N
         arduboy.fxcart.FxSlotMeta(title, "", "", info)
     )
 
-# TODO: this function is very important but you now have to choose which binary to use! How will that work??
-# Just a simple parameter passed in?
-# Given a parsed arduhex file, generate a reasonable slot file
-# def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed) -> arduboy.fxcart.FxParsedSlot:
-#     return arduboy.fxcart.FxParsedSlot(
-#         0, # Might not matter
-#         arduboy.image.pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
-#         arduboy.arduhex.parse(parsed).flash_data_min(),
-#         parsed.data_raw,
-#         parsed.save_raw,
-#         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
-#     )
+# Given a parsed arduhex file, generate a reasonable slot file. You MUST specify which binary should be used!
+def new_parsed_slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed, binary: arduboy.arduhex.ArduboyBinary) -> arduboy.fxcart.FxParsedSlot:
+    return arduboy.fxcart.FxParsedSlot(
+        0, # Might not matter
+        arduboy.image.pilimage_to_bin(parsed.image) if parsed.image else bytearray(SCREEN_BYTES), # MUST BE none for things to know there's no image!
+        arduboy.arduhex.analyze_sketch(arduboy.arduhex.hex_to_bin(binary.rawhex)).trimmed_data,
+        binary.data_raw,
+        binary.save_raw,
+        arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.developer, parsed.info)
+    )
 
 # TODO: this will require the same treatment, where the correct binary must be generated! By that I just 
 # mean the proper device must be set
