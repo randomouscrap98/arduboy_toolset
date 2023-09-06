@@ -570,13 +570,13 @@ class CartWindow(QMainWindow):
             # Try to find a binary with the desired device.
             binaries = [ b for b in parsed.binaries if arduboy.arduhex.device_allowed(self.device_select.currentText(), b.device)]
             if len(binaries) == 0:
-                raise Exception(f"Couldn't find any binaries suitable for your device: {self.device_select.currentText()}")
+                raise Exception(f"Couldn't find any binaries in '{parsed.original_filename}' suitable for your device: {self.device_select.currentText()}")
             elif len(binaries) > 1:
                 for i,b in enumerate(binaries):
                     b.title = f"({i + 1}) - {b.title}"
                 dialog = widget_combomessage.ComboDialog(
                     "Choose a binary", 
-                    "There are multiple binaries available for your device in this arduboy package. Please pick the one you want. If unsure, pick the first.",
+                    f"There are multiple binaries available for your device in arduboy package '{parsed.original_filename}'.\nPlease pick the one you want. If unsure, pick the first.",
                     [b.title for b in binaries]
                 )
                 result = dialog.exec()

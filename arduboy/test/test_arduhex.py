@@ -20,6 +20,11 @@ class TestArduhex(unittest.TestCase):
         self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOY, arduboy.arduhex.DEVICE_ARDUBOYMINI))
         self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYMINI, arduboy.arduhex.DEVICE_ARDUBOYFX))
         self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYFX, arduboy.arduhex.DEVICE_ARDUBOYMINI))
+    
+    def test_empty_arduhex(self):
+        empty = arduboy.arduhex.empty_parsed_arduboy()
+        self.assertEqual(len(empty.binaries), 0)
+        self.assertEqual(len(empty.contributors), 0)
 
     def test_read_hex(self):
         result = arduboy.arduhex.read_hex(TESTHEX_PATH)
