@@ -549,8 +549,8 @@ class CartWindow(QMainWindow):
             raise Exception("No slots to export!")
         filepath = QFileDialog.getExistingDirectory(self, "Export folder") # (self, "New Cart File", "newcart.bin", constants.BIN_FILEFILTER)
         if filepath:
-            def do_work(repprog, repstatus):
-                utils.export_slots_as_arduboy(slots, filepath, repprog)
+            def do_work(repprog, _):
+                utils.export_slots_as_arduboy(slots, self.device_select.currentText(), filepath, repprog)
             dialog = widget_progress.do_progress_work(do_work, "Export slots as .arduboy", simple = True)
             debug_actions.global_debug.add_action_str(f"Exported slots as .arduboy")
 
@@ -639,7 +639,7 @@ class CartWindow(QMainWindow):
         if cslot:
             filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as hex", utils.get_meta_backup_filename(cslot.meta, "hex"), constants.HEX_FILEFILTER)
             if filepath:
-                hexstring = arduboy.arduhex.unparse(cslot.program_raw)
+                hexstring = arduboy.common.bin_to_hex(cslot.program_raw)
                 with open(filepath, "w") as f:
                     f.write(hexstring)
                 debug_actions.global_debug.add_action_str(f"Saved slot as hex for: {cslot.meta.title}")
@@ -654,8 +654,8 @@ class CartWindow(QMainWindow):
             filepath, _ = QFileDialog.getSaveFileName(self, "Save slot as .arduboy", utils.get_meta_backup_filename(cslot.meta, "arduboy"), constants.ARDUBOY_FILEFILTER)
             if filepath:
                 # Need to convert slot back to arduboy parsed and then write
-                ardparsed = arduboy.shortcuts.arduboy_from_slot(cslot)
-                arduboy.arduhex.write(ardparsed, filepath)
+                ardparsed = arduboy.shortcuts.arduboy_from_slot(cslot, self.device_select.currentText())
+                arduboy.arduhex.write_arduboy(ardparsed, filepath)
             debug_actions.global_debug.add_action_str(f"Wrote arduboy file for: {cslot.meta.title}")
         else:
             raise Exception("No selected slot!")

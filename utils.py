@@ -104,7 +104,7 @@ def make_titlescreen_from_slot(slot: arduboy.fxcart.FxParsedSlot):
 def export_slots_name(slot, number):
     return str(number).zfill(EXPORT_SLOTS_DIGITS) + "_" + slugify.slugify(slot.meta.title)
 
-def export_slots_as_arduboy(slots: List[arduboy.fxcart.FxParsedSlot], folderpath, report_progress):
+def export_slots_as_arduboy(slots: List[arduboy.fxcart.FxParsedSlot], device: str, folderpath, report_progress):
     logging.debug(f"Exporting {len(slots)} slots as a bunch of arduboy files to {folderpath}")
     if not os.path.isdir(folderpath):
         raise Exception(f"Folder {folderpath} does not exist!")
@@ -122,7 +122,7 @@ def export_slots_as_arduboy(slots: List[arduboy.fxcart.FxParsedSlot], folderpath
             demjson3.encode_to_file(os.path.join(current_path, "category.json"), data, compactly = False)
         else:
             program += 1
-            ardparsed = arduboy.shortcuts.arduboy_from_slot(slot)
-            arduboy.arduhex.write(ardparsed, os.path.join(current_path, export_slots_name(slot, program) + ".arduboy"))
+            ardparsed = arduboy.shortcuts.arduboy_from_slot(slot, device)
+            arduboy.arduhex.write_arduboy(ardparsed, os.path.join(current_path, export_slots_name(slot, program) + ".arduboy"))
         if report_progress:
             report_progress(index + 1, len(slots))

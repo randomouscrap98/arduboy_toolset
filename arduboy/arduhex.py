@@ -254,29 +254,6 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
                 zipf.write(fp, arcname=os.path.basename(fp))
 
 
-def hex_to_bin(rawhex: str) -> bytearray:
-    """Convert raw hex string (intel hex format) to raw bytearray
-    
-    Returns:
-        Full sketch binary (with padding, so 32kb)
-    """
-    buffer = StringIO(rawhex)
-    ihex = IntelHex(buffer)
-    return bytearray(ihex.tobinarray(start=0, size=FLASH_SIZE))
-
-def bin_to_hex(rawbin: bytearray, recordsize: int = 16) -> str:
-    """Convert raw bytearray to intel hex string.
-    
-    Returns:
-        A string representing the hex file, completely unchanged
-    """
-    buffer = BytesIO(rawbin)
-    ihex = IntelHex()
-    ihex.loadbin(buffer)
-    outbuffer = StringIO()
-    ihex.write_hex_file(outbuffer, byte_count=recordsize)
-    return outbuffer.getvalue()
-
 
 @dataclass
 class SketchAnalysis:

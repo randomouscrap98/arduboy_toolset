@@ -6,6 +6,8 @@ be tied to FX, Arduhex, images, devices, patches, serial, etc. It is only
 for self-contained, simple functions which are helpful in any Arduboy task.
 """
 
+from io import BytesIO, StringIO
+from intelhex import IntelHex
 from .constants import *
 
 def pad_data(data: bytearray, multsize, pad = b'\xFF'):
@@ -63,3 +65,26 @@ def count_unused_pages(data: bytearray):
             break
     unused_pages = (len(data) - last_FF_index) // FX_PAGESIZE
     return unused_pages
+
+def hex_to_bin(rawhex: str) -> bytearray:
+    """Convert raw hex string (intel hex format) to raw bytearray
+    
+    Returns:
+        Binary from hex, exactly as read
+    """
+    buffer = StringIO(rawhex)
+    ihex = IntelHex(buffer)
+    return bytearray(ihex.tobinarray()) # start=0, size=FLASH_SIZE))
+
+def bin_to_hex(rawbin: bytearray, recordsize: int = 16) -> str:
+    """Convert raw bytearray to intel hex string.
+    
+    Returns:
+        A string representing the hex file, completely unchanged
+    """
+    buffer = BytesIO(rawbin)
+    ihex = IntelHex()
+    ihex.loadbin(buffer)
+    outbuffer = StringIO()
+    ihex.write_hex_file(outbuffer, byte_count=recordsize)
+    return outbuffer.getvalue()

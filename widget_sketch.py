@@ -63,7 +63,7 @@ class SketchWidget(QWidget):
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
             ardparsed = arduboy.arduhex.read_hex(filepath)
-            bindata = arduboy.arduhex.hex_to_bin(ardparsed.binaries[0].hex_raw)
+            bindata = arduboy.common.hex_to_bin(ardparsed.binaries[0].hex_raw)
             fx_data = None
             gui_utils.screen_patch(bindata, self.ssd1309_cb, self.contrast_cb, self.contrast_picker)
             if self.microled_cb.isChecked():
@@ -97,7 +97,7 @@ class SketchWidget(QWidget):
             s_port = device.connect_serial()
             sketchdata = arduboy.serial.backup_sketch(s_port, self.includebootloader_cb.isChecked())
             analysis = arduboy.arduhex.analyze_sketch(sketchdata)
-            hexdata = arduboy.arduhex.bin_to_hex(analysis.trimmed_data)
+            hexdata = arduboy.common.bin_to_hex(analysis.trimmed_data)
             repstatus("Writing sketch to filesystem...")
             with open (filepath,"w") as f:
                 f.write(hexdata)

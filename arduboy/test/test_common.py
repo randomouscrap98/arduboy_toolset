@@ -2,6 +2,8 @@ import unittest
 from arduboy.common import *
 from arduboy.constants import *
 
+from .common import *
+
 class TestCommon(unittest.TestCase):
 
     def test_pad_data_exact(self):
@@ -96,5 +98,26 @@ class TestCommon(unittest.TestCase):
         data += b'\xFF' * (FX_PAGESIZE * 2 + 1)
         self.assertEqual(2, count_unused_pages(data))
 
+    def test_hex_to_bin(self):
+        with open(TESTHEX_PATH, "r") as f:
+            hexdata = f.read()
+        bindata = hex_to_bin(hexdata)
+        self.assertTrue(len(bindata) > 8000)
+        # We'll test other aspects of this binary using the analysis tests
+    
+    def test_bin_to_hex_transparent(self):
+        with open(TESTHEX_PATH, "r") as f:
+            hexdata = f.read()
+        bindata = hex_to_bin(hexdata)
+        newhexdata = bin_to_hex(bindata)
+        # analysis = arduboy.arduhex.analyze_sketch(bindata)
+        # newhexdata = arduboy.arduhex.bin_to_hex(analysis.trimmed_data)
+        # This is funny: we're only comparing everything up to the last two lines in the original file. This works out
+        # to a safety buffer of 48 characters: 13 for the last line, and UP TO 45 chars for the second to last. This may
+        # not be the real size, but it's the safest amount
+        # complength = len(hexdata) - 48
+        self.assertEqual(newhexdata, hexdata) # newhexdata[:complength], hexdata[:complength])
+
+    
 if __name__ == '__main__':
     unittest.main()

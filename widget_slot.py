@@ -173,8 +173,9 @@ class SlotWidget(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy Hex File", "", constants.HEX_FILEFILTER)
         if file_path:
             parsed = arduboy.arduhex.read_hex(file_path)
-            bindata = arduboy.arduhex.hex_to_bin(parsed.binaries[0].hex_raw)
+            bindata = arduboy.common.hex_to_bin(parsed.binaries[0].hex_raw)
             analysis = arduboy.arduhex.analyze_sketch(bindata)
+            # Trim just in case
             self.parsed.program_raw = analysis.trimmed_data
             self.update_metalabel()
             self.onchange.emit()

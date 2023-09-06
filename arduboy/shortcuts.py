@@ -32,7 +32,8 @@ def slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed, binary: arduboy.ard
     return arduboy.fxcart.FxParsedSlot(
         0, # Might not matter
         arduboy.image.pilimage_to_bin(binary.cartImage) if binary.cartImage else bytearray(SCREEN_BYTES),
-        arduboy.arduhex.analyze_sketch(arduboy.arduhex.hex_to_bin(binary.hex_raw)).trimmed_data,
+        # Always trim data just in case
+        arduboy.arduhex.analyze_sketch(arduboy.common.hex_to_bin(binary.hex_raw)).trimmed_data,
         binary.data_raw,
         binary.save_raw,
         arduboy.fxcart.FxSlotMeta(parsed.title if parsed.title else parsed.original_filename, parsed.version, parsed.author, parsed.description)
@@ -44,7 +45,7 @@ def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot, device: str) -> arduboy
         [
             arduboy.arduhex.ArduboyBinary(
                 device if slot.fx_enabled() else arduboy.arduhex.DEVICE_ARDUBOY,
-                arduboy.arduhex.bin_to_hex(arduboy.arduhex.analyze_sketch(slot.program_raw).trimmed_data),
+                arduboy.common.bin_to_hex(arduboy.arduhex.analyze_sketch(slot.program_raw).trimmed_data),
                 slot.data_raw,
                 slot.save_raw,
                 arduboy.image.bin_to_pilimage(slot.image_raw)
