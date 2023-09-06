@@ -40,11 +40,13 @@ def slot_from_arduboy(parsed: arduboy.arduhex.ArduboyParsed, binary: arduboy.ard
     )
 
 def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot, device: str) -> arduboy.arduhex.ArduboyParsed:
+    bindevice = device if slot.fx_enabled() else arduboy.arduhex.DEVICE_ARDUBOY
     return arduboy.arduhex.ArduboyParsed(
         "unknown.arduboy",
         [
             arduboy.arduhex.ArduboyBinary(
-                device if slot.fx_enabled() else arduboy.arduhex.DEVICE_ARDUBOY,
+                bindevice,
+                "", # Just dont trust the titles. TODO: May change later
                 arduboy.common.bin_to_hex(arduboy.arduhex.analyze_sketch(slot.program_raw).trimmed_data),
                 slot.data_raw,
                 slot.save_raw,

@@ -112,7 +112,7 @@ class PackageWidget(QWidget):
         # if gui_utils.yes_no("Confirm load package", "Are you sure you want to load a new package?", self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
         if file_path:
-            parsed = arduboy.arduhex.read(file_path)
+            parsed = arduboy.arduhex.read_any(file_path)
             self.replace_slot(self.make_slot_widget(parsed))
             debug_actions.global_debug.add_action_str(f"Loaded arduboy package into editor: {file_path}")
     

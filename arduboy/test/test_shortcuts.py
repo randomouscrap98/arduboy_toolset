@@ -44,6 +44,7 @@ class TestShortcuts(unittest.TestCase):
         with open(TESTHEX_PATH, "r") as f:
             binary = arduboy.arduhex.ArduboyBinary(
                 arduboy.arduhex.DEVICE_ARDUBOYFX,
+                "Some Title",
                 f.read(),
                 makebytearray(10000),
                 makebytearray(4096),

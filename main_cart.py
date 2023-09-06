@@ -8,6 +8,7 @@ import arduboy.image
 from arduboy.constants import *
 from arduboy.common import *
 
+import widget_combomessage
 import widget_progress
 import constants
 import utils
@@ -22,7 +23,7 @@ import sys
 import time
 
 from typing import List
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog, QComboBox
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog, QComboBox, QDialog
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
@@ -565,9 +566,27 @@ class CartWindow(QMainWindow):
         if not file_path:
             file_path, _ = QFileDialog.getOpenFileName(self, "Open Arduboy File", "", constants.ARDUHEX_FILEFILTER)
         if file_path:
-            parsed = arduboy.arduhex.read(file_path)
-            # TODO: FIGURE OUT BINARY
-            newgame = SlotWidget(arduboy.shortcuts.slot_from_arduboy(parsed))
+            parsed = arduboy.arduhex.read_any(file_path)
+            # Try to find a binary with the desired device.
+            binaries = [ b for b in parsed.binaries if arduboy.arduhex.device_allowed(self.device_select.currentText(), b.device)]
+            if len(binaries) == 0:
+                raise Exception(f"Couldn't find any binaries suitable for your device: {self.device_select.currentText()}")
+            elif len(binaries) > 1:
+                for i,b in enumerate(binaries):
+                    b.title = f"({i + 1}) - {b.title}"
+                dialog = widget_combomessage.ComboDialog(
+                    "Choose a binary", 
+                    "There are multiple binaries available for your device in this arduboy package. Please pick the one you want. If unsure, pick the first.",
+                    [b.title for b in binaries]
+                )
+                result = dialog.exec()
+                if result:
+                    binary = [b for b in binaries if b.title == dialog.combo_box.currentText()][0]
+                else:
+                    raise Exception("No binary chosen, not importing package")
+            else:
+                binary = binaries[0]
+            newgame = SlotWidget(arduboy.shortcuts.slot_from_arduboy(parsed, binary))
             self.insert_slotwidget(newgame)
             debug_actions.global_debug.add_action_str(f"Added game to cart: {parsed.title}")
     

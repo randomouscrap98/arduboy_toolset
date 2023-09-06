@@ -34,11 +34,16 @@ DEVICE_ARDUBOYMINI = "ArduboyMini"
 DEVICE_DEFAULT = DEVICE_ARDUBOY
 ALLOWED_DEVICES = [ DEVICE_ARDUBOY, DEVICE_ARDUBOYFX, DEVICE_ARDUBOYMINI ]
 
+def device_allowed(real_device: str, test_device: str) -> bool:
+    """Determine whether the given actual device is allowed to use binaries from the given test device"""
+    return test_device.lower() == DEVICE_ARDUBOY.lower() or real_device.lower() == test_device.lower()
+
 
 @dataclass
 class ArduboyBinary:
     """A single "binary" field from a .arduboy file"""
     device: str = field(default="")
+    title: str = field(default="")
     hex_raw: str = field(default="")
     data_raw: bytearray = field(default_factory=lambda:bytearray())
     save_raw: bytearray = field(default_factory=lambda:bytearray())
@@ -132,7 +137,7 @@ def read_hex(filepath: str, device: str = DEVICE_DEFAULT) -> ArduboyParsed:
     logging.debug(f"Reading data from hex file: {filepath}")
     result = ArduboyParsed(Path(filepath).stem)
     with open(filepath,"r") as f:
-        binary = ArduboyBinary(device = device, hex_raw = f.read())
+        binary = ArduboyBinary(device = device, hex_raw = f.read(), title = result.original_filename)
         result.binaries.append(binary)
     return result
 
@@ -164,7 +169,7 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                 logging.debug("No default cart image found")
                 default_cartimage = None
             sversion = info["schemaVersion"] if "schemaVersion" in info else None
-            if sversion == 3:
+            if sversion < 4:
                 key_program = "filename"
                 key_data = "flashdata"
                 key_save = "flashsave"
@@ -188,7 +193,7 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                         raise Exception(f"No {key_program} set for binary '{title}', can't parse arduboy archive!")
                     if "device" not in binary:
                         raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
-                    binresult = ArduboyBinary(binary["device"])
+                    binresult = ArduboyBinary(binary["device"], title)
                     with open(extract(binary[key_program]),"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
                         binresult.hex_raw = f.read()
                     if key_data in binary:
@@ -227,7 +232,7 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
         # Next, write all the binaries
         for binary in ard_parsed.binaries:
             bindata = { "device" : binary.device or DEVICE_DEFAULT }
-            bindata["title"] = info["title"] + " - " + bindata["device"]
+            bindata["title"] = binary.title or (info["title"] + " - " + bindata["device"])
             def set_file_field(field, nameappend):
                 bindata[field] = slugify.slugify(bindata["title"]) + nameappend
                 files.append(os.path.join(tempdir, bindata[field]))

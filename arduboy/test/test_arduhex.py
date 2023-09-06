@@ -12,6 +12,15 @@ from pathlib import Path
 
 class TestArduhex(unittest.TestCase):
 
+    def test_device_allowed(self):
+        self.assertTrue(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOY, arduboy.arduhex.DEVICE_ARDUBOY))
+        self.assertTrue(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYFX, arduboy.arduhex.DEVICE_ARDUBOY))
+        self.assertTrue(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYMINI, arduboy.arduhex.DEVICE_ARDUBOY))
+        self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOY, arduboy.arduhex.DEVICE_ARDUBOYFX))
+        self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOY, arduboy.arduhex.DEVICE_ARDUBOYMINI))
+        self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYMINI, arduboy.arduhex.DEVICE_ARDUBOYFX))
+        self.assertFalse(arduboy.arduhex.device_allowed(arduboy.arduhex.DEVICE_ARDUBOYFX, arduboy.arduhex.DEVICE_ARDUBOYMINI))
+
     def test_read_hex(self):
         result = arduboy.arduhex.read_hex(TESTHEX_PATH)
         self.assertIsNotNone(result)
@@ -22,6 +31,23 @@ class TestArduhex(unittest.TestCase):
         self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_DEFAULT)
         # Nothing else is guaranteed to be set
     
+    def test_read_arduboy_v2(self):
+        # Even with V2 must be able to read them
+        result = arduboy.arduhex.read_arduboy(TESTARDUBOYV2_PATH)
+        self.assertIsNotNone(result)
+        name = Path(TESTARDUBOYV2_PATH).stem
+        self.assertEqual(result.original_filename, name)
+        self.assertTrue(len(result.binaries) > 0, "No binaries read!")
+        self.assertTrue(len(result.binaries[0].hex_raw) > 40000, "Not enough data in hex_raw")
+        self.assertEqual(len(result.binaries[0].data_raw), 0, "Should not be any data!")
+        self.assertEqual(len(result.binaries[0].save_raw), 0, "Should not be any save data!")
+        self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_ARDUBOY)
+        self.assertEqual(result.title, "MicroCity")
+        self.assertEqual(result.author, "James Howard")
+        self.assertEqual(result.version, "1.1")
+        self.assertEqual(result.date, "2018-02-22")
+        self.assertEqual(result.genre, "Misc")
+
     def test_read_arduboy_v3(self):
         # Even with V3 must be able to read them
         result = arduboy.arduhex.read_arduboy(TESTARDUBOYV3_PATH)
@@ -69,6 +95,7 @@ class TestArduhex(unittest.TestCase):
             [
                 arduboy.arduhex.ArduboyBinary(
                     arduboy.arduhex.DEVICE_ARDUBOYFX,
+                    "The title of the binary",
                     "ABC123\nHELLO(THIS IS NOT HEX)",
                     makebytearray(200000),
                     makebytearray(4096),
@@ -76,6 +103,7 @@ class TestArduhex(unittest.TestCase):
                 ),
                 arduboy.arduhex.ArduboyBinary(
                     arduboy.arduhex.DEVICE_ARDUBOY,
+                    "REQUIRED", # If you leave the title out, transparency is ruined. A title is auto-assigned on write
                     "MORE NOT HEX LOL"
                 )
             ],
@@ -101,6 +129,43 @@ class TestArduhex(unittest.TestCase):
         # Apparently, because these are dataclasses, they just have a mega equality comparison anyway. Do we trust it?
         self.assertEqual(parsed, parsed2)
 
+    def test_writearduboy_autotitle(self):
+        tempfile = get_tempfile_name(self._testMethodName, ".arduboy")
+        parsed = arduboy.arduhex.ArduboyParsed(
+            Path(tempfile).stem,
+            [
+                arduboy.arduhex.ArduboyBinary(
+                    arduboy.arduhex.DEVICE_ARDUBOYFX,
+                    "",
+                    "ABC123\nHELLO(THIS IS NOT HEX)"
+                ),
+            ],
+            [ ],
+            "Hecking Game",
+        )
+        arduboy.arduhex.write_arduboy(parsed, tempfile)
+        parsed2 = arduboy.arduhex.read_arduboy(tempfile)
+        self.assertTrue(parsed.title in parsed2.binaries[0].title)
+        self.assertTrue(parsed.binaries[0].device in parsed2.binaries[0].title)
+
+    def test_writearduboy_noautotitle(self):
+        tempfile = get_tempfile_name(self._testMethodName, ".arduboy")
+        parsed = arduboy.arduhex.ArduboyParsed(
+            Path(tempfile).stem,
+            [
+                arduboy.arduhex.ArduboyBinary(
+                    arduboy.arduhex.DEVICE_ARDUBOYFX,
+                    "SOMEGARBO",
+                    "ABC123\nHELLO(THIS IS NOT HEX)"
+                ),
+            ],
+            [ ],
+            "Hecking Game",
+        )
+        arduboy.arduhex.write_arduboy(parsed, tempfile)
+        parsed2 = arduboy.arduhex.read_arduboy(tempfile)
+        self.assertFalse(parsed.title in parsed2.binaries[0].title)
+        self.assertFalse(parsed.binaries[0].device in parsed2.binaries[0].title)
 
 if __name__ == '__main__':
     unittest.main()
