@@ -10,6 +10,9 @@ JUNKFILES_DIR = os.path.join(TESTFILES_DIR,"ignore")
 TESTHEX_FILENAME = "pong.hex"
 TESTHEX_PATH = os.path.join(TESTFILES_DIR, TESTHEX_FILENAME)
 
+TESTARDUBOYV3_FILENAME = "mmfx.arduboy"
+TESTARDUBOYV3_PATH = os.path.join(TESTFILES_DIR, TESTARDUBOYV3_FILENAME)
+
 def get_filesafe_datetime():
     return time.strftime("%Y%m%d-%H%M%S", time.localtime())
 

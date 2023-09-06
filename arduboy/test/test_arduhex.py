@@ -1,4 +1,5 @@
 import unittest
+import logging
 
 import arduboy.arduhex
 import arduboy.image
@@ -20,6 +21,23 @@ class TestArduhex(unittest.TestCase):
         self.assertTrue(len(result.binaries[0].hex_raw) > 20000, "Not enough data in hex_raw")
         self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_DEFAULT)
         # Nothing else is guaranteed to be set
+    
+    def test_read_arduboy_v3(self):
+        # Even with V3 must be able to read them
+        result = arduboy.arduhex.read_arduboy(TESTARDUBOYV3_PATH)
+        self.assertIsNotNone(result)
+        name = Path(TESTARDUBOYV3_PATH).stem
+        self.assertEqual(result.original_filename, name)
+        self.assertTrue(len(result.binaries) > 0, "No binaries read!")
+        self.assertTrue(len(result.binaries[0].hex_raw) > 40000, "Not enough data in hex_raw")
+        self.assertTrue(len(result.binaries[0].data_raw) > 15000, "Not enough data in data_raw")
+        self.assertEqual(len(result.binaries[0].save_raw), 0, "Should not be any save data!")
+        self.assertEqual(result.binaries[0].device, arduboy.arduhex.DEVICE_ARDUBOYFX)
+        self.assertEqual(result.title, "Manic Miner FX")
+        self.assertEqual(result.author, "marggines - smBIT")
+        self.assertEqual(result.version, "1.0")
+        self.assertEqual(result.date, "2023-03-11")
+        self.assertEqual(result.genre, "platform")
     
     def test_hex_to_bin(self):
         with open(TESTHEX_PATH, "r") as f:
