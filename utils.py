@@ -60,7 +60,7 @@ def get_filesafe_datetime():
     return time.strftime("%Y%m%d-%H%M%S", time.localtime())
 
 def get_sketch_backup_filename():
-    return f"sketch-backup-{get_filesafe_datetime()}.bin"
+    return f"sketch-backup-{get_filesafe_datetime()}.hex"
 
 def get_eeprom_backup_filename():
     return f"eeprom-backup-{get_filesafe_datetime()}.bin"

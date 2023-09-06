@@ -78,6 +78,7 @@ def is_caterina(s_port):
 def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
     # Analyze the bindata
     analysis = arduboy.arduhex.analyze_sketch(bindata)
+    logging.debug(f"Info on hex file: {analysis.total_pages} pages, is_caterina: {analysis.overwrites_caterina}")
     # Just like fx flash rejects non-fx chips and bad bootloaders, this one too will reject "bad" bootloader
     if analysis.overwrites_caterina and is_caterina(s_port):
         raise Exception("Upload will likely corrupt the bootloader.")
