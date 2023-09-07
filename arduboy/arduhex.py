@@ -185,6 +185,19 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                     if "urls" in contributor:
                         rescon.urls = list(contributor["urls"])
                     result.contributors.append(rescon)
+            # Convert old contributor fields to the new format
+            for f in ["publisher", "idea", "code", "art", "sound"]:
+                if f in info:
+                    user = info[f]
+                    contribution = f.capitalize()
+                    found = False
+                    for c in result.contributors:
+                        if c.name == user:
+                            c.contributions.append(contribution)
+                            found = True
+                            break
+                    if not found:
+                        result.contributors.append(ArduboyContributor(user, [contribution]))
             # Now we must go manually extract some files! Binaries are a complicated business!
             if "binaries" in info:
                 for binary in [x for x in info["binaries"] if "title" in x]:

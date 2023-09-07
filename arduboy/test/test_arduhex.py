@@ -53,6 +53,23 @@ class TestArduhex(unittest.TestCase):
         self.assertEqual(result.date, "2018-02-22")
         self.assertEqual(result.genre, "Misc")
 
+    def test_read_arduboy_old_contributors(self):
+        # Based on our modified v2, we should also test the field merging.
+        result = arduboy.arduhex.read_arduboy(TESTARDUBOYV2_PATH)
+        self.assertEqual(len(result.contributors), 3)
+        for c in result.contributors:
+            self.assertEqual(len(c.urls), 0)
+            if c.name == "User1":
+                self.assertTrue("Publisher" in c.contributions)
+                self.assertTrue("Code" in c.contributions)
+            elif c.name == "User2":
+                self.assertTrue("Idea" in c.contributions)
+            elif c.name == "User3":
+                self.assertTrue("Sound" in c.contributions)
+                self.assertTrue("Art" in c.contributions)
+            else:
+                raise Exception("Unknown contributor: " + c.name)
+
     def test_read_arduboy_v3(self):
         # Even with V3 must be able to read them
         result = arduboy.arduhex.read_arduboy(TESTARDUBOYV3_PATH)
@@ -172,5 +189,6 @@ class TestArduhex(unittest.TestCase):
         self.assertFalse(parsed.title in parsed2.binaries[0].title)
         self.assertFalse(parsed.binaries[0].device in parsed2.binaries[0].title)
 
+        
 if __name__ == '__main__':
     unittest.main()
