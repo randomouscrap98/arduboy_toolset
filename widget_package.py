@@ -1,6 +1,8 @@
 import arduboy.arduhex
 import arduboy.fxcart
 import arduboy.patch
+import arduboy.image
+import arduboy.common
 
 from arduboy.constants import *
 
@@ -54,25 +56,88 @@ class BinaryWidget(QWidget):
         toprow_layout.addWidget(basicdata_container)
         toprow_layout.setStretchFactor(basicdata_container, 1)
 
-        # -------------- FINAL COMPOSE ---------------
         layout.addWidget(toprow_container)
 
+        # -------------- DATA CONTROLS ----------------
+        def mkdata(basetext, field, default_func, opentitle, filetypes, reader, setextra = None):
+            container = QWidget()
+            container_layout = QHBoxLayout()
+            container_layout.setContentsMargins(0,0,0,0)
+            button = QPushButton()
+            container_layout.addWidget(button)
+            container_layout.setStretchFactor(button, 1)
+            def refresh():
+                length = len(getattr(self, field))
+                button.setText(basetext + (f" - {length} bytes" if length else " - None"))
+            def setdata():
+                file_path, _ = QFileDialog.getOpenFileName(self, opentitle, "", filetypes)
+                if file_path:
+                    setattr(self, field, reader(file_path))
+                    if setextra:
+                        setextra()
+                    refresh()
+            button.clicked.connect(setdata)
+            deletebutton = QPushButton("❌")
+            gui_utils.set_emoji_font(deletebutton)
+            deletebutton.setStyleSheet(f"color: {gui_utils.ERRORCOLOR}")
+            def deletedata():
+                setattr(self, field, default_func())
+                refresh()
+            deletebutton.clicked.connect(deletedata)
+            container_layout.addWidget(deletebutton)
+            container_layout.setStretchFactor(deletebutton, 0)
+            container.setLayout(container_layout)
+            layout.addWidget(container)
+            deletedata() # Might as well set a bunch of stuff
+            return refresh
+        
+        def read_text(fp):
+            with open(fp, "r") as f:
+                return f.read()
+        def read_binary(fp):
+            with open(fp, "rb") as f:
+                return bytearray(f.read())
+        def setdata_extra():
+            unused_pages = arduboy.common.count_unused_pages(self.data_raw)
+            if (unused_pages % (arduboy.fxcart.SAVE_ALIGNMENT // FX_PAGESIZE)) == 0:
+                # Ask if the user wants to create a save out of this
+                if gui_utils.yes_no("Split save section out",
+                                    "The data provided appears to have a save section at the end. This is normal when using the development binary. Do you want to strip the save and add it properly to the slot (recommended)?", 
+                                    self):
+                    self.save_raw = self.data_raw[-unused_pages * FX_PAGESIZE:]
+                    self.data_raw = self.data_raw[:-unused_pages * FX_PAGESIZE]
+                    self.refresh_fxsavetext()
+                    self.refresh_fxdatatext()
+
+        self.refresh_hextext = mkdata(".hex data", "hex_raw", lambda: "", "Open .hex file", constants.HEX_FILEFILTER, read_text)
+        self.refresh_fxdatatext = mkdata("FX data", "data_raw", lambda: bytearray(), "Open FX data file", constants.BIN_FILEFILTER, read_binary, setdata_extra)
+        self.refresh_fxsavetext = mkdata("FX save", "save_raw", lambda: bytearray(), "Open FX save file", constants.BIN_FILEFILTER, read_binary)
+
+        # -------------- FINAL COMPOSE ---------------
         self.setLayout(layout)
     
+
     def get_binary(self) -> arduboy.arduhex.ArduboyBinary:
-        result = arduboy.arduhex.ArduboyBinary(
+        return arduboy.arduhex.ArduboyBinary(
             self.device_select.currentText(),
             self.title_edit.text(),
-            # hex, data, save, cart image
+            self.hex_raw,
+            self.data_raw,
+            self.save_raw,
+            arduboy.image.bin_to_pilimage(self.image_select.image_bytes) if self.image_select.image_bytes else None
         )
-
-        return result
     
     def fill(self, binary: arduboy.arduhex.ArduboyBinary):
         self.title_edit.setText(binary.title)
         self.device_select.setCurrentText(binary.device)
         if binary.cartImage:
             self.image_select.set_image_pil(binary.cartImage)
+        self.hex_raw = binary.hex_raw
+        self.data_raw = binary.data_raw
+        self.save_raw = binary.save_raw
+        self.refresh_hextext()
+        self.refresh_fxdatatext()
+        self.refresh_fxsavetext()
 
 
 class PackageEditor(QWidget):
@@ -228,7 +293,7 @@ class PackageEditor(QWidget):
         for row in range(self.contributors_table.rowCount()):
             contributor = arduboy.arduhex.ArduboyContributor(self.contributors_table.item(row, 0).text())
             def columnsplit(col):
-                raw = self.contributors_table.item(row, 1).text()
+                raw = self.contributors_table.item(row, col).text()
                 return [x.strip() for x in raw.split(",")] if raw else []
             contributor.contributions = columnsplit(1)
             contributor.urls = columnsplit(2)
@@ -266,6 +331,8 @@ class PackageEditor(QWidget):
         for b in package.binaries:
             if b.fx_enabled() and b.device == arduboy.arduhex.DEVICE_ARDUBOY:
                 raise Exception(f"Binary '{b.title}' can't be marked for device '{b.device}', it is FX enabled!")
+            if not b.hex_raw or len(b.hex_raw) == 0:
+                raise Exception("You MUST provide the main .hex file for every binary!")
 
         return package
 

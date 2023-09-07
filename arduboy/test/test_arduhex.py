@@ -69,6 +69,10 @@ class TestArduhex(unittest.TestCase):
                 self.assertTrue("Art" in c.contributions)
             else:
                 raise Exception("Unknown contributor: " + c.name)
+    
+    def test_read_arduboy_v3_blankcontributors(self):
+        result = arduboy.arduhex.read_arduboy(TESTARDUBOYV3_PATH)
+        self.assertEqual(len(result.contributors), 0)
 
     def test_read_arduboy_v3(self):
         # Even with V3 must be able to read them

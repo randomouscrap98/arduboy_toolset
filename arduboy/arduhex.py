@@ -192,6 +192,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
             for f in ["publisher", "idea", "code", "art", "sound"]:
                 if f in info:
                     user = info[f]
+                    if not user:
+                        continue
                     contribution = f.capitalize()
                     found = False
                     for c in result.contributors:
