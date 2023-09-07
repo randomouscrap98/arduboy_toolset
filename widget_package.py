@@ -354,8 +354,8 @@ class PackageWidget(QWidget):
         full_layout = QVBoxLayout()
         self.setLayout(full_layout)
 
-        self.package_editor = PackageEditor()
-        full_layout.addWidget(self.package_editor)
+        self.package_editor = None 
+        self.reset_editor()
         self.prep_editor_layout()
 
         # Controls for saving/loading/etc packages
@@ -382,13 +382,17 @@ class PackageWidget(QWidget):
     
     def reset_editor(self, arduparsed: arduboy.arduhex.ArduboyParsed = None):
         new_editor = PackageEditor()
-        self.layout().replaceWidget(self.package_editor, new_editor)
-        self.package_editor.setParent(None) # Removes it from the interface
+        if self.package_editor:
+            self.layout().replaceWidget(self.package_editor, new_editor)
+            self.package_editor.setParent(None) # Removes it from the interface
+        else:
+            self.layout().addWidget(new_editor)
         if arduparsed:
             new_editor.fill(arduparsed)
+        else:
+            new_editor.add_binary() # Just a convenience maybe? Could be an inconvenience...
         self.package_editor = new_editor
         self.prep_editor_layout()
-        self.package_editor.add_binary() # Just a convenience maybe? Could be an inconvenience...
         
     def do_reset_package(self):
         # Must confirm
