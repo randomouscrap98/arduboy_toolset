@@ -66,9 +66,18 @@ class BinaryWidget(QWidget):
             button = QPushButton()
             container_layout.addWidget(button)
             container_layout.setStretchFactor(button, 1)
+            deletebutton = QPushButton("❌")
+            container_layout.addWidget(deletebutton)
+            container_layout.setStretchFactor(deletebutton, 0)
             def refresh():
                 length = len(getattr(self, field))
                 button.setText(basetext + (f" - {length} bytes" if length else " - None"))
+                if length == 0:
+                    deletebutton.setDisabled(True)
+                    deletebutton.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+                else:
+                    deletebutton.setDisabled(False)
+                    deletebutton.setStyleSheet(f"color: {gui_utils.ERRORCOLOR}")
             def setdata():
                 file_path, _ = QFileDialog.getOpenFileName(self, opentitle, "", filetypes)
                 if file_path:
@@ -77,15 +86,11 @@ class BinaryWidget(QWidget):
                         setextra()
                     refresh()
             button.clicked.connect(setdata)
-            deletebutton = QPushButton("❌")
             gui_utils.set_emoji_font(deletebutton)
-            deletebutton.setStyleSheet(f"color: {gui_utils.ERRORCOLOR}")
             def deletedata():
                 setattr(self, field, default_func())
                 refresh()
             deletebutton.clicked.connect(deletedata)
-            container_layout.addWidget(deletebutton)
-            container_layout.setStretchFactor(deletebutton, 0)
             container.setLayout(container_layout)
             layout.addWidget(container)
             deletedata() # Might as well set a bunch of stuff
@@ -203,7 +208,7 @@ class PackageEditor(QWidget):
 
         self.contributors_table = QTableWidget()
         self.contributors_table.setColumnCount(3)
-        self.contributors_table.setHorizontalHeaderLabels(["Name      ", "Contribution  ", "Urls (comma separated)"])
+        self.contributors_table.setHorizontalHeaderLabels(["Name          ", "Roles            ", "Urls (comma separated)"])
         self.contributors_table.resizeColumnsToContents()
         self.contributors_table.horizontalHeader().setStretchLastSection(True)
         info_layout.addWidget(self.contributors_table)
@@ -244,7 +249,7 @@ class PackageEditor(QWidget):
         rowPosition = self.contributors_table.rowCount()
         self.contributors_table.insertRow(rowPosition)
         if contributor:
-            fields = [contributor.name, ", ".join(contributor.contributions), ", ".join(contributor.urls)]
+            fields = [contributor.name, ", ".join(contributor.roles), ", ".join(contributor.urls)]
         else:
             fields = ["","",""]
         for i, field in enumerate(fields):
@@ -295,7 +300,7 @@ class PackageEditor(QWidget):
             def columnsplit(col):
                 raw = self.contributors_table.item(row, col).text()
                 return [x.strip() for x in raw.split(",")] if raw else []
-            contributor.contributions = columnsplit(1)
+            contributor.roles = columnsplit(1)
             contributor.urls = columnsplit(2)
             result.append(contributor)
         return result

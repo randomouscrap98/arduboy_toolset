@@ -56,7 +56,7 @@ class ArduboyBinary:
 class ArduboyContributor:
     """One contributor on a project. Most fields are optional, other than the name"""
     name: str = field()
-    contributions: List[str] = field(default_factory=lambda: [])
+    roles: List[str] = field(default_factory=lambda: [])
     urls: List[str] = field(default_factory=lambda: [])
 
 @dataclass
@@ -183,8 +183,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
             if "contributors" in info:
                 for contributor in info["contributors"]:
                     rescon = ArduboyContributor(contributor["name"] if "name" in contributor else "UNKNOWN")
-                    if "contributions" in contributor:
-                        rescon.contributions = list(contributor["contributions"])
+                    if "roles" in contributor:
+                        rescon.roles = list(contributor["roles"])
                     if "urls" in contributor:
                         rescon.urls = list(contributor["urls"])
                     result.contributors.append(rescon)
@@ -198,7 +198,7 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                     found = False
                     for c in result.contributors:
                         if c.name == user:
-                            c.contributions.append(contribution)
+                            c.roles.append(contribution)
                             found = True
                             break
                     if not found:

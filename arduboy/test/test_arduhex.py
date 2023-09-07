@@ -60,13 +60,13 @@ class TestArduhex(unittest.TestCase):
         for c in result.contributors:
             self.assertEqual(len(c.urls), 0)
             if c.name == "User1":
-                self.assertTrue("Publisher" in c.contributions)
-                self.assertTrue("Code" in c.contributions)
+                self.assertTrue("Publisher" in c.roles)
+                self.assertTrue("Code" in c.roles)
             elif c.name == "User2":
-                self.assertTrue("Idea" in c.contributions)
+                self.assertTrue("Idea" in c.roles)
             elif c.name == "User3":
-                self.assertTrue("Sound" in c.contributions)
-                self.assertTrue("Art" in c.contributions)
+                self.assertTrue("Sound" in c.roles)
+                self.assertTrue("Art" in c.roles)
             else:
                 raise Exception("Unknown contributor: " + c.name)
     
