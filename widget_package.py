@@ -10,8 +10,9 @@ import gui_utils
 import utils
 import debug_actions
 
+from typing import List
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGroupBox, QHBoxLayout, QFileDialog
-from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QHeaderView
+from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QHeaderView, QTableWidgetItem
 
 class PackageEditor(QWidget):
     def __init__(self):
@@ -49,8 +50,28 @@ class PackageEditor(QWidget):
         # Some fields not included just yet
 
         # The contributors section
+        contributors_header_container = QWidget()
+        contributors_header_layout = QHBoxLayout()
+        contributors_header_layout.setContentsMargins(0,0,0,0)
+        contributors_header_container.setLayout(contributors_header_layout)
+
         contributors_label = QLabel("Contributors:")
-        info_layout.addWidget(contributors_label)
+        contributors_header_layout.addWidget(contributors_label)
+        contributors_header_layout.setStretchFactor(contributors_label, 1)
+
+        self.contributors_add = QPushButton("Add")
+        self.contributors_add.setStyleSheet("font-size: 10px")
+        self.contributors_add.clicked.connect(self.add_contributor)
+        contributors_header_layout.addWidget(self.contributors_add)
+        contributors_header_layout.setStretchFactor(self.contributors_add, 0)
+
+        self.contributors_remove = QPushButton("Remove")
+        self.contributors_remove.setStyleSheet("font-size: 10px")
+        self.contributors_remove.clicked.connect(self.remove_contributor)
+        contributors_header_layout.addWidget(self.contributors_remove)
+        contributors_header_layout.setStretchFactor(self.contributors_remove, 0)
+
+        info_layout.addWidget(contributors_header_container)
         info_layout.setStretchFactor(contributors_label, 0)
 
         self.contributors_table = QTableWidget()
@@ -71,6 +92,21 @@ class PackageEditor(QWidget):
 
         self.setLayout(editor_layout)
     
+    def add_contributor(self, contributor: arduboy.arduhex.ArduboyContributor = None):
+        rowPosition = self.contributors_table.rowCount()
+        self.contributors_table.insertRow(rowPosition)
+        if contributor:
+            fields = [contributor.name, ", ".join(contributor.contributions), ", ".join(contributor.urls)]
+        else:
+            fields = ["","",""]
+        for i, field in enumerate(fields):
+            self.contributors_table.setItem(rowPosition , i, QTableWidgetItem(field))
+
+    def remove_contributor(self):
+        selected_items = self.contributors_table.selectedItems()
+        for item in selected_items:
+            self.contributors_table.removeRow(item.row())
+
 
     def fill(self, package: arduboy.arduhex.ArduboyParsed):
         self.title_edit.setText(package.title)
@@ -81,6 +117,20 @@ class PackageEditor(QWidget):
         self.url_edit.setText(package.url)
         self.sourceurl_edit.setText(package.sourceUrl)
         self.email_edit.setText(package.email)
+        for c in package.contributors:
+            self.add_contributor(c)
+
+    def get_contributors(self) -> List[arduboy.arduhex.ArduboyContributor]:
+        result = []
+        for row in range(self.contributors_table.rowCount()):
+            contributor = arduboy.arduhex.ArduboyContributor(self.contributors_table.item(row, 0).text())
+            def columnsplit(col):
+                raw = self.contributors_table.item(row, 1).text()
+                return [x.strip() for x in raw.split(",")] if raw else []
+            contributor.contributions = columnsplit(1)
+            contributor.urls = columnsplit(2)
+            result.append(contributor)
+        return result
 
     def create_package(self):
         package = arduboy.arduhex.empty_parsed_arduboy()
@@ -99,6 +149,8 @@ class PackageEditor(QWidget):
             raise Exception("Version is required! Just put 1.0 if you're unsure!")
         if not package.author:
             raise Exception("Author is required!")
+
+        package.contributors = self.get_contributors()
 
         return package
 
@@ -119,15 +171,15 @@ class PackageWidget(QWidget):
         package_controls = QWidget() # QGroupBox("Package Controls")
         package_controls_layout = QHBoxLayout()
         package_controls.setLayout(package_controls_layout)
-        clear_package_button = QPushButton("Reset")
-        clear_package_button.clicked.connect(self.do_reset_package)
-        package_controls_layout.addWidget(clear_package_button)
         load_package_button = QPushButton("Load")
         load_package_button.clicked.connect(self.do_load_package)
         package_controls_layout.addWidget(load_package_button)
         save_package_button = QPushButton("Save")
         save_package_button.clicked.connect(self.do_save_package)
         package_controls_layout.addWidget(save_package_button)
+        clear_package_button = QPushButton("Reset")
+        clear_package_button.clicked.connect(self.do_reset_package)
+        package_controls_layout.addWidget(clear_package_button)
 
         full_layout.addWidget(package_controls)
         full_layout.setStretchFactor(package_controls, 0)
