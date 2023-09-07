@@ -242,14 +242,21 @@ class TitleImageWidget(QLabel):
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
     
+    def set_image_pil(self, image_pil):
+        # Yes, this is a lot of conversion, I don't care. There's a function that magically converts
+        # images into just the right format, might as well just use it.
+        self.set_image_bytes(arduboy.image.pilimage_to_bin(image_pil))
+
     # NOTE: should be the simple 1024 bytes directly from the parsing! Anytime image bytes are needed, that's what is expected!
     def set_image_bytes(self, image_bytes):
         if image_bytes is not None and sum(image_bytes) > 0:
+            self.image_bytes = image_bytes
             self.worker = ImageConvertWorker(image_bytes)
             self.worker.image_done.connect(self._finish_image)
             self.worker.on_error.connect(lambda ex: gui_utils.show_exception(ex))
             self.worker.start()
         else:
+            self.image_bytes = None
             self.setPixmap(QtGui.QPixmap())
             self.setText("Choose image")
     

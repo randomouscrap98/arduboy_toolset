@@ -4,15 +4,76 @@ import arduboy.patch
 
 from arduboy.constants import *
 
-# import widget_slot
+import widget_slot
 import constants
 import gui_utils
 import utils
 import debug_actions
 
 from typing import List
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGroupBox, QHBoxLayout, QFileDialog
-from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QHeaderView, QTableWidgetItem
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGroupBox, QHBoxLayout, QFileDialog, QComboBox
+from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QListWidget, QTableWidgetItem
+from PyQt6.QtWidgets import QListWidgetItem
+
+FIELDS_SPACING = 3
+
+
+class BinaryWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout()
+        layout.setSpacing(FIELDS_SPACING)
+
+        # ------------- TOP ROW (IMAGE/BASIC DATA) -----------------
+        toprow_container = QWidget()
+        toprow_layout = QHBoxLayout()
+        toprow_layout.setContentsMargins(0,0,0,0)
+        toprow_container.setLayout(toprow_layout)
+
+        self.image_select = widget_slot.TitleImageWidget()
+        self.image_select.setToolTip("Cart image; users will see this when browsing games on their Arduboy!")
+        toprow_layout.addWidget(self.image_select)
+        toprow_layout.setStretchFactor(self.image_select, 0)
+
+        basicdata_container = QWidget()
+        basicdata_layout = QVBoxLayout()
+        basicdata_layout.setContentsMargins(0,0,0,0)
+        basicdata_container.setLayout(basicdata_layout)
+
+        self.title_edit = QLineEdit()
+        self.title_edit.setPlaceholderText("Title (optional)")
+        basicdata_layout.addWidget(self.title_edit)
+
+        self.device_select = QComboBox()
+        for d in arduboy.arduhex.ALLOWED_DEVICES:
+            self.device_select.addItem(d)
+        self.device_select.setToolTip("The device this binary is for.\n-Arduboy binaries can be used on any official Arduboy, but should not include FX data.\n-ArduboyFX and ArduboyMini are for FX-enabled titles that are compiled for those specific devices")
+        basicdata_layout.addWidget(self.device_select)
+
+        toprow_layout.addWidget(basicdata_container)
+        toprow_layout.setStretchFactor(basicdata_container, 1)
+
+        # -------------- FINAL COMPOSE ---------------
+        layout.addWidget(toprow_container)
+
+        self.setLayout(layout)
+    
+    def get_binary(self) -> arduboy.arduhex.ArduboyBinary:
+        result = arduboy.arduhex.ArduboyBinary(
+            self.device_select.currentText(),
+            self.title_edit.text(),
+            # hex, data, save, cart image
+        )
+
+        return result
+    
+    def fill(self, binary: arduboy.arduhex.ArduboyBinary):
+        self.title_edit.setText(binary.title)
+        self.device_select.setCurrentText(binary.device)
+        if binary.cartImage:
+            self.image_select.set_image_pil(binary.cartImage)
+
 
 class PackageEditor(QWidget):
     def __init__(self):
@@ -24,8 +85,9 @@ class PackageEditor(QWidget):
         self.info_group = QGroupBox("Package Info")
         self.binary_group = QGroupBox("Package Binaries")
 
+        # ------------ INFO PANE ------------------
         info_layout = QVBoxLayout()
-        info_layout.setSpacing(3)
+        info_layout.setSpacing(FIELDS_SPACING)
         self.info_group.setLayout(info_layout)
 
         # All these junk fields are exactly the same
@@ -81,10 +143,31 @@ class PackageEditor(QWidget):
         self.contributors_table.horizontalHeader().setStretchLastSection(True)
         info_layout.addWidget(self.contributors_table)
         info_layout.setStretchFactor(self.contributors_table, 1)
-        # self.contributors_area = QScrollArea()
-        # info_layout.addWidget(self.contributors_area)
-        # info_layout.setStretchFactor(self.contributors_area, 1)
 
+        # ------------ Binary PANE ------------------
+        binary_layout = QVBoxLayout()
+        self.binary_group.setLayout(binary_layout)
+
+        controls_container = QWidget()
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0,0,0,0)
+        controls_container.setLayout(controls_layout)
+
+        self.binary_add = QPushButton("Add")
+        self.binary_add.clicked.connect(self.add_binary)
+        controls_layout.addWidget(self.binary_add)
+        self.binary_remove = QPushButton("Remove")
+        self.binary_remove.clicked.connect(self.remove_binary)
+        controls_layout.addWidget(self.binary_remove)
+
+        binary_layout.addWidget(controls_container)
+        binary_layout.setStretchFactor(self.binary_add, 0)
+
+        self.binary_list = QListWidget()
+        binary_layout.addWidget(self.binary_list)
+        binary_layout.setStretchFactor(self.binary_list, 1)
+
+        # -------------- FINAL COMPOSE ---------------
         editor_layout.addWidget(self.info_group)
         editor_layout.addWidget(self.binary_group)
         editor_layout.setStretchFactor(self.info_group, 1)
@@ -107,6 +190,24 @@ class PackageEditor(QWidget):
         for item in selected_items:
             self.contributors_table.removeRow(item.row())
 
+    def add_binary(self, binary: arduboy.arduhex.ArduboyBinary = None):
+        item = QListWidgetItem()
+        widget = BinaryWidget()
+        if binary:
+            widget.fill(binary)
+        # item.setFlags(item.flags() | 2)  # Add the ItemIsEditable flag to enable reordering
+        item.setSizeHint(widget.sizeHint())
+        # IDK what the right order for all this is...
+        self.binary_list.addItem(item)
+        self.binary_list.setItemWidget(item, widget)
+        self.binary_list.setCurrentItem(item)
+    
+    def remove_binary(self):
+        selected_items = self.binary_list.selectedItems()
+        # selected_count = len(selected_items)
+        for item in selected_items:
+            row = self.binary_list.row(item)
+            self.binary_list.takeItem(row)
 
     def fill(self, package: arduboy.arduhex.ArduboyParsed):
         self.title_edit.setText(package.title)
@@ -119,6 +220,8 @@ class PackageEditor(QWidget):
         self.email_edit.setText(package.email)
         for c in package.contributors:
             self.add_contributor(c)
+        for b in package.binaries:
+            self.add_binary(b)
 
     def get_contributors(self) -> List[arduboy.arduhex.ArduboyContributor]:
         result = []
@@ -130,6 +233,13 @@ class PackageEditor(QWidget):
             contributor.contributions = columnsplit(1)
             contributor.urls = columnsplit(2)
             result.append(contributor)
+        return result
+    
+    def get_binaries(self) -> List[arduboy.arduhex.ArduboyBinary]:
+        result = []
+        for x in range(self.binary_list.count()):
+            widget = self.binary_list.itemWidget(self.binary_list.item(x)) #.get_slot_data() for x in range(self.list_widget.count())]
+            result.append(widget.get_binary())
         return result
 
     def create_package(self):
@@ -151,6 +261,11 @@ class PackageEditor(QWidget):
             raise Exception("Author is required!")
 
         package.contributors = self.get_contributors()
+        package.binaries = self.get_binaries()
+
+        for b in package.binaries:
+            if b.fx_enabled() and b.device == arduboy.arduhex.DEVICE_ARDUBOY:
+                raise Exception(f"Binary '{b.title}' can't be marked for device '{b.device}', it is FX enabled!")
 
         return package
 

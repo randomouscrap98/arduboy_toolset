@@ -49,6 +49,9 @@ class ArduboyBinary:
     save_raw: bytearray = field(default_factory=lambda:bytearray())
     cartImage: Image = field(default=None)
 
+    def fx_enabled(self):
+        return (self.data_raw and len(self.data_raw) > 0) or (self.save_raw and len(self.save_raw) > 0)
+
 @dataclass
 class ArduboyContributor:
     """One contributor on a project. Most fields are optional, other than the name"""
