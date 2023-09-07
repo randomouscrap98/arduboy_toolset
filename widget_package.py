@@ -244,6 +244,7 @@ class PackageEditor(QWidget):
         editor_layout.setStretchFactor(self.binary_group, 1)
 
         self.setLayout(editor_layout)
+
     
     def add_contributor(self, contributor: arduboy.arduhex.ArduboyContributor = None):
         rowPosition = self.contributors_table.rowCount()
@@ -333,6 +334,9 @@ class PackageEditor(QWidget):
         package.contributors = self.get_contributors()
         package.binaries = self.get_binaries()
 
+        if len(package.binaries) == 0:
+            raise Exception("No binaries; there must always be at least one program!")
+
         for b in package.binaries:
             if b.fx_enabled() and b.device == arduboy.arduhex.DEVICE_ARDUBOY:
                 raise Exception(f"Binary '{b.title}' can't be marked for device '{b.device}', it is FX enabled!")
@@ -384,6 +388,7 @@ class PackageWidget(QWidget):
             new_editor.fill(arduparsed)
         self.package_editor = new_editor
         self.prep_editor_layout()
+        self.package_editor.add_binary() # Just a convenience maybe? Could be an inconvenience...
         
     def do_reset_package(self):
         # Must confirm

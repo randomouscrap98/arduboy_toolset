@@ -1,6 +1,8 @@
 import arduboy.device
 
 import utils
+import debug_actions
+
 import logging
 import os
 import traceback
@@ -10,7 +12,7 @@ from PyQt6 import QtGui
 from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QFileDialog, QLabel, QTextBrowser, QDialog, QVBoxLayout, QProgressBar, QMessageBox, QGroupBox
 from PyQt6.QtWidgets import  QCheckBox, QApplication, QComboBox, QGraphicsView
 from PyQt6.QtGui import QIntValidator, QPainter
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, Qt
 
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None
@@ -308,6 +310,35 @@ def screen_patch(flash_data: bytearray, ssd1309_cb : QCheckBox = None, contrast_
         else:
             logging.warning(f"Flagged for {patch_message} patching but no LCD boot program found! Not patched!")
 
+def add_footer(layout):
+    footerwidget = QWidget()
+    footerlayout = QHBoxLayout()
+    footerwidget.setLayout(footerlayout)
+    footerlayout.setContentsMargins(1,1,1,1)
+
+    action_label = ClickableLabel("Action...")
+    action_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
+    action_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+    action_label.setCursor(QtGui.QCursor(Qt.CursorShape.PointingHandCursor))  # Set cursor to pointing hand
+    action_label.clicked.connect(debug_actions.setup_global_debug_window)
+    footerlayout.addWidget(action_label)
+    footerlayout.setStretchFactor(action_label, 1)
+
+    debug_actions.global_debug.add_item.connect(lambda item: action_label.setText(item.action))
+    layout.addWidget(footerwidget)
+    layout.setStretchFactor(action_label, 0)
+
+    return footerwidget
+
+class ClickableLabel(QLabel):
+    clicked = pyqtSignal()
+    def __init__(self, text):
+        super().__init__(text)
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        # Handle the mouse click event here
+        # if event.button() == 1:  # Left mouse button
 
 class NumberOnlyLineEdit(QLineEdit):
     def __init__(self, parent=None):

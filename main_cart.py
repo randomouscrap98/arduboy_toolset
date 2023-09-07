@@ -56,9 +56,7 @@ class CartWindow(QMainWindow):
         self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
         layout.addWidget(self.list_widget)
-
-        footerwidget = self.create_footer()
-        layout.addWidget(footerwidget)
+        self.add_footer(layout)
 
         centralwidget.setLayout(layout)
         # centralwidget.setObjectName("wtfplease")
@@ -66,9 +64,9 @@ class CartWindow(QMainWindow):
         self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
 
-        debug_actions.global_debug.add_item.connect(lambda item: self.action_label.setText(item.action))
         debug_actions.global_debug.add_action_str("Opened cart editor")
         
+
     def create_menu(self):
         # Create the top menu
         menu_bar = self.menuBar()
@@ -236,16 +234,9 @@ class CartWindow(QMainWindow):
         open_help_action.triggered.connect(self.open_help_window)
         help_menu.addAction(open_help_action)
 
-    def create_footer(self):
-        footerwidget = QWidget()
-        footerlayout = QHBoxLayout()
-
-        self.action_label = QLabel("Action...")
-        self.action_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
-        footerlayout.addWidget(self.action_label)
-        spacer = QWidget()
-        footerlayout.addWidget(spacer)
-        footerlayout.setStretchFactor(spacer, 1)
+    def add_footer(self, layout):
+        footerwidget = gui_utils.add_footer(layout)
+        footerlayout = footerwidget.layout()
 
         self.device_select = QComboBox()
         self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYFX)
@@ -258,9 +249,6 @@ class CartWindow(QMainWindow):
         self.counts_label = QLabel("Counts label...")
         footerlayout.addWidget(self.counts_label)
         footerlayout.setStretchFactor(self.counts_label, 0)
-        footerlayout.setContentsMargins(1,1,1,1)
-
-        footerwidget.setLayout(footerlayout)
 
         return footerwidget
     
@@ -287,6 +275,7 @@ class CartWindow(QMainWindow):
         if self.safely_discard_changes():
             # Clear out some junk, we have a lot of parsed resources and junk!
             self.modified = False
+            debug_actions.remove_global_debug_window()
             if hasattr(self, 'help_window'):
                 self.help_window.close()
             if hasattr(self, 'about_window'):
@@ -588,16 +577,17 @@ class CartWindow(QMainWindow):
                 binary = binaries[0]
             newgame = SlotWidget(arduboy.shortcuts.slot_from_arduboy(parsed, binary))
             self.insert_slotwidget(newgame)
-            debug_actions.global_debug.add_action_str(f"Added game to cart: {parsed.title}")
+            debug_actions.global_debug.add_action_str(f"Added '{binary.device}' game to cart: {parsed.title}")
     
     def action_delete_selected(self):
         selected_items = self.list_widget.selectedItems()
         selected_count = len(selected_items)
+        slot = self.list_widget.itemWidget(selected_items[0]) if selected_count > 0 else None
         for item in selected_items:
             row = self.list_widget.row(item)
             self.list_widget.takeItem(row)
         self.set_modified(True)
-        debug_actions.global_debug.add_action_str(f"Removed {selected_count} slots from cart")
+        debug_actions.global_debug.add_action_str(f"Removed {selected_count} slots from cart" + (f": '{slot.get_slot_data().meta.title}'" if selected_count == 1 else ""))
     
     def action_find(self, use_last = False):
         if not use_last:

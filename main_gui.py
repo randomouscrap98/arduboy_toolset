@@ -14,6 +14,7 @@ import widget_fx
 import widget_eeprom
 import widget_package
 import widget_imageconv
+import debug_actions
 
 import sys
 
@@ -70,6 +71,7 @@ class MainWindow(QMainWindow):
         # Add widgets to the layout
         layout.addWidget(coninfo)
         layout.addWidget(tabs)
+        gui_utils.add_footer(layout)
 
         layout.setStretchFactor(coninfo, 0)
         layout.setStretchFactor(tabs, 1)
@@ -79,7 +81,10 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
+
+        debug_actions.global_debug.add_action_str("Opened Arduboy Toolset")
     
+
     def create_menu(self):
         # Create the top menu
         menu_bar = self.menuBar()
@@ -141,6 +146,7 @@ class MainWindow(QMainWindow):
         new_window.show()
     
     def closeEvent(self, event) -> None:
+        debug_actions.remove_global_debug_window()
         if hasattr(self, 'help_window'):
             self.help_window.close()
         if hasattr(self, 'about_window'):
