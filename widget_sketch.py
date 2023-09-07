@@ -21,6 +21,7 @@ class SketchWidget(QWidget):
         super().__init__()
 
         sketch_layout = QVBoxLayout()
+        self.coninfo = widgets_common.ConnectionInfo()
 
         # Upload sketch
         self.upload_picker = widgets_common.FilePicker(constants.HEX_FILEFILTER)
@@ -52,10 +53,14 @@ class SketchWidget(QWidget):
         backup_layout.addWidget(self.includebootloader_cb)
 
         # Compose?
-        gui_utils.add_children_nostretch(sketch_layout, [upload_group, backup_group])
+        gui_utils.add_children_nostretch(sketch_layout, [self.coninfo, upload_group, backup_group])
 
         self.setLayout(sketch_layout)
 
+    def set_connected_device(self, device):
+        self.coninfo.set_connected_device(device)
+        self.upload_button.setEnabled(device is not None)
+        self.backup_button.setEnabled(device is not None)
 
     # Perform the entirety of the sketch upload using the various options set in the widget
     def do_upload(self): 

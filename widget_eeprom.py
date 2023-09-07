@@ -18,6 +18,7 @@ class EEPROMWidget(QWidget):
         super().__init__()
 
         eeprom_layout = QVBoxLayout()
+        self.coninfo = widgets_common.ConnectionInfo()
 
         # Upload EEPROM
         self.upload_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER)
@@ -36,9 +37,15 @@ class EEPROMWidget(QWidget):
         self.erase_button.clicked.connect(self.do_erase)
         erase_group, _ = gui_utils.make_file_action("Erase EEPROM", None, self.erase_button, "❎", gui_utils.ERRORCOLOR)
 
-        gui_utils.add_children_nostretch(eeprom_layout, [upload_group, backup_group, erase_group])
+        gui_utils.add_children_nostretch(eeprom_layout, [self.coninfo, upload_group, backup_group, erase_group])
 
         self.setLayout(eeprom_layout)
+        
+    def set_connected_device(self, device):
+        self.coninfo.set_connected_device(device)
+        self.upload_button.setEnabled(device is not None)
+        self.backup_button.setEnabled(device is not None)
+        self.erase_button.setEnabled(device is not None)
 
     def do_upload(self): 
         filepath = self.upload_picker.check_filepath(self) 

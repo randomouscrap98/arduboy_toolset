@@ -54,7 +54,6 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout()
 
         # Create widgets to add to the layout
-        self.coninfo = widgets_common.ConnectionInfo()
         tabs = QTabWidget()
 
         # Create and add tabs to the tabs widget
@@ -71,13 +70,9 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.imageconvtab, "Image")
 
         # Add widgets to the layout
-        layout.addWidget(self.coninfo)
         layout.addWidget(tabs)
-        gui_utils.add_footer(layout)
-
-        layout.setStretchFactor(self.coninfo, 0)
         layout.setStretchFactor(tabs, 1)
-        # layout.setContentsMargins(10, 5, 10, 10)
+        gui_utils.add_footer(layout)
 
         # Set the layout as the central widget
         central_widget = QWidget()
@@ -124,24 +119,12 @@ class MainWindow(QMainWindow):
         if self.do_updates:
             try:
                 device = arduboy.device.find_single(enter_bootloader=False, log=False)
-                self.coninfo.set_connected_device(device)
-                self.set_device_connected(True)
             except:
-                self.coninfo.set_connected_device(None)
-                self.set_device_connected(False)
+                device = None
+            self.sketchtab.set_connected_device(device)
+            self.fxtab.set_connected_device(device)
+            self.eepromtab.set_connected_device(device)
 
-
-    # Set the status of the table entries based on the device connected status. Sets them directly,
-    # this is not a signal (you can use it IN a signal...)
-    def set_device_connected(self, connected):
-        self.sketchtab.upload_button.setEnabled(connected)
-        self.sketchtab.backup_button.setEnabled(connected)
-        self.fxtab.upload_button.setEnabled(connected)
-        self.fxtab.backup_button.setEnabled(connected)
-        self.eepromtab.upload_button.setEnabled(connected)
-        self.eepromtab.backup_button.setEnabled(connected)
-        self.eepromtab.erase_button.setEnabled(connected)
-    
 
     def open_help_window(self):
         self.help_window = widgets_common.HtmlWindow("Arduboy Toolset Help", "help.html")

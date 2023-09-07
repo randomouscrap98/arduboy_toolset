@@ -17,6 +17,7 @@ class FxWidget(QWidget):
         super().__init__()
 
         fx_layout = QVBoxLayout()
+        self.coninfo = widgets_common.ConnectionInfo()
 
         # Upload FX
         self.upload_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER)
@@ -46,10 +47,14 @@ class FxWidget(QWidget):
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
         warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
 
-        gui_utils.add_children_nostretch(fx_layout, [upload_group, backup_group, warninglabel])
+        gui_utils.add_children_nostretch(fx_layout, [self.coninfo, upload_group, backup_group, warninglabel])
 
         self.setLayout(fx_layout)
 
+    def set_connected_device(self, device):
+        self.coninfo.set_connected_device(device)
+        self.upload_button.setEnabled(device is not None)
+        self.backup_button.setEnabled(device is not None)
 
     def do_upload(self): 
         filepath = self.upload_picker.check_filepath(self) 
