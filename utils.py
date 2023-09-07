@@ -68,7 +68,10 @@ def get_eeprom_backup_filename():
 def get_fx_backup_filename():
     return f"fx-backup-{get_filesafe_datetime()}.bin"
 
-def get_meta_backup_filename(meta, extension):
+def get_arduhex_backup_filename(arduparsed: arduboy.arduhex.ArduboyParsed):
+    return slugify.slugify(arduparsed.title or arduparsed.original_filename or "") + f"_{get_filesafe_datetime()}.arduboy"
+
+def get_meta_backup_filename(meta: arduboy.fxcart.FxSlotMeta, extension):
     return slugify.slugify(meta.title if meta.title else "") + f"_{get_filesafe_datetime()}.{extension}"
 
 def resource_file(name):
