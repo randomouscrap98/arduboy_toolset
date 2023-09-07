@@ -2,7 +2,7 @@ import arduboy.image
 
 import constants
 import gui_utils
-import utils
+import widgets_common
 import debug_actions
 
 import logging
@@ -44,16 +44,11 @@ class ImageConvertWidget(QWidget):
         self.image_scene.addItem(self.image_item)
 
         # The view is a window into a scene, this is what you put into the layout?
-        self.image_view = gui_utils.CustomGraphicsView()
+        self.image_view = widgets_common.CustomGraphicsView()
         self.image_view.setScene(self.image_scene)
         self.image_view.set_zoom(4.0)
-        # self.image_view.setObjectName("imageviewer")
-        # self.image_view.setStyleSheet("#imageviewer { background-color: red }")
         self.image_view.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
         self.image_view.setToolTip("Preview image with tiling. Note: PyQt doesn't let you drag+drop here (you can drag+drop anywhere else to load an image)")
-        # self.image_view.onfiledrag.connect(self.load_image)
-        # self.image_view.setAcceptDrops(True)
-        # self.image_view.dra
 
         image_layout.addWidget(self.image_view)
 
@@ -68,14 +63,14 @@ class ImageConvertWidget(QWidget):
         self.select_image_button.clicked.connect(self.do_load_image)
         config_layout.addWidget(self.select_image_button)
 
-        self.tilesize = gui_utils.WidthHeightWidget()
+        self.tilesize = widgets_common.WidthHeightWidget()
         tilesize_container, self.tilesize_cb = gui_utils.make_toggleable_element("Tiled image", self.tilesize, nostretch=True)
         self.tilesize_cb.setToolTip("Rearranges output data so tile pixels are grouped together; see help (F1)")
         config_layout.addWidget(tilesize_container)
         self.tilesize.onchange.connect(self.recalculate_rects)
         self.tilesize_cb.stateChanged.connect(self.recalculate_rects)
 
-        self.spacing_number = gui_utils.NumberOnlyLineEdit()
+        self.spacing_number = widgets_common.NumberOnlyLineEdit()
         self.spacing_number.setText("0")
         spacing_container, self.spacing_cb = gui_utils.make_toggleable_element("Tile spacing", self.spacing_number, nostretch=True)
         self.spacing_cb.setToolTip("Trims space between tiles in the case of sparse tilesheets; see help (F1)")

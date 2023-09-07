@@ -8,7 +8,7 @@ import arduboy.image
 from arduboy.constants import *
 from arduboy.common import *
 
-import widget_combomessage
+import widgets_common
 import widget_progress
 import constants
 import utils
@@ -563,7 +563,7 @@ class CartWindow(QMainWindow):
             elif len(binaries) > 1:
                 for i,b in enumerate(binaries):
                     b.title = f"({i + 1}) - {b.title}"
-                dialog = widget_combomessage.ComboDialog(
+                dialog = widgets_common.ComboDialog(
                     "Choose a binary", 
                     f"There are multiple binaries available for your device in arduboy package '{parsed.original_filename}'.\nPlease pick the one you want. If unsure, pick the first.",
                     [b.title for b in binaries]
@@ -797,11 +797,11 @@ class CartWindow(QMainWindow):
         debug_actions.global_debug.add_action_str(f"Moved category {act}: {whole_category[0].meta.title}")
 
     def open_help_window(self):
-        self.help_window = gui_utils.HtmlWindow("Arduboy Cart Editor Help", "help_cart.html")
+        self.help_window = widgets_common.HtmlWindow("Arduboy Cart Editor Help", "help_cart.html")
         self.help_window.show()
 
     def open_about_window(self):
-        self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
+        self.about_window = widgets_common.HtmlWindow("About Arduboy Toolset", "about.html")
         self.about_window.show()
     
 

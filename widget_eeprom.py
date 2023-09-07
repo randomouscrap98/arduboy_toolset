@@ -1,6 +1,7 @@
 import arduboy.serial
 
 import widget_progress
+import widgets_common
 import constants
 import gui_utils
 import utils
@@ -19,13 +20,13 @@ class EEPROMWidget(QWidget):
         eeprom_layout = QVBoxLayout()
 
         # Upload EEPROM
-        self.upload_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        self.upload_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER)
         self.upload_button = QPushButton("Restore")
         self.upload_button.clicked.connect(self.do_upload)
         upload_group, _ = gui_utils.make_file_action("Restore EEPROM", self.upload_picker, self.upload_button, "⬆️", gui_utils.SUCCESSCOLOR)
 
         # Backup EEPROM
-        self.backup_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
+        self.backup_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER, True, utils.get_eeprom_backup_filename)
         self.backup_button = QPushButton("Backup")
         self.backup_button.clicked.connect(self.do_backup)
         backup_group, _ = gui_utils.make_file_action("Backup EEPROM", self.backup_picker, self.backup_button, "⬇️", gui_utils.BACKUPCOLOR)

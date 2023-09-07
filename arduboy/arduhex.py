@@ -12,15 +12,12 @@ import zipfile
 import demjson3
 import slugify
 
-from intelhex import IntelHex
-from io import BytesIO, StringIO
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass, field, asdict
 from PIL import Image
 
 """Number of default bytes per record when writing a .hex file"""
-BYTES_PER_RECORD = 16
 CATERINA_PAGE = 224
 DEFAULT_SCHEMA = 4  # Schema version for .arduboy package info.json
 

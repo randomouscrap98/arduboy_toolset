@@ -14,14 +14,15 @@ import widget_fx
 import widget_eeprom
 import widget_package
 import widget_imageconv
+import widgets_common
 import debug_actions
 
 import sys
 
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QTabWidget
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget
 from PyQt6 import QtGui
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import QTimer, pyqtSignal, Qt
+from PyQt6.QtCore import QTimer, Qt
 
 
 def main():
@@ -44,11 +45,16 @@ class MainWindow(QMainWindow):
 
         self.create_menu()
 
+        # The timer to test connections
+        self.connection_timer = QTimer(self)
+        self.connection_timer.timeout.connect(self.refresh_connection_status)
+        self.do_updates = True
+
         # Create a vertical layout
         layout = QVBoxLayout()
 
         # Create widgets to add to the layout
-        coninfo = ConnectionInfo()
+        self.coninfo = widgets_common.ConnectionInfo()
         tabs = QTabWidget()
 
         # Create and add tabs to the tabs widget
@@ -64,16 +70,12 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.packagetab, "Package")
         tabs.addTab(self.imageconvtab, "Image")
 
-        coninfo.device_connected_report.connect(lambda: self.set_device_connected(True))
-        coninfo.device_disconnected_report.connect(lambda: self.set_device_connected(False))
-        coninfo.refresh()
-
         # Add widgets to the layout
-        layout.addWidget(coninfo)
+        layout.addWidget(self.coninfo)
         layout.addWidget(tabs)
         gui_utils.add_footer(layout)
 
-        layout.setStretchFactor(coninfo, 0)
+        layout.setStretchFactor(self.coninfo, 0)
         layout.setStretchFactor(tabs, 1)
         # layout.setContentsMargins(10, 5, 10, 10)
 
@@ -82,6 +84,7 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
+        self.connection_timer.start(1000)
         debug_actions.global_debug.add_action_str("Opened Arduboy Toolset")
     
 
@@ -117,6 +120,17 @@ class MainWindow(QMainWindow):
         about_menu.addAction(open_faq_action)
 
 
+    def refresh_connection_status(self):
+        if self.do_updates:
+            try:
+                device = arduboy.device.find_single(enter_bootloader=False, log=False)
+                self.coninfo.set_connected_device(device)
+                self.set_device_connected(True)
+            except:
+                self.coninfo.set_connected_device(None)
+                self.set_device_connected(False)
+
+
     # Set the status of the table entries based on the device connected status. Sets them directly,
     # this is not a signal (you can use it IN a signal...)
     def set_device_connected(self, connected):
@@ -130,15 +144,15 @@ class MainWindow(QMainWindow):
     
 
     def open_help_window(self):
-        self.help_window = gui_utils.HtmlWindow("Arduboy Toolset Help", "help.html")
+        self.help_window = widgets_common.HtmlWindow("Arduboy Toolset Help", "help.html")
         self.help_window.show()
 
     def open_about_window(self):
-        self.about_window = gui_utils.HtmlWindow("About Arduboy Toolset", "about.html")
+        self.about_window = widgets_common.HtmlWindow("About Arduboy Toolset", "about.html")
         self.about_window.show()
 
     def open_faq_window(self):
-        self.faq_window = gui_utils.HtmlWindow("Arduboy FAQ", "device_faqs.html")
+        self.faq_window = widgets_common.HtmlWindow("Arduboy FAQ", "device_faqs.html")
         self.faq_window.show()
     
     def open_newcart(self):
@@ -154,69 +168,6 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'faq_window'):
             self.faq_window.close()
 
-
-class ConnectionInfo(QWidget):
-    device_connected_report = pyqtSignal()
-    device_disconnected_report = pyqtSignal()
-
-    def __init__(self):
-        super().__init__()
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.refresh)
-        self.do_updates = True
-        self.update_count = 0
-
-        layout = QHBoxLayout()
-
-        self.status_picture = QLabel("$")
-        gui_utils.set_emoji_font(self.status_picture, 24)
-        layout.addWidget(self.status_picture)
-
-        text_container = QWidget()
-        text_layout = QVBoxLayout()
-
-        self.status_label = QLabel("Label")
-        gui_utils.set_font_size(self.status_label, 14)
-        text_layout.addWidget(self.status_label)
-
-        self.info_label = QLabel("Info")
-        gui_utils.set_font_size(self.info_label, 8)
-        self.info_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
-        text_layout.addWidget(self.info_label)
-
-        text_container.setLayout(text_layout)
-
-        layout.addWidget(text_container)
-
-        layout.setStretchFactor(self.status_picture, 0)
-        layout.setStretchFactor(text_container, 1)
-        layout.setContentsMargins(15,5,15,7)
-
-        self.setLayout(layout)
-        self.timer.start(1000)
-    
-    def stop_updates(self):
-        self.do_updates = False
-    
-    def start_updates(self):
-        self.do_updates = True
-
-    def refresh(self):
-        if self.do_updates:
-            self.update_count += 1
-            try:
-                device = arduboy.device.find_single(enter_bootloader=False, log=False)
-                self.status_label.setText("Connected!")
-                self.info_label.setText(device.display_name())
-                self.status_picture.setText("✅")
-                self.status_picture.setStyleSheet(f"color: {gui_utils.SUCCESSCOLOR}")
-                self.device_connected_report.emit()
-            except:
-                self.status_label.setText("Searching for Arduboy" + "." * ((self.update_count % 3) + 1))
-                self.info_label.setText("Make sure Arduboy is connected + turned on")
-                self.status_picture.setText("⏳")
-                self.status_picture.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
-                self.device_disconnected_report.emit()
 
 
 if __name__ == "__main__":

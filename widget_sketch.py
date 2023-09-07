@@ -4,6 +4,7 @@ import arduboy.patch
 import arduboy.serial
 
 import constants
+import widgets_common
 import gui_utils
 import utils
 import widget_progress
@@ -22,15 +23,15 @@ class SketchWidget(QWidget):
         sketch_layout = QVBoxLayout()
 
         # Upload sketch
-        self.upload_picker = gui_utils.FilePicker(constants.HEX_FILEFILTER)
+        self.upload_picker = widgets_common.FilePicker(constants.HEX_FILEFILTER)
         self.upload_button = QPushButton("Upload")
         self.upload_button.clicked.connect(self.do_upload)
         upload_group, upload_layout = gui_utils.make_file_action("Upload Sketch", self.upload_picker, self.upload_button, "⬆️", gui_utils.SUCCESSCOLOR)
 
-        self.upload_fx_picker = gui_utils.FilePicker(constants.BIN_FILEFILTER)
+        self.upload_fx_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER)
         fx_container, self.upload_fx_enabled = gui_utils.make_toggleable_element("Include FX dev data", self.upload_fx_picker)
 
-        self.contrast_picker = gui_utils.ContrastPicker()
+        self.contrast_picker = widgets_common.ContrastPicker()
         contrast_container, self.contrast_cb = gui_utils.make_toggleable_element("Patch contrast", self.contrast_picker, nostretch=True)
         self.ssd1309_cb = QCheckBox("Patch for screen SSD1309")
         self.microled_cb = QCheckBox("Patch for Micro LED polarity")
@@ -41,7 +42,7 @@ class SketchWidget(QWidget):
         upload_layout.addWidget(self.microled_cb)
 
         # Backup sketch
-        self.backup_picker = gui_utils.FilePicker(constants.HEX_FILEFILTER, True, utils.get_sketch_backup_filename)
+        self.backup_picker = widgets_common.FilePicker(constants.HEX_FILEFILTER, True, utils.get_sketch_backup_filename)
         self.backup_button = QPushButton("Backup")
         self.backup_button.clicked.connect(self.do_backup)
         backup_group, backup_layout = gui_utils.make_file_action("Backup Sketch", self.backup_picker, self.backup_button, "⬇️", gui_utils.BACKUPCOLOR)
