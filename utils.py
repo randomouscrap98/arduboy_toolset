@@ -66,7 +66,7 @@ def get_eeprom_backup_filename():
     return f"eeprom-backup-{get_filesafe_datetime()}.bin"
 
 def get_fx_backup_filename():
-    return f"fx-backup-{get_filesafe_datetime()}.bin"
+    return f"flashcart-backup-{get_filesafe_datetime()}.bin"
 
 def get_arduhex_backup_filename(arduparsed: arduboy.arduhex.ArduboyParsed):
     return slugify.slugify(arduparsed.title or arduparsed.original_filename or "") + f"_{get_filesafe_datetime()}.arduboy"

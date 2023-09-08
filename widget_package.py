@@ -59,7 +59,7 @@ class BinaryWidget(QWidget):
         layout.addWidget(toprow_container)
 
         # -------------- DATA CONTROLS ----------------
-        def mkdata(basetext, field, default_func, opentitle, filetypes, reader, setextra = None):
+        def mkdata(basetext, field, default_func, opentitle, filetypes, reader, setextra = None, lengthcalc = None):
             container = QWidget()
             container_layout = QHBoxLayout()
             container_layout.setContentsMargins(0,0,0,0)
@@ -69,8 +69,9 @@ class BinaryWidget(QWidget):
             deletebutton = QPushButton("❌")
             container_layout.addWidget(deletebutton)
             container_layout.setStretchFactor(deletebutton, 0)
+            lengthcalc = lengthcalc or (lambda: len(getattr(self, field)))
             def refresh():
-                length = len(getattr(self, field))
+                length = lengthcalc()
                 button.setText(basetext + (f" - {length} bytes" if length else " - None"))
                 if length == 0:
                     deletebutton.setDisabled(True)
@@ -113,9 +114,11 @@ class BinaryWidget(QWidget):
                     self.data_raw = self.data_raw[:-unused_pages * FX_PAGESIZE]
                     self.refresh_fxsavetext()
                     self.refresh_fxdatatext()
+        def hexlength():
+            return len(arduboy.common.hex_to_bin(self.hex_raw))
 
-        self.refresh_hextext = mkdata(".hex data", "hex_raw", lambda: "", "Open .hex file", constants.HEX_FILEFILTER, read_text)
-        self.refresh_fxdatatext = mkdata("FX data", "data_raw", lambda: bytearray(), "Open FX data file", constants.BIN_FILEFILTER, read_binary, setdata_extra)
+        self.refresh_hextext = mkdata(".hex program", "hex_raw", lambda: "", "Open .hex file", constants.HEX_FILEFILTER, read_text, lengthcalc=hexlength)
+        self.refresh_fxdatatext = mkdata("FX data", "data_raw", lambda: bytearray(), "Open FX data file", constants.BIN_FILEFILTER, read_binary, setextra = setdata_extra)
         self.refresh_fxsavetext = mkdata("FX save", "save_raw", lambda: bytearray(), "Open FX save file", constants.BIN_FILEFILTER, read_binary)
 
         # -------------- FINAL COMPOSE ---------------

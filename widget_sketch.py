@@ -2,6 +2,7 @@ import arduboy.arduhex
 import arduboy.fxcart
 import arduboy.patch
 import arduboy.serial
+import arduboy.common
 
 import constants
 import widgets_common
@@ -12,6 +13,7 @@ import debug_actions
 
 import logging
 
+from arduboy.constants import *
 from PyQt6.QtWidgets import QCheckBox, QVBoxLayout, QWidget, QPushButton
 
 # A fully self contained widget which can upload and backup sketches from arduboy
@@ -80,6 +82,7 @@ class SketchWidget(QWidget):
                 fx_data = arduboy.fxcart.read_data(fx_filepath)
                 logging.info("Adding FX data to cart")
             s_port = device.connect_serial()
+            bindata = arduboy.common.pad_data(bindata, FLASH_PAGESIZE)
             repstatus("Flashing sketch...")
             arduboy.serial.flash_arduhex(bindata, s_port, repprog) 
             repstatus("Verifying sketch...")
@@ -111,4 +114,4 @@ class SketchWidget(QWidget):
 
         dialog = widget_progress.do_progress_work(do_work, "Backup Sketch")
         if not dialog.error_state:
-            debug_actions.global_debug.add_action_str(f"Backuped Arduboy sketch to {filepath}")
+            debug_actions.global_debug.add_action_str(f"Backed up Arduboy sketch to {filepath}")

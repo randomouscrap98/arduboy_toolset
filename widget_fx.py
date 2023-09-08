@@ -91,4 +91,4 @@ class FxWidget(QWidget):
 
         dialog = widget_progress.do_progress_work(do_work, "Backup FX Flash")
         if not dialog.error_state:
-            debug_actions.global_debug.add_action_str(f"Backed up Arduboy flash to {filepath}")
+            debug_actions.global_debug.add_action_str(f"Backed up Arduboy flashcart to {filepath}")
