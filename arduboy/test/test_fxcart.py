@@ -14,7 +14,39 @@ class TestFxCart(unittest.TestCase):
         self.assertIsNotNone(empty_slot.meta)
         self.assertEqual(empty_slot.category, 0)
         self.assertFalse(empty_slot.fx_enabled())
+    
+    def test_embeddedsave_none_subpage(self):
+        data = makebytearray(50)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 0)
 
+    def test_embeddedsave_none_subsave(self):
+        data = makebytearray(1000)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 0)
+
+    def test_embeddedsave_none_standard(self):
+        data = makebytearray(20000)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 0)
+
+    def test_embeddedsave_none_padding(self):
+        data = makebytearray(20000)
+        data += b'\xFF' * (arduboy.fxcart.SAVE_ALIGNMENT - 1)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 0)
+
+    def test_embeddedsave_exact(self):
+        data = makebytearray(20000)
+        data += b'\xFF' * (arduboy.fxcart.SAVE_ALIGNMENT)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 1 * arduboy.fxcart.SAVE_ALIGNMENT)
+
+    def test_embeddedsave_oddsize(self):
+        data = makebytearray(20000)
+        data += b'\xFF' * (arduboy.fxcart.SAVE_ALIGNMENT * 2 - 10)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 1 * arduboy.fxcart.SAVE_ALIGNMENT)
+        
+    def test_embeddedsave_multiple(self):
+        data = makebytearray(20000)
+        data += b'\xFF' * (arduboy.fxcart.SAVE_ALIGNMENT * 4 + 100)
+        self.assertEqual(arduboy.fxcart.embedded_save_size(data), 4 * arduboy.fxcart.SAVE_ALIGNMENT)
+        
     # This is the major test here: it's just too much effort for me to test every little function.
     # If the conversion to and from a slot is fully transparent, then I'd call that a win for now.
     # I'm aware that this doesn't ensure that data is where it needs to be; that may come later

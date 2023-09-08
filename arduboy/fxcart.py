@@ -39,21 +39,28 @@ META_HEADER_INDEX = 57              # "" metadata
 META_HEADER_SIZE = 199              # Length of the metadata section
 
 
-# Each slot has a "string" section of the header which stores up to 4 
-# pieces of data. Although categories will only have (title, info), and
-# any section may be truncated since only 199 characters are saved.
 @dataclass
 class FxSlotMeta:
+    """
+    Data stored in "string" section of fx slot (last 199 bytes).
+
+    Categories only have title and info. Data is truncated unceremoniously if too long,
+    and may even truncate to fewer than 4 total fields if necessary
+    """
     title: str
     version: str
     developer: str
     info: str
 
-# Note: Although it says "parsed", I just mean it was parsed out of the giant binary blob.
-# The individual fields are not parsed, in case you want to immediately turn around and rewrite
-# it to the cart (which is likelY), plus I don't know how you might want to use all the data.
 @dataclass
 class FxParsedSlot:
+    """
+    All data stored in a flashcart "slot", representing one single game.
+
+    Note: Although it says "parsed", I just mean it was parsed out of the giant binary blob.
+    The individual fields are not parsed, in case you want to immediately turn around and rewrite
+    it to the cart (which is likelY), plus I don't know how you might want to use all the data.
+    """
     category: int
     image_raw: bytearray
     program_raw: bytearray
@@ -79,14 +86,14 @@ def empty_slot() -> FxParsedSlot:
 
 
 # Read and pad the fx flash image from the given file and return the bytearray
-def read(filename):
+def read(filename: str) -> bytearray:
     logging.debug(f'Reading flash image from file "{filename}"')
     with open(filename, "rb") as f:
         flashdata = bytearray(f.read())
     return pad_data(flashdata, FX_PAGESIZE)
 
 # Read and pad the fx data (individual) from the given file and return the byte array.
-def read_data(filename):
+def read_data(filename: str) -> bytearray:
     logging.debug(f'Reading fx data from file "{filename}"')
     with open(filename, "rb") as f:
         flashdata = bytearray(f.read())
@@ -226,9 +233,19 @@ def trim_file(infile, outfile = None):
     with open(outfile, 'wb') as ofile:
         ofile.write(trimmedBinData)
 
+def embedded_save_size(data: bytearray) -> int:
+    """Detect the size of an embedded save, return size in bytes. 
+    
+    Note that there are instances where an embedded save may be strangely aligned and detection fails,
+    but I haven't run into this in any valid fx data yet."""
+    unused_pages = count_unused_pages(data)
+    if unused_pages >= (SAVE_ALIGNMENT // FX_PAGESIZE):
+        return (unused_pages - (unused_pages % (SAVE_ALIGNMENT // FX_PAGESIZE))) * FX_PAGESIZE
+    else:
+        return 0
 
-# Given an entire FX binary, parse absolutely everything out of it (in slot format)
 def parse(fulldata, report_progress = None) -> List[FxParsedSlot]:
+    """ Given an entire FX binary, parse absolutely everything out of it (in slot format) """
 
     logging.debug(f"Full parsing FX cart ({len(fulldata)} bytes)")
     dindex = 0
@@ -260,9 +277,8 @@ def parse(fulldata, report_progress = None) -> List[FxParsedSlot]:
     return result
 
 
-# Forcibly reassign all the categories, make sure first slot is a category, fill empty images 
-# with all 0's
 def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
+    """ Forcibly reassign all the categories, make sure first slot is a category, fill empty images with all 0's """
     category = -1
     count = 0
     if len(parsed_slots) < 2:
@@ -277,9 +293,12 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
         slot.category = category
         count += 1
 
-# Compile a single slot (with the given page identifiers, VERY important) and return the result. If you're
-# just testing, the pages aren't required (but you won't get a valid frame)
 def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0) -> bytearray:
+    """
+    Compile a single slot (with the given page identifiers, VERY important) and return the result. 
+    
+    If you're just testing, the pages aren't required (but you won't get a valid frame)
+    """
     if len(slot.image_raw) != SCREEN_BYTES:
         raise Exception(f"Title image for game {slot.meta.title} is incorrect size!! Expected: {SCREEN_BYTES}, was: {len(slot.image_raw)}")
     # All the raw data we're about to dump into the flashcart. Some may be modified later
@@ -342,9 +361,12 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
             logging.warning(f"Couldn't patch menu to return to bootloader for {slot.meta.title}: {message}")
     return header + title + program + datafile + bytearray(b'\xFF' * alignsize) + savefile
 
-# Compile the given parsed data of an arduboy cart back into bytes. Taken mostly from
-# https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
 def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
+    """
+    Compile the given parsed data of an arduboy cart back into bytes. 
+
+    Taken mostly from https://github.com/MrBlinky/Arduboy-Python-Utilities/blob/main/flashcart-builder.py
+    """
     logging.debug(f"Compiling flashcart with {len(parsed_slots)} slots")
     # First, perform some checks and fixes. 
     fix_parsed_slots(parsed_slots)

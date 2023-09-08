@@ -104,14 +104,14 @@ class BinaryWidget(QWidget):
             with open(fp, "rb") as f:
                 return bytearray(f.read())
         def setdata_extra():
-            unused_pages = arduboy.common.count_unused_pages(self.data_raw)
-            if (unused_pages % (arduboy.fxcart.SAVE_ALIGNMENT // FX_PAGESIZE)) == 0:
+            save_bytes = arduboy.fxcart.embedded_save_size(self.data_raw)
+            if save_bytes:
                 # Ask if the user wants to create a save out of this
                 if gui_utils.yes_no("Split save section out",
                                     "The data provided appears to have a save section at the end. This is normal when using the development binary. Do you want to strip the save and add it properly to the slot (recommended)?", 
                                     self):
-                    self.save_raw = self.data_raw[-unused_pages * FX_PAGESIZE:]
-                    self.data_raw = self.data_raw[:-unused_pages * FX_PAGESIZE]
+                    self.save_raw = self.data_raw[-save_bytes:]
+                    self.data_raw = self.data_raw[:-save_bytes]
                     self.refresh_fxsavetext()
                     self.refresh_fxdatatext()
         def hexlength():
