@@ -70,7 +70,7 @@
 </p>
 
 <p>
-    You can generate basic <b>.arduboy</b> archives for distribution using this package generator. You 
+    You can generate <b>.arduboy</b> archives for distribution using this package generator. You 
     can also modify existing packages (such as updating the version + binaries inside).
 </p>
 
@@ -79,6 +79,13 @@
     <b>.arduboy</b> format, but it is enough for most use cases. However, if you open a package
     which contains these extra fields, they will <b>not</b> be saved back when you save the 
     package. Use this package creator with caution. More fields may become available in the future.
+</p>
+
+<p>
+    <b>This package generator uses an updated .arduboy format from 2023</b>, which was agreed upon 
+    by the community at that time. All parts of the toolset will read this format (v4) and all older 
+    ones, but it will only <b>write</b> v4 packages. Some older/unmaintained tools may not be 
+    compatible with this format.
 </p>
 
 <h2>Image</h2>

@@ -393,7 +393,7 @@ class CartWindow(QMainWindow):
             f.write(rawdata)
         self.filepath = filepath
         self.set_modified(False)
-        debug_actions.global_debug.add_action_str(f"Saved cart to file {filepath}")
+        debug_actions.global_debug.add_action_str(f"Saved cart in editor to file {filepath}")
 
     # Returns whether the user went through with an action. If false, you should not 
     # continue your discard!
@@ -410,7 +410,7 @@ class CartWindow(QMainWindow):
             if reply == QMessageBox.StandardButton.Save:
                 return self.save() # The user still did not make a decision if they didn't save
             elif reply == QMessageBox.StandardButton.Discard:
-                debug_actions.global_debug.add_action_str(f"Discarded current cart")
+                debug_actions.global_debug.add_action_str(f"Discarded current cart in editor")
             
             # Caller needs to know if the user chose some action that allows them to continue
             return reply != QMessageBox.StandardButton.Cancel
@@ -468,7 +468,7 @@ class CartWindow(QMainWindow):
     def action_newcart(self):
         if self.safely_discard_changes():
             self.clear()
-            debug_actions.global_debug.add_action_str("Created new cart")
+            debug_actions.global_debug.add_action_str("Created new cart in editor")
 
     def action_opencart(self):
         if self.safely_discard_changes():
@@ -476,7 +476,7 @@ class CartWindow(QMainWindow):
             if filepath:
                 bindata = arduboy.fxcart.read(filepath)
                 self.loadcart(bindata, filepath)
-                debug_actions.global_debug.add_action_str(f"Loaded cart from {filepath}")
+                debug_actions.global_debug.add_action_str(f"Loaded cart from {filepath} into editor")
     
     def action_openflash(self):
         if self.safely_discard_changes():
@@ -493,7 +493,7 @@ class CartWindow(QMainWindow):
             if not dialog.error_state:
                 self.filepath = None # There is no file anymore
                 self.loadcart(bindata)
-                debug_actions.global_debug.add_action_str(f"Loaded cart from Arduboy")
+                debug_actions.global_debug.add_action_str(f"Loaded cart from Arduboy into editor")
     
     def action_flash(self):
         # Might as well ask... it's kind of a big deal to flash
@@ -513,9 +513,9 @@ class CartWindow(QMainWindow):
             arduboy.serial.flash_fx(bindata, 0, s_port, verify=True, report_progress=repprog)
         dialog = widget_progress.do_progress_work(do_work, "Flash FX Cart")
         if not dialog.error_state:
-            debug_actions.global_debug.add_action_str(f"Flashed cart to Arduboy")
+            debug_actions.global_debug.add_action_str(f"Flashed cart in editor to Arduboy")
         else:
-            debug_actions.global_debug.add_action_str(f"Failed flashing cart to Arduboy")
+            debug_actions.global_debug.add_action_str(f"Failed flashing cart in editor to Arduboy")
 
     # Save current file without dialog if possible. If no previous file, have to open a new one
     def action_save(self):
@@ -542,14 +542,14 @@ class CartWindow(QMainWindow):
             def do_work(repprog, _):
                 utils.export_slots_as_arduboy(slots, self.device_select.currentText(), filepath, repprog)
             dialog = widget_progress.do_progress_work(do_work, "Export slots as .arduboy", simple = True)
-            debug_actions.global_debug.add_action_str(f"Exported slots as .arduboy")
+            debug_actions.global_debug.add_action_str(f"Exported slots from editor as .arduboy packages")
 
 
     def action_add_category(self):
         # Need to generate default images at some point!! You have the font!
         newcat = SlotWidget(arduboy.shortcuts.slot_from_category("New Category"))
         self.insert_slotwidget(newcat)
-        debug_actions.global_debug.add_action_str(f"Added new category to cart")
+        debug_actions.global_debug.add_action_str(f"Added new category to cart editor")
 
     def action_add_game(self, file_path = None):
         if not file_path:
