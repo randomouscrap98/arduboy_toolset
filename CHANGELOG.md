@@ -1,3 +1,19 @@
+## 0.6.0
+
+* Updated arduboy package import and creator to support the proper "v3" format
+* Updated arduboy package editor to be significantly more robust
+* Support licensing for arduboy packages
+* Arduboy package exports use new, backwards compatible "v4" format (see bottom of post)
+* Moved elements around on main gui for hopefully a more logical flow
+* Added last performed action to bottom of main gui
+* Clicking on last performed action opens a debug window with all actions performed this session
+* Added FAQ section (feel free to suggest more for this)
+* Updated help with more links to external tools and information on Arduboy
+* Added lots of unit tests
+
+Please see https://community.arduboy.com/t/arduboy-toolset/11227/161 for information on updated arduboy package format
+
+
 ## 0.5.0
 
 * Added visual alert when info section will get cut off in cart builder (thank you @steka)
