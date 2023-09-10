@@ -34,6 +34,7 @@ class TestShortcuts(unittest.TestCase):
             "3.9.8",
             "yeahauthor",
             "waht do you want me to say",
+            "BIG LICENSE BIG IMPORATN",
             "2023/5/6",
             "action",
             "https://url",

@@ -14,10 +14,12 @@ import debug_actions
 
 from typing import List
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QGroupBox, QHBoxLayout, QFileDialog, QComboBox
-from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QListWidget, QTableWidgetItem
-from PyQt6.QtWidgets import QListWidgetItem
+from PyQt6.QtWidgets import QLineEdit, QLabel, QScrollArea, QTableWidget, QListWidget, QTableWidgetItem, QTextBrowser
+from PyQt6.QtWidgets import QListWidgetItem, QTextEdit, QStackedWidget
+from PyQt6.QtCore import Qt
 
 FIELDS_SPACING = 3
+LICENSE_HELP_URL = "https://choosealicense.com/"
 
 
 class BinaryWidget(QWidget):
@@ -163,16 +165,37 @@ class PackageEditor(QWidget):
         info_layout.setSpacing(FIELDS_SPACING)
         self.info_group.setLayout(info_layout)
 
+        # Need a widget that can switch between views
+        self.stacked_editor = QStackedWidget()
+
+        # Need a widget that represents all the fields that will get closed when the license editor is open.
+        self.license_replace = QWidget()
+        license_replace_layout = QVBoxLayout()
+        license_replace_layout.setContentsMargins(0,0,0,0)
+        license_replace_layout.setSpacing(FIELDS_SPACING)
+        self.license_replace.setLayout(license_replace_layout)
+
+        # Need the license editor widget
+        self.license_edit = QTextEdit()
+        self.license_edit.setPlaceholderText("Enter full license text here.\n\nIf choosing a license online, simply copy + paste the full license text here. You may need to edit some fields for your name and the date.")
+
+        # Add them both to the stack
+        self.stacked_editor.addWidget(self.license_replace)
+        self.stacked_editor.addWidget(self.license_edit)
+
+        info_layout.addWidget(self.stacked_editor)
+        info_layout.setStretchFactor(self.stacked_editor, 1)
+
         # All these junk fields are exactly the same
         def mkedit(placeholder, tooltip):
             edit = QLineEdit()
             edit.setPlaceholderText(placeholder)
             if tooltip:
                 edit.setToolTip(tooltip)
-            info_layout.addWidget(edit)
-            info_layout.setStretchFactor(edit, 0)
+            license_replace_layout.addWidget(edit)
+            license_replace_layout.setStretchFactor(edit, 0)
             return edit
-
+        
         # All the junk fields
         self.title_edit = mkedit("Title", "Title of your program. This is used as part of a key to uniquely identify your program, try not to change it! (Required)")
         self.version_edit = mkedit("Version", "Version of your program; you should increment it every update! (Required)")
@@ -206,16 +229,38 @@ class PackageEditor(QWidget):
         contributors_header_layout.addWidget(self.contributors_remove)
         contributors_header_layout.setStretchFactor(self.contributors_remove, 0)
 
-        info_layout.addWidget(contributors_header_container)
-        info_layout.setStretchFactor(contributors_label, 0)
+        license_replace_layout.addWidget(contributors_header_container)
+        license_replace_layout.setStretchFactor(contributors_label, 0)
 
         self.contributors_table = QTableWidget()
         self.contributors_table.setColumnCount(3)
         self.contributors_table.setHorizontalHeaderLabels(["Name          ", "Roles            ", "Urls (comma separated)"])
         self.contributors_table.resizeColumnsToContents()
         self.contributors_table.horizontalHeader().setStretchLastSection(True)
-        info_layout.addWidget(self.contributors_table)
-        info_layout.setStretchFactor(self.contributors_table, 1)
+        license_replace_layout.addWidget(self.contributors_table)
+        license_replace_layout.setStretchFactor(self.contributors_table, 1)
+
+        license_row = QWidget()
+        license_layout = QHBoxLayout()
+        license_layout.setContentsMargins(0,0,0,0)
+        license_row.setLayout(license_layout)
+
+        self.license_edit_button = QPushButton("Edit License")
+        self.license_edit_button.clicked.connect(self.open_license)
+        license_layout.addWidget(self.license_edit_button)
+
+        self.license_help = QTextBrowser()
+        self.license_help.setOpenExternalLinks(True)
+        self.license_help.setHtml(f'<a href="{LICENSE_HELP_URL}">Help me choose</a>')
+        self.license_help.setFixedHeight(self.license_edit_button.sizeHint().height())
+        self.license_help.setFixedWidth(125)
+        self.license_help.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.license_help.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.license_help.setStyleSheet("background-color: transparent; border: none")
+        license_layout.addWidget(self.license_help)
+
+        info_layout.addWidget(license_row)
+        info_layout.setStretchFactor(license_row, 0)
 
         # ------------ Binary PANE ------------------
         binary_layout = QVBoxLayout()
@@ -292,6 +337,7 @@ class PackageEditor(QWidget):
         self.url_edit.setText(package.url)
         self.sourceurl_edit.setText(package.sourceUrl)
         self.email_edit.setText(package.email)
+        self.license_edit.setPlainText(package.license)
         for c in package.contributors:
             self.add_contributor(c)
         for b in package.binaries:
@@ -326,6 +372,7 @@ class PackageEditor(QWidget):
         package.url = self.url_edit.text()
         package.sourceUrl = self.sourceurl_edit.text()
         package.email = self.email_edit.text()
+        package.license = self.license_edit.toPlainText()
 
         if not package.title:
             raise Exception("Title is required!")
@@ -347,6 +394,15 @@ class PackageEditor(QWidget):
                 raise Exception("You MUST provide the main .hex file for every binary!")
 
         return package
+    
+    def open_license(self):
+        open_tab = self.stacked_editor.currentIndex()
+        if open_tab == 0:
+            self.stacked_editor.setCurrentIndex(1)
+            self.license_edit_button.setText("Close License")
+        elif open_tab == 1:
+            self.stacked_editor.setCurrentIndex(0)
+            self.license_edit_button.setText("Edit License")
 
 
 class PackageWidget(QWidget):

@@ -142,6 +142,7 @@ class TestArduhex(unittest.TestCase):
             "0.6.8_r1",
             "yomdor",
             "It's a game about something! Press buttons and find out!",
+            "BIG LICENSE BIG IMPORTANT",
             "12/18/2001",
             "Action",
             "https://wow.nothing.com/hecking_game",

@@ -23,6 +23,9 @@ DEFAULT_SCHEMA = 4      # Schema version for .arduboy package info.json
 
 DEFAULT_CARTIMAGE = "cart.png"
 INFO_FILE = "info.json"
+LICENSE_FILE = "LICENSE.txt"
+
+LICENSE_FILES = [ LICENSE_FILE, "LICENCE.txt", "LICENSE", "LICENCE" ]
 
 KEY_SCHEMA = "schemaVersion"
 KEY_BINFILE = "filename"
@@ -87,6 +90,8 @@ class ArduboyParsed:
     author: str = field(default="")
     description: str = field(default="")
 
+    license: str = field(default=None)
+
     # Some optional fields
     date : str = field(default=None)
     genre : str = field(default=None)
@@ -101,9 +106,8 @@ class ArduboyParsed:
     def _fill_generic(info, func):
         """Using given function, assign fields from a .arduboy item into a ArduboyParsed object
         
-        In other words, this function represents the mapping between .arduboy json and the ArduboyParsed 
-        fields. If you construct a function which takes a json object, the json field, and the ArduboyParsed
-        field, you could pass that to this function to run it on all field associations.
+        In other words, these are all the fields that are shared between the two formats. They're all
+        basic strings 
         """
         for f in ["title", "author", "description", "version", "genre", "date", "url", "sourceUrl", "email", "companion"]:
             func(info, f)
@@ -183,6 +187,16 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
             except Exception as ex:
                 logging.debug("No default cart image found")
                 default_cartimage = None
+            for lf in LICENSE_FILES:
+                try:
+                    license_file = extract(lf)
+                    with open(license_file, "r", encoding="utf-8") as f:
+                        result.license = f.read()
+                    break
+                except:
+                    logging.debug(f"No license in '{lf}'")
+            if not result.license:
+                logging.warning("No license file found!")
             if KEY_CONTRIBUTORS in info:
                 for contributor in info[KEY_CONTRIBUTORS]:
                     rescon = ArduboyContributor(contributor["name"] if "name" in contributor else "UNKNOWN")
@@ -271,6 +285,11 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
                 filename = set_file_field(KEY_CARTIMAGE, "_cartimage.png")
                 binary.cartImage.save(filename)
             info[KEY_BINARIES].append(bindata)
+        # Write the license file (if it exists)
+        if ard_parsed.license:
+            files.append(os.path.join(tempdir, LICENSE_FILE))
+            with open(files[-1], "w", encoding="utf-8") as f:
+                f.write(ard_parsed.license)
         # Finally, write the info.json file
         files.append(os.path.join(tempdir, INFO_FILE))
         demjson3.encode_to_file(files[-1], info, compactly=False)
