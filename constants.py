@@ -1,7 +1,7 @@
 
 import os
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 SCRIPTDIR = os.path.dirname(os.path.abspath(__file__))
 
 IMAGE_FILEFILTER = "Images (*.png *.jpg *.jpeg *.gif *.bmp);;All Files (*)"

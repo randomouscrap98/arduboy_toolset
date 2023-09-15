@@ -227,7 +227,8 @@ class ImageConvertWidget(QWidget):
 
     def do_convert_file(self):
         self.validate_inputs()
-        filepath, _ = QFileDialog.getSaveFileName(self, "Save image header", self.image_name.text() + ".h", constants.HEADER_FILEFILTER)
+        # Unfortunately, in order for the dialog to remember the last location, you must pass in nothing as the default filename?
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save image header", "", constants.HEADER_FILEFILTER)
         if filepath:
             code = self.convert_self_code()
             with open(filepath, "w") as f:
@@ -237,7 +238,7 @@ class ImageConvertWidget(QWidget):
         self.validate_inputs()
         if self.mask_cb.isChecked() and self.sepmask_cb.isChecked():
             QMessageBox.information(self, "Incompatible settings", "FX binaries with masks are always stored interleaved. The 'Separate mask' setting will be ignored")
-        filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", self.image_name.text() + ".bin", constants.BIN_FILEFILTER)
+        filepath, _ = QFileDialog.getSaveFileName(self, "Save image fx binary", "", constants.BIN_FILEFILTER)
         if filepath:
             binary = self.convert_self_fx()
             with open(filepath, "wb") as f:
