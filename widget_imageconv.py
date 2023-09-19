@@ -1,6 +1,7 @@
 import arduboy.image
 
 import constants
+import gui_common
 import gui_utils
 import widgets_common
 import debug_actions
@@ -47,7 +48,7 @@ class ImageConvertWidget(QWidget):
         self.image_view = widgets_common.CustomGraphicsView()
         self.image_view.setScene(self.image_scene)
         self.image_view.set_zoom(4.0)
-        self.image_view.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
+        self.image_view.setStyleSheet(f"background-color: {gui_common.SUBDUEDCOLOR}")
         self.image_view.setToolTip("Preview image with tiling. Note: PyQt doesn't let you drag+drop here (you can drag+drop anywhere else to load an image)")
 
         image_layout.addWidget(self.image_view)

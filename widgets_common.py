@@ -1,5 +1,5 @@
 
-import gui_utils
+import gui_common
 
 import os
 
@@ -48,19 +48,19 @@ class ConnectionInfo(QWidget):
         layout = QHBoxLayout()
 
         self.status_picture = QLabel("$")
-        gui_utils.set_emoji_font(self.status_picture, 24)
+        gui_common.set_emoji_font(self.status_picture, 24)
         layout.addWidget(self.status_picture)
 
         text_container = QWidget()
         text_layout = QVBoxLayout()
 
         self.status_label = QLabel("Label")
-        gui_utils.set_font_size(self.status_label, 14)
+        gui_common.set_font_size(self.status_label, 14)
         text_layout.addWidget(self.status_label)
 
         self.info_label = QLabel("Info")
-        gui_utils.set_font_size(self.info_label, 8)
-        self.info_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+        gui_common.set_font_size(self.info_label, 8)
+        self.info_label.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
         text_layout.addWidget(self.info_label)
 
         text_container.setLayout(text_layout)
@@ -80,12 +80,12 @@ class ConnectionInfo(QWidget):
             self.status_label.setText("Connected!")
             self.info_label.setText(device.display_name())
             self.status_picture.setText("✅")
-            self.status_picture.setStyleSheet(f"color: {gui_utils.SUCCESSCOLOR}")
+            self.status_picture.setStyleSheet(f"color: {gui_common.SUCCESSCOLOR}")
         else:
             self.status_label.setText("Searching for Arduboy" + "." * ((self.update_count % 3) + 1))
             self.info_label.setText("Make sure Arduboy is connected + turned on")
             self.status_picture.setText("⏳")
-            self.status_picture.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+            self.status_picture.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
 
 
 

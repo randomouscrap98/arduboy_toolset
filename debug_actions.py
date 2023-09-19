@@ -2,6 +2,7 @@ import datetime
 import logging
 
 import gui_utils
+import gui_common
 
 from dataclasses import dataclass
 from PyQt6.QtCore import QTimer, pyqtSignal, Qt, QThread, QObject
@@ -40,7 +41,7 @@ class DebugEntry(QWidget):
         self.setLayout(layout)
 
         self.date_label = QLabel(action.time.isoformat(timespec='seconds'))
-        self.date_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; margin-right: 2px; margin-left: 2px;")
+        self.date_label.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}; margin-right: 2px; margin-left: 2px;")
         self.action_label = QLabel(action.action)
 
         layout.addWidget(self.date_label)

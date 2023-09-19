@@ -3,6 +3,7 @@ import arduboy.shortcuts
 import arduboy.arduhex
 import arduboy.image
 
+import gui_common
 import gui_utils
 import constants
 import debug_actions
@@ -110,7 +111,7 @@ class SlotWidget(QWidget):
         if self.mode == "category":
             self.category_bigtitle = QLabel(self.parsed.meta.title)
             self.category_bigtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            gui_utils.set_font_size(self.category_bigtitle, 16)
+            gui_common.set_font_size(self.category_bigtitle, 16)
             self.category_bigtitle.setMinimumHeight((int)(self.title.sizeHint().height() * 2.75))
             self.category_bigtitle.setStyleSheet(CATEGORY_BLOCK_STYLE)
             gui_utils.add_children_nostretch(fieldlayout, fields, self.category_bigtitle)
@@ -151,7 +152,7 @@ class SlotWidget(QWidget):
             total_length += len(self.author.text()) + len(self.version.text())
             total_limit -= 2 # Extra delimiters between two extra fields
         if total_length > total_limit:
-            self.info.setStyleSheet(gui_utils.WARNINGINPUT)
+            self.info.setStyleSheet(gui_common.WARNINGINPUT)
             self.info.setToolTip(f"Info will be truncated; total metadata length must be <= {total_limit} (at {total_length})")
         else:
             self.info.setStyleSheet("")
@@ -240,7 +241,7 @@ class TitleImageWidget(QLabel):
         self.set_image_bytes(None)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setFixedSize(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.setStyleSheet(f"background-color: {gui_utils.SUBDUEDCOLOR}")
+        self.setStyleSheet(f"background-color: {gui_common.SUBDUEDCOLOR}")
     
     def set_image_pil(self, image_pil):
         # Yes, this is a lot of conversion, I don't care. There's a function that magically converts

@@ -1,6 +1,7 @@
 import arduboy.fxcart
 import arduboy.serial
 
+import gui_common
 import widget_progress
 import widgets_common
 import constants
@@ -23,7 +24,7 @@ class FxWidget(QWidget):
         self.upload_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER)
         self.upload_button = QPushButton("Upload")
         self.upload_button.clicked.connect(self.do_upload)
-        upload_group, upload_layout = gui_utils.make_file_action("Upload Flashcart", self.upload_picker, self.upload_button, "⬆️", gui_utils.SUCCESSCOLOR)
+        upload_group, upload_layout = gui_utils.make_file_action("Upload Flashcart", self.upload_picker, self.upload_button, "⬆️", gui_common.SUCCESSCOLOR)
 
         self.contrast_picker = widgets_common.ContrastPicker()
         contrast_container, self.contrast_cb = gui_utils.make_toggleable_element("Patch contrast", self.contrast_picker, nostretch=True)
@@ -36,7 +37,7 @@ class FxWidget(QWidget):
         self.backup_picker = widgets_common.FilePicker(constants.BIN_FILEFILTER, True, utils.get_fx_backup_filename)
         self.backup_button = QPushButton("Backup")
         self.backup_button.clicked.connect(self.do_backup)
-        backup_group, backup_layout = gui_utils.make_file_action("Backup Flashcart", self.backup_picker, self.backup_button, "⬇️", gui_utils.BACKUPCOLOR)
+        backup_group, backup_layout = gui_utils.make_file_action("Backup Flashcart", self.backup_picker, self.backup_button, "⬇️", gui_common.BACKUPCOLOR)
 
         self.trim_cb = QCheckBox("Trim flashcart (excludes dev data!)")
         self.trim_cb.setChecked(True)
@@ -45,7 +46,7 @@ class FxWidget(QWidget):
 
         # Extras
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
-        warninglabel.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}; padding: 10px")
+        warninglabel.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}; padding: 10px")
 
         gui_utils.add_children_nostretch(fx_layout, [self.coninfo, upload_group, backup_group, warninglabel])
 

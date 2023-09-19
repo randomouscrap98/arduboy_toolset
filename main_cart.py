@@ -60,7 +60,7 @@ class CartWindow(QMainWindow):
 
         centralwidget.setLayout(layout)
         # centralwidget.setObjectName("wtfplease")
-        centralwidget.setStyleSheet("QListWidget { border: 1px solid " + gui_utils.SUBDUEDCOLOR + " }")
+        centralwidget.setStyleSheet("QListWidget { border: 1px solid " + gui_common.SUBDUEDCOLOR + " }")
         self.setCentralWidget(centralwidget) # self.list_widget)
         self.set_modified(False)
 
@@ -498,7 +498,7 @@ class CartWindow(QMainWindow):
     def action_flash(self):
         # Might as well ask... it's kind of a big deal to flash
         reply = QMessageBox.question(self, "Flash FX Cart",
-            f"Are you sure you want to flash this cart to the Arduboy?",
+            f"Are you sure you want to flash this cart to the Arduboy?\n\nThis will overwrite the ENTIRE cart!",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
         if reply != QMessageBox.StandardButton.Yes:
             return 

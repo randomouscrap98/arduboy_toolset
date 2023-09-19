@@ -6,6 +6,7 @@ import arduboy.common
 
 from arduboy.constants import *
 
+import gui_common
 import widget_slot
 import constants
 import gui_utils
@@ -77,10 +78,10 @@ class BinaryWidget(QWidget):
                 button.setText(basetext + (f" - {length} bytes" if length else " - None"))
                 if length == 0:
                     deletebutton.setDisabled(True)
-                    deletebutton.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+                    deletebutton.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
                 else:
                     deletebutton.setDisabled(False)
-                    deletebutton.setStyleSheet(f"color: {gui_utils.ERRORCOLOR}")
+                    deletebutton.setStyleSheet(f"color: {gui_common.ERRORCOLOR}")
             def setdata():
                 file_path, _ = QFileDialog.getOpenFileName(self, opentitle, "", filetypes)
                 if file_path:
@@ -89,7 +90,7 @@ class BinaryWidget(QWidget):
                         setextra()
                     refresh()
             button.clicked.connect(setdata)
-            gui_utils.set_emoji_font(deletebutton)
+            gui_common.set_emoji_font(deletebutton)
             def deletedata():
                 setattr(self, field, default_func())
                 refresh()

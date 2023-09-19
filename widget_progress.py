@@ -1,6 +1,7 @@
 import arduboy.device
 
 import gui_utils
+import gui_common
 
 import logging
 
@@ -29,7 +30,7 @@ class ProgressWindow(QDialog):
 
             self.device_label = QLabel(device if device else "~")
             self.device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.device_label.setStyleSheet(f"color: {gui_utils.SUBDUEDCOLOR}")
+            self.device_label.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
             layout.addWidget(self.device_label)
 
         self.progress_bar = QProgressBar()
