@@ -92,8 +92,8 @@ class ConnectionInfo(QWidget):
 class ClickableLabel(QLabel):
     """A label that implements a rudimentary "clicked" event, just like a button"""
     clicked = pyqtSignal()
-    def __init__(self, text):
-        super().__init__(text)
+    def __init__(self, text, parent = None):
+        super().__init__(text, parent = parent)
 
     def mousePressEvent(self, event):
         self.clicked.emit()

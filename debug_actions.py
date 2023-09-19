@@ -16,8 +16,8 @@ class DebugAction:
 class DebugContainer(QObject):
     add_item = pyqtSignal(DebugAction)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent = None):
+        super().__init__(parent=parent)
         self.actions = []
         self.merge_repeats = True
     
@@ -29,6 +29,7 @@ class DebugContainer(QObject):
         if not self.merge_repeats or len(self.actions) == 0 or action.action != self.actions[-1].action:
             self.actions.append(action)
             self.add_item.emit(action)
+
 
 class DebugEntry(QWidget):
     def __init__(self, action: DebugAction):
@@ -79,6 +80,17 @@ class DebugWindow(QWidget):
 # The globally configured debug container everyone can use. I don't really care
 global_debug = DebugContainer()
 global_window = None
+
+# this is SO stupid but like... idk, I don't care enough to do it right
+global_debug_destroyed = False
+def global_debug_destroyed_event():
+    global global_debug_destroyed
+    global_debug_destroyed = True
+def global_debug_disconnect(event):
+    if not global_debug_destroyed:
+        global_debug.add_item.disconnect(event)
+global_debug.destroyed.connect(global_debug_destroyed_event)
+
 
 
 def setup_global_debug_window():

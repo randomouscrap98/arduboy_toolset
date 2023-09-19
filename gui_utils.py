@@ -199,7 +199,7 @@ def add_footer(layout):
     footerwidget.setLayout(footerlayout)
     footerlayout.setContentsMargins(1,1,1,1)
 
-    action_label = widgets_common.ClickableLabel("Action...")
+    action_label = widgets_common.ClickableLabel("Action...") # , parent = debug_actions.global_debug)
     action_label.setStyleSheet(f"color: {SUBDUEDCOLOR}")
     action_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
     action_label.setCursor(QtGui.QCursor(Qt.CursorShape.PointingHandCursor))  # Set cursor to pointing hand
@@ -207,7 +207,13 @@ def add_footer(layout):
     footerlayout.addWidget(action_label)
     footerlayout.setStretchFactor(action_label, 1)
 
-    debug_actions.global_debug.add_item.connect(lambda item: action_label.setText(item.action))
+    # debug_actions.global_debug.add_item.connect(lambda item: action_label.setText(item.action))
+
+    actionsettext = lambda item: action_label.setText(item.action)
+    debug_actions.global_debug.add_item.connect(actionsettext)
+    action_label.destroyed.connect(lambda: debug_actions.global_debug_disconnect(actionsettext))
+    # if not debug_actions.global_debug_destroyed: debug_actions.global_debug.add_item.disconnect(actionsettext))
+
     layout.addWidget(footerwidget)
     layout.setStretchFactor(action_label, 0)
 

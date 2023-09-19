@@ -56,7 +56,7 @@ class CartWindow(QMainWindow):
         self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
         layout.addWidget(self.list_widget)
-        self.add_footer(layout)
+        self.footer = self.add_footer(layout)
 
         centralwidget.setLayout(layout)
         # centralwidget.setObjectName("wtfplease")
