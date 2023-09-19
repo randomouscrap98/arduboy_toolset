@@ -1,3 +1,8 @@
+## 0.6.1
+* Fixed weird C++ object deleted bug
+* Fixed inability to open cart builder by itself anymore
+* Image saving remembers last spot
+
 ## 0.6.0
 
 * Updated arduboy package import and creator to support the proper "v3" format

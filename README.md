@@ -9,16 +9,15 @@
 <img alt="Image converter" src="https://github.com/randomouscrap98/arduboy_toolset/blob/main/appresource/screenshot_imageconvert_main.png?raw=true" height=250>
 </p>
 
-A set of personal tools derived heavily from https://github.com/MrBlinky/Arduboy-Python-Utilities
-made as a learning exercise. I wanted to understand what makes Arduboy tick, while also maybe
-providing a slightly easier way to manage Arduboy. 
+A set of personal tools derived heavily from https://github.com/MrBlinky/Arduboy-Python-Utilities. 
+This is a fan project and not an official too, use at your own risk (see license).
 
 The toolset allows you to:
 * Upload and backup sketches + eeprom
 * Upload and backup FX flash data (carts of games)
 * Add/update games in the flashcart of your Arduboy (FX or otherwise)
 * Create/edit custom flashcarts with custom categories
-* Create/edit rudimentary `.arduboy` package files
+* Create/edit `.arduboy` package files
 * Convert images into code or data for use with the Arduboy2 or FX library
 
 ## Quickstart
@@ -103,3 +102,5 @@ pyinstaller arduboy_toolset.spec
   and put it anywhere. This may change in the future to increase startup time
 - The GUI has the console removed; if you're looking for logs, the program logs
   to a txt file next to the executable
+- Windows will often mark it as some kind of "dangerous file". Please see 
+  https://github.com/pyinstaller/pyinstaller/issues/5854
