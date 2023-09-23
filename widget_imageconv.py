@@ -89,6 +89,10 @@ class ImageConvertWidget(QWidget):
         config_layout.addWidget(mask_container) # self.mask_cb)
         self.mask_cb.stateChanged.connect(self.recalculate_rects)
 
+        self.generate_dims = QCheckBox("Add dimensions to array")
+        self.generate_dims.setChecked(True)
+        config_layout.addWidget(self.generate_dims)
+
         self.image_name = QLineEdit("MyImage")
         validator = QRegularExpressionValidator(QRegularExpression(r"[a-zA-Z_][a-zA-Z0-9_]*"), self)
         self.image_name.setValidator(validator)
@@ -156,6 +160,7 @@ class ImageConvertWidget(QWidget):
                 result.width, result.height = self.tilesize.get_values()
             except:
                 logging.warning(f"Bad width/height values, not setting tiling!")
+        result.add_dimensions = self.generate_dims.isChecked()
         result.use_mask = self.mask_cb.isChecked()
         result.separate_header_mask = self.sepmask_cb.isChecked()
         return result

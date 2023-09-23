@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 # Should probably not be a constant... some kind of config?
 IMAGE_THRESHOLD = 64
+ALPHA_THRESHOLD = 128
 
 # Convert a block of arduboy image bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData, raw = False):
@@ -77,6 +78,7 @@ class TileConfig:
     spacing: int = field(default=0)         # Spacing between tiles (all around?)
     use_mask: bool = field(default=False)   # Whether to use transparency as mask data
     separate_header_mask: bool = field(default=False)
+    add_dimensions: bool = field(default=True)
 
 
 # Calculate individaul sprite width, height, horizontal count, and vertical count
@@ -136,8 +138,6 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     bytes = bytearray([spriteWidth >> 8, spriteWidth & 0xFF, spriteHeight >> 8, spriteHeight & 0xFF])
     bytes += bytearray(size + (size if transparency else 0))
     i = 4
-    b = 0
-    m = 0
 
     headerfile = io.StringIO()
     headermask = io.StringIO()  # We track the separate mask even if we don't end up using it.
@@ -147,7 +147,9 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
     headerfile.write("\n")
     headerfile.write("constexpr uint8_t {}[] PROGMEM\n".format(spriteName,))
     headerfile.write("{\n")
-    headerfile.write("  {}Width, {}Height,\n\n".format(spriteName, spriteName))
+
+    if config.add_dimensions:
+        headerfile.write("  {}Width, {}Height,\n\n".format(spriteName, spriteName))
 
     headermask.write(f"constexpr uint8_t {spriteName}_Mask[] PROGMEM\n{{\n")
 
@@ -163,13 +165,16 @@ def convert_image(img: Image, name: str, config: TileConfig = None) -> (str, byt
                 line = "  "
                 maskline = "  "
                 for x in range (0,spriteWidth):
+                    b = 0
+                    m  = 0
                     for p in range (0,8):
                         b = b >> 1  
                         m = m >> 1
                         if (y + p) < spriteHeight: #for heights that are not a multiple of 8 pixels
-                            if pixels[(fy + y + p) * img.size[0] + fx + x][1] > IMAGE_THRESHOLD:
+                            pindex = (fy + y + p) * img.size[0] + fx + x
+                            if pixels[pindex][1] > IMAGE_THRESHOLD:
                                 b |= 0x80 #white pixel
-                            if pixels[(fy + y + p) * img.size[0] + fx + x][3] > IMAGE_THRESHOLD:
+                            if pixels[pindex][3] > ALPHA_THRESHOLD:
                                 m |= 0x80 #opaque pixel
                             else:
                                 b &= 0x7F #for transparent pixel clear possible white pixel 
