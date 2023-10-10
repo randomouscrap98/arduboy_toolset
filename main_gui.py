@@ -14,6 +14,7 @@ import widget_fx
 import widget_eeprom
 import widget_package
 import widget_imageconv
+import widget_network
 import widgets_common
 import debug_actions
 
@@ -62,12 +63,14 @@ class MainWindow(QMainWindow):
         self.eepromtab = widget_eeprom.EEPROMWidget()
         self.packagetab = widget_package.PackageWidget()
         self.imageconvtab = widget_imageconv.ImageConvertWidget()
+        self.networktab = widget_network.NetworkBrowseWidget()
         
         tabs.addTab(self.sketchtab, "Sketch")
         tabs.addTab(self.fxtab, "Flashcart")
         tabs.addTab(self.eepromtab, "EEPROM")
         tabs.addTab(self.packagetab, "Package")
         tabs.addTab(self.imageconvtab, "Image")
+        tabs.addTab(self.networktab, "Network")
 
         # Add widgets to the layout
         layout.addWidget(tabs)
