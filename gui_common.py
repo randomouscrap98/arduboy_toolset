@@ -1,9 +1,9 @@
 import utils
 import logging
+import requests
 
+from constants import *
 from PyQt6 import QtGui
-# from PyQt6.QtWidgets import  QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel, QVBoxLayout, QMessageBox, QGroupBox
-# from PyQt6.QtWidgets import  QCheckBox, QApplication 
 from PyQt6.QtCore import Qt
 
 SUBDUEDCOLOR = "rgba(128,128,128,0.75)"
@@ -61,3 +61,22 @@ def make_button_bigger(button):
     newsize = mod_font_size(button, 1.25) # This is part of having a file action: the button is bigger
     padding = newsize * 0.75
     button.setStyleSheet(f"padding: {padding}px {padding * 3}px")
+
+
+cached_official_cartmeta = None
+
+"""
+This is a blocking function which pulls the data from the cart builder website. This may
+take a long time, long enough to have a loading screen.
+"""
+def get_official_cartmeta(force: bool):
+    # This will have file cachine later, it's just a bit complicated with macos and their package thing
+    global cached_official_cartmeta
+
+    # Need to pull the cart I guess!
+    if force or not cached_official_cartmeta:
+        # There is a cartdate you could use but it seems unreliable for now (sorry filmote!!)
+        r = requests.get(OFFICIAL_CARTMETA_URL)
+        cached_official_cartmeta = r.json()
+    
+    return cached_official_cartmeta

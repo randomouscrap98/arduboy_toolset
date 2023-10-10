@@ -13,3 +13,8 @@ HEADER_FILEFILTER = "All Supported Files (*.h);;All Files(*)"
 
 TINYFONT = "m3x6.ttf"
 TINYFONT_WIDTH = 4 #WARN: This is not always the case!!
+
+# These constants should maybe come from a config file
+OFFICIAL_BASE_URL = "http://www.bloggingadeadhorse.com/cart/"
+OFFICIAL_CARTMETA_URL = OFFICIAL_BASE_URL + "Cart_GetBINs.php"
+OFFICIAL_CARTDATE_URL = OFFICIAL_BASE_URL + "Cart_LastModification.php"
