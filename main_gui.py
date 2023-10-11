@@ -127,6 +127,7 @@ class MainWindow(QMainWindow):
             self.sketchtab.set_connected_device(device)
             self.fxtab.set_connected_device(device)
             self.eepromtab.set_connected_device(device)
+            self.networktab.set_connected_device(device)
 
 
     def open_help_window(self):
@@ -142,11 +143,16 @@ class MainWindow(QMainWindow):
         self.faq_window.show()
     
     def open_newcart(self):
-        new_window = main_cart.CartWindow()
-        new_window.show()
+        if not hasattr(self, 'cart_window'):
+            self.cart_window = main_cart.CartWindow()
+        self.cart_window.show()
+        self.cart_window.setFocus()
+        self.cart_window.activateWindow()
     
     def closeEvent(self, event) -> None:
         debug_actions.remove_global_debug_window()
+        if hasattr(self, 'cart_window'):
+            self.cart_window.close()
         if hasattr(self, 'help_window'):
             self.help_window.close()
         if hasattr(self, 'about_window'):
