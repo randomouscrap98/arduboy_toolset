@@ -119,6 +119,13 @@ class TestArduhex(unittest.TestCase):
         self.assertTrue(len(analysis.trimmed_data) > FLASH_SIZE // 2)
         self.assertTrue(len(analysis.trimmed_data) < FLASH_SIZE)
         self.assertEqual(analysis.detected_device, arduboy.arduhex.DEVICE_ARDUBOYFX)
+
+    def test_analyze_sketch_fx2(self):
+        with open(TESTHEXFX2_PATH, "r") as f:
+            hexdata = f.read()
+        bindata = arduboy.common.hex_to_bin(hexdata)
+        analysis = arduboy.arduhex.analyze_sketch(bindata)
+        self.assertEqual(analysis.detected_device, arduboy.arduhex.DEVICE_ARDUBOYFX)
     
     def test_analyze_sketch_small(self):
         bindata = makebytearray(5)

@@ -46,13 +46,30 @@ ARDUBOYFX_DISABLE_BYTES = bytes.fromhex("599a")
 ARDUBOYMINI_ENABLE_BYTES = bytes.fromhex("7298")    # 0x72, 0x98, 0x0e, 0x94
 ARDUBOYMINI_DISABLE_BYTES = bytes.fromhex("729a")   # 0x72, 0x9a, 0x08, 0x95
 
-ARDUBOY_RET_BYTES = bytes.fromhex("0895") # 0x59, 0x9a, 0x08, 0x95
-ARDUBOY_CALL_BYTES = bytes.fromhex("0e94") # 0x59, 0x9a, 0x08, 0x95
+ARDUBOY_CALL_FOLLOW_BYTES = [
+    bytes.fromhex("0895"), 
+    bytes.fromhex("0e94"),
+    bytes.fromhex("83e00e94") # Manic miner had this instead
+]
+
+# ARDUBOY_RET_BYTES = bytes.fromhex("0895") 
+# ARDUBOY_CALL_BYTES = bytes.fromhex("0e94") 
+# ARDUBOY_LDCALL_BYTES = bytes.fromhex("83e00e94")
 
 def find_call_ret(bindata, initial):
-    ret = initial + ARDUBOY_RET_BYTES
-    call = initial + ARDUBOY_CALL_BYTES
-    return bindata.find(ret) >= 0 or bindata.find(call) >= 0
+    """Return whether or not the given instruction exists in the given data BUT followed specifically
+       by a call, return, or some other special instruction (used for FX enable/disable detection)"""
+    for fb in ARDUBOY_CALL_FOLLOW_BYTES:
+        pos = bindata.find(initial + fb) 
+        if pos >= 0 and (pos & 1) == 0:
+            return True
+    return False
+
+    # ret = initial + ARDUBOY_RET_BYTES
+    # call = initial + ARDUBOY_CALL_BYTES
+    # pos = bindata.find(ret) 
+    # pos2 = bindata.find(call)
+    # return (pos >= 0 and (pos & 1) == 0) or (pos2 >= 0 and (pos & 1) == 0)
     # pos = bindata.find(initial)
     # if pos >= 0:
     #     return bindata.find(ARDUBOY_RET_BYTES, pos + 1) == pos + 1 or bindata.find(ARDUBOY_)
@@ -353,12 +370,13 @@ def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
             if page >= CATERINA_PAGE:
                 result.overwrites_caterina = True
     result.trimmed_data = bindata[:(lastpage + 1) * FLASH_PAGESIZE]
-    if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): # bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0:
-    # if bindata.find(ARDUBOYFX_ENABLE_BYTES) >= 0: # and (bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0):
+    # if find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
+    # if bindata.find(ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
+    if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
+        # pos = bindata.find(ARDUBOYFX_ENABLE_BYTES)
+        # logging.warning("FXENABLE: " + ' '.join(f'{byte:02x}' for byte in bindata[pos:pos+8]))
         result.detected_device = DEVICE_ARDUBOYFX
-    # elif bindata.find(ARDUBOYMINI_DISABLE_1) >= 0 or bindata.find(ARDUBOYMINI_DISABLE_2) >= 0:
-    elif find_call_ret(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYMINI_DISABLE_BYTES): # bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0:
-    # elif bindata.find(ARDUBOYMINI_ENABLE_BYTES) >= 0: # and (bindata.find(ARDUBOYMINI_DISABLE_1) >= 0 or bindata.find(ARDUBOYMINI_DISABLE_2) >= 0):
+    elif find_call_ret(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYMINI_DISABLE_BYTES): 
         result.detected_device = DEVICE_ARDUBOYMINI
     else:
         # Probably dangerous to assume it's Arduboy but whatever...
