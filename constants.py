@@ -18,3 +18,4 @@ TINYFONT_WIDTH = 4 #WARN: This is not always the case!!
 OFFICIAL_BASE_URL = "http://www.bloggingadeadhorse.com/cart/"
 OFFICIAL_CARTMETA_URL = OFFICIAL_BASE_URL + "Cart_GetBINs.php"
 OFFICIAL_CARTDATE_URL = OFFICIAL_BASE_URL + "Cart_LastModification.php"
+OFFICIAL_INDEX = OFFICIAL_BASE_URL + "Cart.html"

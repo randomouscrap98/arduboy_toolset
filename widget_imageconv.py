@@ -14,7 +14,6 @@ from PyQt6.QtGui import QPixmap, QPen, QRegularExpressionValidator
 from PyQt6.QtCore import QRectF, Qt, QRegularExpression
 from PIL import Image
 
-# A fully self contained widget which can upload and backup EEPROM from arduboy
 class ImageConvertWidget(QWidget):
 
     def __init__(self):

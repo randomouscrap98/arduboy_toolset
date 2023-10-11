@@ -65,12 +65,12 @@ def make_button_bigger(button):
 
 cached_official_cartmeta = None
 
-"""
-This is a blocking function which pulls the data from the cart builder website. This may
-take a long time, long enough to have a loading screen.
-"""
 def get_official_cartmeta(force: bool):
-    # This will have file cachine later, it's just a bit complicated with macos and their package thing
+    """
+    This is a blocking function which pulls the data from the cart builder website. This may
+    take a long time, long enough to have a loading screen.
+    """
+    # This will have file caching later, it's just a bit complicated with macos and their package thing
     global cached_official_cartmeta
 
     # Need to pull the cart I guess!

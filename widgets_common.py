@@ -100,6 +100,17 @@ class ClickableLabel(QLabel):
         # Handle the mouse click event here
         # if event.button() == 1:  # Left mouse button
 
+class ClickableLink(QTextBrowser):
+    """Something that looks like a clickable link. You need to set the width and height appropriately"""
+    def __init__(self, text, href, parent = None):
+        super().__init__(parent = parent)
+        self.setOpenExternalLinks(True)
+        self.setHtml(f'<a href="{href}">{text}</a>')
+        # self.setFixedHeight(self.sizeHint().height())
+        # self.setFixedWidth(125)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setStyleSheet("background-color: transparent; border: none")
 
 
 class NumberOnlyLineEdit(QLineEdit):

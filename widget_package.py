@@ -7,6 +7,7 @@ import arduboy.common
 from arduboy.constants import *
 
 import gui_common
+import widgets_common
 import widget_slot
 import constants
 import gui_utils
@@ -250,14 +251,9 @@ class PackageEditor(QWidget):
         self.license_edit_button.clicked.connect(self.open_license)
         license_layout.addWidget(self.license_edit_button)
 
-        self.license_help = QTextBrowser()
-        self.license_help.setOpenExternalLinks(True)
-        self.license_help.setHtml(f'<a href="{LICENSE_HELP_URL}">Help me choose</a>')
+        self.license_help = widgets_common.ClickableLink("Help me choose", LICENSE_HELP_URL)
         self.license_help.setFixedHeight(self.license_edit_button.sizeHint().height())
         self.license_help.setFixedWidth(125)
-        self.license_help.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.license_help.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.license_help.setStyleSheet("background-color: transparent; border: none")
         license_layout.addWidget(self.license_help)
 
         info_layout.addWidget(license_row)
