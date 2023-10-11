@@ -129,6 +129,19 @@ class NetworkBrowseWidget(QWidget):
             self.gameslist.setEnabled(True)
 
 
+class OfficialGameWidget(QWidget):
+
+    def __init__(self, data):
+        super().__init__()
+
+        self.device = data["device"]
+        self.set_data(data)
+    
+    def get_device(self):
+        return self.device
+
+
+
 class DownloadOfficialRepo(QThread):
 
     downloaded = pyqtSignal(list)

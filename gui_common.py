@@ -65,7 +65,7 @@ def make_button_bigger(button):
 
 cached_official_cartmeta = None
 
-def get_official_cartmeta(force: bool):
+def get_official_cartmeta(force: bool = False):
     """
     This is a blocking function which pulls the data from the cart builder website. This may
     take a long time, long enough to have a loading screen.
@@ -76,7 +76,7 @@ def get_official_cartmeta(force: bool):
     # Need to pull the cart I guess!
     if force or not cached_official_cartmeta:
         # There is a cartdate you could use but it seems unreliable for now (sorry filmote!!)
-        r = requests.get(OFFICIAL_CARTMETA_URL)
+        r = requests.get(OFFICIAL_CARTMETA_URL + "?device=ArduboyFX|ArduboyMini")
         cached_official_cartmeta = r.json()
     
     return cached_official_cartmeta

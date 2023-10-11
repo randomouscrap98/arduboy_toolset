@@ -1,10 +1,15 @@
 import unittest
 import logging
 
+# try:
 import arduboy.arduhex
 import arduboy.image
-
 from arduboy.constants import *
+# except:
+#     import arduboy.arduhex
+#     import arduboy.image
+#     from arduboy.constants import *
+
 from .common import *
 
 from pathlib import Path
@@ -101,6 +106,19 @@ class TestArduhex(unittest.TestCase):
         self.assertTrue(analysis.total_pages > FLASH_PAGECOUNT // 4)
         self.assertTrue(len(analysis.trimmed_data) < FLASH_SIZE // 2)
         self.assertTrue(len(analysis.trimmed_data) > FLASH_SIZE // 4)
+        self.assertEqual(analysis.detected_device, arduboy.arduhex.DEVICE_ARDUBOY)
+    
+    def test_analyze_sketch_fx(self):
+        with open(TESTHEXFX_PATH, "r") as f:
+            hexdata = f.read()
+        bindata = arduboy.common.hex_to_bin(hexdata)
+        analysis = arduboy.arduhex.analyze_sketch(bindata)
+        self.assertFalse(analysis.overwrites_caterina)
+        self.assertTrue(analysis.total_pages > FLASH_PAGECOUNT // 2)
+        self.assertTrue(analysis.total_pages < FLASH_PAGECOUNT)
+        self.assertTrue(len(analysis.trimmed_data) > FLASH_SIZE // 2)
+        self.assertTrue(len(analysis.trimmed_data) < FLASH_SIZE)
+        self.assertEqual(analysis.detected_device, arduboy.arduhex.DEVICE_ARDUBOYFX)
     
     def test_analyze_sketch_small(self):
         bindata = makebytearray(5)

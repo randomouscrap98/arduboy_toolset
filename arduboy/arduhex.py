@@ -41,6 +41,32 @@ KEY_BINARIES = "binaries"
 
 OLD_CONTRIBUTOR_KEYS = ["publisher", "idea", "code", "art", "sound"]
 
+ARDUBOYFX_ENABLE_BYTES = bytes.fromhex("5998")
+ARDUBOYFX_DISABLE_BYTES = bytes.fromhex("599a")
+ARDUBOYMINI_ENABLE_BYTES = bytes.fromhex("7298")    # 0x72, 0x98, 0x0e, 0x94
+ARDUBOYMINI_DISABLE_BYTES = bytes.fromhex("729a")   # 0x72, 0x9a, 0x08, 0x95
+
+ARDUBOY_RET_BYTES = bytes.fromhex("0895") # 0x59, 0x9a, 0x08, 0x95
+ARDUBOY_CALL_BYTES = bytes.fromhex("0e94") # 0x59, 0x9a, 0x08, 0x95
+
+def find_call_ret(bindata, initial):
+    ret = initial + ARDUBOY_RET_BYTES
+    call = initial + ARDUBOY_CALL_BYTES
+    return bindata.find(ret) >= 0 or bindata.find(call) >= 0
+    # pos = bindata.find(initial)
+    # if pos >= 0:
+    #     return bindata.find(ARDUBOY_RET_BYTES, pos + 1) == pos + 1 or bindata.find(ARDUBOY_)
+    # else :
+    #     return False
+    # return bindata.find(initial) and (bindata.)
+
+ ## ARDUBOYFX_ENABLE_BYTES = bytes.fromhex("59980e94") # bytearray(0x59, 0x98, 0x0e, 0x94)
+ #ARDUBOYFX_DISABLE_1 = bytes.fromhex("599a0895") # 0x59, 0x9a, 0x08, 0x95
+ #ARDUBOYFX_DISABLE_2 = bytes.fromhex("599a0e94") # 0x59, 0x9a, 0x0e, 0x94
+ #ARDUBOYMINI_ENABLE_BYTES = bytes.fromhex("72980e94") # 0x72, 0x98, 0x0e, 0x94
+ #ARDUBOYMINI_DISABLE_1 = bytes.fromhex("729a0895") # 0x72, 0x9a, 0x08, 0x95
+ #ARDUBOYMINI_DISABLE_2 = bytes.fromhex("729a0e94") # 0x72, 0x9a, 0x0e, 0x94
+
 DEVICE_ARDUBOY = "Arduboy"
 DEVICE_ARDUBOYFX = "ArduboyFX"
 DEVICE_ARDUBOYMINI = "ArduboyMini"
@@ -305,6 +331,7 @@ class SketchAnalysis:
     total_pages: int = field(default=0)
     used_pages: List[bool] = field(default_factory=lambda: [False] * FLASH_PAGECOUNT)
     trimmed_data: bytearray = field(default_factory=lambda: bytearray())
+    detected_device: str = field(default=None)
 
 def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
     """Analyze a sketch binary for various information.
@@ -326,5 +353,15 @@ def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
             if page >= CATERINA_PAGE:
                 result.overwrites_caterina = True
     result.trimmed_data = bindata[:(lastpage + 1) * FLASH_PAGESIZE]
+    if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): # bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0:
+    # if bindata.find(ARDUBOYFX_ENABLE_BYTES) >= 0: # and (bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0):
+        result.detected_device = DEVICE_ARDUBOYFX
+    # elif bindata.find(ARDUBOYMINI_DISABLE_1) >= 0 or bindata.find(ARDUBOYMINI_DISABLE_2) >= 0:
+    elif find_call_ret(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYMINI_DISABLE_BYTES): # bindata.find(ARDUBOYFX_DISABLE_1) >= 0 or bindata.find(ARDUBOYFX_DISABLE_2) >= 0:
+    # elif bindata.find(ARDUBOYMINI_ENABLE_BYTES) >= 0: # and (bindata.find(ARDUBOYMINI_DISABLE_1) >= 0 or bindata.find(ARDUBOYMINI_DISABLE_2) >= 0):
+        result.detected_device = DEVICE_ARDUBOYMINI
+    else:
+        # Probably dangerous to assume it's Arduboy but whatever...
+        result.detected_device = DEVICE_ARDUBOY
     return result
 
