@@ -133,8 +133,6 @@ class TestArduhex(unittest.TestCase):
         self.assertFalse(analysis.overwrites_caterina)
         self.assertEqual(analysis.total_pages, 1)
         self.assertEqual(len(analysis.trimmed_data), 5)
-        for i in range(FLASH_PAGECOUNT):
-            self.assertEqual(analysis.used_pages[i], i == 0)
     
     # A transparency test is very important: although it doesn't verify the correctness of the individual
     # fields, it at least ensures reading and writing are exactly the same, and that nothing is missed
@@ -218,6 +216,19 @@ class TestArduhex(unittest.TestCase):
         parsed2 = arduboy.arduhex.read_arduboy(tempfile)
         self.assertFalse(parsed.title in parsed2.binaries[0].title)
         self.assertFalse(parsed.binaries[0].device in parsed2.binaries[0].title)
+
+
+    def test_analyze_sketch_corrupted(self):
+        with open(TESTHEXCORRUPT_PATH, "r") as f:
+            hexdata = f.read()
+        bindata = arduboy.common.hex_to_bin(hexdata)
+        binlength = len(bindata)
+        analysis = arduboy.arduhex.analyze_sketch(bindata)
+        self.assertEqual(analysis.detected_device, arduboy.arduhex.DEVICE_ARDUBOY)
+        self.assertEqual(binlength, len(analysis.trimmed_data))
+        self.assertTrue(binlength > FLASH_SIZE / 2)
+        # for i in range(analysis.total_pages):
+        #     self.assertTrue(analysis.used_pages[i])
 
         
 if __name__ == '__main__':

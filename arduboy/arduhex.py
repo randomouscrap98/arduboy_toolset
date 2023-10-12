@@ -324,7 +324,6 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
 class SketchAnalysis:
     overwrites_caterina: bool = field(default=False)
     total_pages: int = field(default=0)
-    used_pages: List[bool] = field(default_factory=lambda: [False] * FLASH_PAGECOUNT)
     trimmed_data: bytearray = field(default_factory=lambda: bytearray())
     detected_device: str = field(default=None)
 
@@ -338,16 +337,16 @@ def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
     """
     result = SketchAnalysis()
     # Some of this is guesswork but it should be good enough I think...
-    lastpage = FLASH_PAGECOUNT
+    result.total_pages = FLASH_PAGECOUNT
     for page in range(FLASH_PAGECOUNT):
         start = page * FLASH_PAGESIZE
         if len(bindata) > start and sum(bindata[page * FLASH_PAGESIZE : (page + 1) * FLASH_PAGESIZE]) != 0xFF * FLASH_PAGESIZE:
-            result.used_pages[page] = True
-            result.total_pages += 1
-            lastpage = page
+            # Instead of doing += 1, we set it to this current page, as there could be blocks of data within the sketch
+            # that are full 0xFF, we still want to write those
+            result.total_pages = page + 1
             if page >= CATERINA_PAGE:
                 result.overwrites_caterina = True
-    result.trimmed_data = bindata[:(lastpage + 1) * FLASH_PAGESIZE]
+    result.trimmed_data = bindata[:result.total_pages * FLASH_PAGESIZE]
     # if find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
     # if bindata.find(ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
     if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 

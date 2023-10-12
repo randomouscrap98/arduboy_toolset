@@ -84,17 +84,14 @@ def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
     if analysis.overwrites_caterina and is_caterina(s_port):
         raise Exception("Upload will likely corrupt the bootloader.")
     logging.info("Flashing {} pages".format(analysis.total_pages))
-    flash_page = 0
-    for i in range (FLASH_PAGECOUNT):
-        if analysis.used_pages[i]:
-            s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
-            s_port.read(1)
-            s_port.write(b"B\x00\x80F")
-            s_port.write(bindata[i * FLASH_PAGESIZE: (i + 1) * FLASH_PAGESIZE])
-            s_port.read(1)
-            flash_page += 1
-            if report_progress:
-                report_progress(flash_page, analysis.total_pages)
+    for i in range(analysis.total_pages): # (FLASH_PAGECOUNT):
+        s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
+        s_port.read(1)
+        s_port.write(b"B\x00\x80F")
+        s_port.write(bindata[i * FLASH_PAGESIZE: (i + 1) * FLASH_PAGESIZE])
+        s_port.read(1)
+        if report_progress:
+            report_progress(i, analysis.total_pages)
 
 # Read the sketch off arduboy. 
 def backup_sketch(s_port, include_bootloader = False):
@@ -117,16 +114,15 @@ def verify_arduhex(bindata: bytearray, s_port, report_progress: None):
     analysis = arduboy.arduhex.analyze_sketch(bindata)
     logging.info("Verifying {} flash pages".format(analysis.total_pages))
     flash_page = 0
-    for i in range (256) :
-        if analysis.used_pages[i]:
-            s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
-            s_port.read(1)
-            s_port.write(b"g\x00\x80F")
-            if s_port.read(128) != bindata[i * 128 : (i + 1) * 128]:
-                raise Exception("Verify failed at address {:04X}. Upload unsuccessful.".format(i * 128))
-            flash_page += 1
-            if report_progress:
-                report_progress(flash_page, analysis.total_pages)
+    for i in range (analysis.total_pages) :
+        s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
+        s_port.read(1)
+        s_port.write(b"g\x00\x80F")
+        if s_port.read(128) != bindata[i * 128 : (i + 1) * 128]:
+            raise Exception("Verify failed at address {:04X}. Upload unsuccessful.".format(i * 128))
+        flash_page += 1
+        if report_progress:
+            report_progress(flash_page, analysis.total_pages)
 
 # Read the 1k eeprom as a byte array. Cannot report progress (too small)
 def read_eeprom(s_port):
