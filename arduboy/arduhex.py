@@ -52,10 +52,6 @@ ARDUBOY_CALL_FOLLOW_BYTES = [
     bytes.fromhex("83e00e94") # Manic miner had this instead
 ]
 
-# ARDUBOY_RET_BYTES = bytes.fromhex("0895") 
-# ARDUBOY_CALL_BYTES = bytes.fromhex("0e94") 
-# ARDUBOY_LDCALL_BYTES = bytes.fromhex("83e00e94")
-
 def find_call_ret(bindata, initial):
     """Return whether or not the given instruction exists in the given data BUT followed specifically
        by a call, return, or some other special instruction (used for FX enable/disable detection)"""
@@ -65,24 +61,6 @@ def find_call_ret(bindata, initial):
             return True
     return False
 
-    # ret = initial + ARDUBOY_RET_BYTES
-    # call = initial + ARDUBOY_CALL_BYTES
-    # pos = bindata.find(ret) 
-    # pos2 = bindata.find(call)
-    # return (pos >= 0 and (pos & 1) == 0) or (pos2 >= 0 and (pos & 1) == 0)
-    # pos = bindata.find(initial)
-    # if pos >= 0:
-    #     return bindata.find(ARDUBOY_RET_BYTES, pos + 1) == pos + 1 or bindata.find(ARDUBOY_)
-    # else :
-    #     return False
-    # return bindata.find(initial) and (bindata.)
-
- ## ARDUBOYFX_ENABLE_BYTES = bytes.fromhex("59980e94") # bytearray(0x59, 0x98, 0x0e, 0x94)
- #ARDUBOYFX_DISABLE_1 = bytes.fromhex("599a0895") # 0x59, 0x9a, 0x08, 0x95
- #ARDUBOYFX_DISABLE_2 = bytes.fromhex("599a0e94") # 0x59, 0x9a, 0x0e, 0x94
- #ARDUBOYMINI_ENABLE_BYTES = bytes.fromhex("72980e94") # 0x72, 0x98, 0x0e, 0x94
- #ARDUBOYMINI_DISABLE_1 = bytes.fromhex("729a0895") # 0x72, 0x9a, 0x08, 0x95
- #ARDUBOYMINI_DISABLE_2 = bytes.fromhex("729a0e94") # 0x72, 0x9a, 0x0e, 0x94
 
 DEVICE_ARDUBOY = "Arduboy"
 DEVICE_ARDUBOYFX = "ArduboyFX"

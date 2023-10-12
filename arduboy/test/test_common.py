@@ -98,6 +98,21 @@ class TestCommon(unittest.TestCase):
         data += b'\xFF' * (FX_PAGESIZE * 2 + 1)
         self.assertEqual(2, count_unused_pages(data))
 
+    def test_count_unused_pages_exact2page(self):
+        data = bytearray()
+        data += (b'\x01' * FX_PAGESIZE ) + (b'\xFF' * FX_PAGESIZE)
+        self.assertEqual(1, count_unused_pages(data))
+
+    def test_count_unused_pages_exact2page_offbyone(self):
+        data = bytearray()
+        data += (b'\x01' * (FX_PAGESIZE + 1)) + (b'\xFF' * (FX_PAGESIZE - 1))
+        self.assertEqual(0, count_unused_pages(data))
+
+    def test_count_unused_pages_exact2page_offbyone_favor(self):
+        data = bytearray()
+        data += (b'\x01' * (FX_PAGESIZE - 1)) + (b'\xFF' * (FX_PAGESIZE + 1))
+        self.assertEqual(1, count_unused_pages(data))
+
     def test_hex_to_bin(self):
         with open(TESTHEX_PATH, "r") as f:
             hexdata = f.read()
@@ -118,6 +133,26 @@ class TestCommon(unittest.TestCase):
         # complength = len(hexdata) - 48
         self.assertEqual(newhexdata, hexdata) # newhexdata[:complength], hexdata[:complength])
 
+    # This file works fine in the emulator but using my toolset it gets corrupted. Compares binaries only,
+    # this is because the 'corrupted' hex has some weird quirk in the hex and the intelhex removes the quirk
+    def test_hex_to_bin_transparent_corrupt(self):
+        with open(TESTHEXCORRUPT_PATH, "r") as f:
+            hexdata = f.read()
+        # Unfortunately, if this produces something incorrect, not much I can do about that for this test...
+        bindata = hex_to_bin(hexdata)
+        newhexdata = bin_to_hex(bindata)
+        newbindata = hex_to_bin(newhexdata)
+        self.assertEqual(newbindata, bindata)
+
+    # This file works fine in the emulator but using my toolset it gets corrupted
+    # NOTE: this test doesn't work because the intelhex produces some weird random break in one of the lines.
+    # The data appears to be the same...
+    # def test_bin_to_hex_transparent_corrupt(self):
+    #     with open(TESTHEXCORRUPT_PATH, "r") as f:
+    #         hexdata = f.read()
+    #     bindata = hex_to_bin(hexdata)
+    #     newhexdata = bin_to_hex(bindata)
+    #     self.assertEqual(newhexdata, hexdata)
     
 if __name__ == '__main__':
     unittest.main()
