@@ -1,10 +1,13 @@
 import arduboy.arduhex
 import arduboy.fxcart
 import arduboy.image
+import arduboy.serial
 
 from arduboy.common import *
 from arduboy.constants import *
+from serial import Serial
 
+import logging
 import datetime
 from PIL import Image
 
@@ -60,3 +63,15 @@ def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot, device: str) -> arduboy
         slot.meta.info,
         datetime.datetime.now().strftime("%Y/%m/%d")
     )
+
+
+def detect_device_type(s_port: Serial):
+    """
+    Using (perhaps faulty) logic, attempt to figure out what kind of device is connected. This function may
+    take some time, as it has to read from the device
+    """
+    logging.info(f"Detecting device on: {s_port.name}")
+    bootloader = arduboy.serial.read_bootloader(s_port)
+    analysis = arduboy.arduhex.analyze_sketch(bootloader, bootloader=True)
+    logging.debug(f"Device on {s_port.name} is: {analysis.detected_device}")
+    return analysis.detected_device

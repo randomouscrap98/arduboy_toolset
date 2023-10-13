@@ -19,6 +19,7 @@ import widgets_common
 import debug_actions
 
 import sys
+import logging
 
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget
 from PyQt6 import QtGui
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         self.connection_timer = QTimer(self)
         self.connection_timer.timeout.connect(self.refresh_connection_status)
         self.do_updates = True
+        self.last_device = None
 
         # Create a vertical layout
         layout = QVBoxLayout()
@@ -122,12 +124,23 @@ class MainWindow(QMainWindow):
         if self.do_updates:
             try:
                 device = arduboy.device.find_single(enter_bootloader=False, log=False)
-            except:
+                # logging.debug("Found device: " + device.display_name())
+                # This may seem a bit backwards: we're basically caching the ex_device_type so we're 
+                # not constantly reading it
+                if self.last_device and self.last_device.display_name() == device.display_name():
+                    device.ex_device_type = self.last_device.ex_device_type
+                else:
+                    with device.connect_serial() as s:
+                        device.ex_device_type = arduboy.shortcuts.detect_device_type(s)
+            except Exception as ex:
                 device = None
-            self.sketchtab.set_connected_device(device)
-            self.fxtab.set_connected_device(device)
-            self.eepromtab.set_connected_device(device)
-            self.networktab.set_connected_device(device)
+                if "no arduboy" not in str(ex).lower():
+                    logging.warning(f"Arduboy scan error: {ex}")
+            self.last_device = device
+            self.sketchtab.set_connected_device(device) #, self.last_device_type)  
+            self.fxtab.set_connected_device(device) #, self.last_device_type)
+            self.eepromtab.set_connected_device(device) #, self.last_device_type)
+            self.networktab.set_connected_device(device) #, self.last_device_type)
 
 
     def open_help_window(self):

@@ -36,14 +36,14 @@ class NetworkBrowseWidget(QWidget):
         self.load_button.setFixedWidth(130)
         controls_layout.addWidget(self.load_button)
 
-        self.device_select = QComboBox()
-        self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOY)
-        self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYFX)
-        self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYMINI)
-        self.device_select.currentTextChanged.connect(self.update_filter)
-        self.device_select.setStyleSheet("font-weight: bold")
-        self.device_select.setToolTip("Show games compatible with the given device")
-        controls_layout.addWidget(self.device_select)
+        # self.device_select = QComboBox()
+        # self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOY)
+        # self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYFX)
+        # self.device_select.addItem(arduboy.arduhex.DEVICE_ARDUBOYMINI)
+        # self.device_select.currentTextChanged.connect(self.update_filter)
+        # self.device_select.setStyleSheet("font-weight: bold")
+        # self.device_select.setToolTip("Show games compatible with the given device")
+        # controls_layout.addWidget(self.device_select)
 
         website_link = widgets_common.ClickableLink("Cart builder website", constants.OFFICIAL_INDEX)
         website_link.setFixedHeight(self.load_button.sizeHint().height())
@@ -75,12 +75,12 @@ class NetworkBrowseWidget(QWidget):
         self.refresh_timer.start(500)
 
 
-    def update_filter(self):
-        for r in range(self.gameslist.count()):
-            if self.device_select.currentText().lower() == "deviceFromWidget":
-                self.gameslist.item(r).setHidden(True)
-            else:
-                self.gameslist.item(r).setHidden(False)
+    # def update_filter(self):
+    #     for r in range(self.gameslist.count()):
+    #         if self.device_select.currentText().lower() == "deviceFromWidget":
+    #             self.gameslist.item(r).setHidden(True)
+    #         else:
+    #             self.gameslist.item(r).setHidden(False)
 
     def set_connected_device(self, device):
         self.device_status.set_connected_device(device)

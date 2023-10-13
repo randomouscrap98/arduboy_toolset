@@ -3,7 +3,7 @@
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from serial.tools.list_ports  import comports
 from serial import Serial
 
@@ -54,6 +54,9 @@ class ArduboyDevice:
     name: str
     has_bootloader: bool
 
+    """Externally-set device type (not set by default, just a carrier for the value)"""
+    ex_device_type: str = field(default=None)
+
     # Display self as string (show pertinent information)
     def __str__(self):
         result = f"{self.vidpid}({self.port})"
@@ -94,7 +97,7 @@ def get_connected_devices(log = True, bootloader_only = False):
 
 # Find a single arduboy device, and force it to use the bootloader. Note: 
 # MAY disconnect and reboot your arduboy device!
-def find_single(enter_bootloader = True, log = True):
+def find_single(enter_bootloader = True, log = True) -> ArduboyDevice:
     devices = get_connected_devices(log=log)
     if len(devices) == 0:
         raise Exception("No Arduboys found!")

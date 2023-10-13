@@ -9,6 +9,8 @@ from arduboy.constants import *
 from arduboy.device import MANUFACTURERS
 from dataclasses import dataclass
 
+
+
 # Mr.Blinky's scripts had some time for exiting. I assumed it was to read the screen in 
 # his scripts, since it was 3 seconds. I removed it, and hope it's not necessary
 # in case, I have also included a small timeout here too. If I get confirmation the exit time
@@ -40,6 +42,10 @@ def get_jedec_id(s_port):
     if jedec_id2 != jedec_id or jedec_id == b'\x00\x00\x00' or jedec_id == b'\xFF\xFF\xFF':
         raise Exception(f"No flash cart detected on port {s_port.port}")
     return bytearray(jedec_id)
+
+def address_command(page):
+    """Get the set-address command for the given INTERNAL FLASH page (128 byte pages), it's nontrivial"""
+    return bytearray([ord("A"), page >> 2, (page & 3) << 6])
 
 
 @dataclass
@@ -80,10 +86,10 @@ def bootloader_length(s_port):
 def read_bootloader(s_port):
     blength = bootloader_length(s_port)
     logging.debug(f"Reading bootloader, length = {blength}")
-    # Read a whole 4k section just for "ease"?
-    s_port.write(b"A\x70\x00")  # Start 4K from the end
+    # Read the larger of the two bootloaders
+    s_port.write(address_command(BOOTLOADER_CATERINA_PAGE))
     s_port.read(1)
-    s_port.write(b"g\x10\x00F")
+    s_port.write(b"g\x10\x00F") # TODO: change this to a constructed command as well
     result = bytearray(s_port.read(0x1000))
     # Then return only a portion of it
     return result[-blength:]
@@ -101,7 +107,7 @@ def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
         raise Exception("Upload will likely corrupt the bootloader.")
     logging.info("Flashing {} pages".format(analysis.total_pages))
     for i in range(analysis.total_pages): # (FLASH_PAGECOUNT):
-        s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
+        s_port.write(address_command(i))
         s_port.read(1)
         s_port.write(b"B\x00\x80F")
         s_port.write(bindata[i * FLASH_PAGESIZE: (i + 1) * FLASH_PAGESIZE])
@@ -112,7 +118,7 @@ def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
 # Read the sketch off arduboy. Does not strip unused bytes (but will strip bootloader if configured)
 def backup_sketch(s_port, include_bootloader = False):
     logging.info("Reading sketch...")
-    s_port.write(b"A\x00\x00")
+    s_port.write(address_command(0))
     s_port.read(1)
     # Read the whole thing, we don't know how big the bootloader is yet (and it doesn't matter, just read the whole thing)
     s_port.write(b"g\x80\x00F")
@@ -130,7 +136,7 @@ def verify_arduhex(bindata: bytearray, s_port, report_progress: None):
     logging.info("Verifying {} flash pages".format(analysis.total_pages))
     flash_page = 0
     for i in range (analysis.total_pages) :
-        s_port.write(bytearray([ord("A"), i >> 2, (i & 3) << 6]))
+        s_port.write(address_command(i)) # bytearray([ord("A"), i >> 2, (i & 3) << 6]))
         s_port.read(1)
         s_port.write(b"g\x00\x80F")
         if s_port.read(128) != bindata[i * 128 : (i + 1) * 128]:
@@ -142,7 +148,7 @@ def verify_arduhex(bindata: bytearray, s_port, report_progress: None):
 # Read the 1k eeprom as a byte array. Cannot report progress (too small)
 def read_eeprom(s_port):
     logging.debug("Reading 1K EEPROM data...")
-    s_port.write(b"A\x00\x00")
+    s_port.write(address_command(0)) # b"A\x00\x00")
     s_port.read(1)
     s_port.write(b"g\x04\x00E")
     eepromdata = bytearray(s_port.read(1024))
@@ -154,7 +160,7 @@ def write_eeprom(eepromdata, s_port):
     logging.debug("Writing 1K EEPROM data...")
     if len(eepromdata) != 1024:
         raise Exception("Provided EEPROM data does not contain exactly 1K (1024 bytes)")
-    s_port.write(b"A\x00\x00")
+    s_port.write(address_command(0)) # b"A\x00\x00")
     s_port.read(1)
     s_port.write(b"B\x04\x00E")
     s_port.write(eepromdata)
@@ -162,7 +168,7 @@ def write_eeprom(eepromdata, s_port):
 
 # Erase entire eeprom (apparently means all 0xFF). Cannot report progress (too small)
 def erase_eeprom(s_port):
-    s_port.write(b"A\x00\x00")
+    s_port.write(address_command(0)) # b"A\x00\x00")
     s_port.read(1)
     s_port.write(b"B\x04\x00E")
     s_port.write(b"\xFF" * 1024)

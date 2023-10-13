@@ -18,7 +18,6 @@ from dataclasses import dataclass, field, asdict
 from PIL import Image
 
 
-CATERINA_PAGE = 224     # Number of default bytes per record when writing a .hex file
 DEFAULT_SCHEMA = 4      # Schema version for .arduboy package info.json
 
 DEFAULT_CARTIMAGE = "cart.png"
@@ -52,12 +51,22 @@ ARDUBOY_CALL_FOLLOW_BYTES = [
     bytes.fromhex("83e00e94") # Manic miner had this instead
 ]
 
-def find_call_ret(bindata, initial):
+def find_instruction_sequence(bindata, sequence):
+    """ Find a given instruction sequence. Instructions must be on a 2-byte boundary """
+    pos = bindata.find(sequence) 
+    return pos >= 0 and (pos & 1) == 0
+
+
+def find_call_ret(bindata, initial): # , bootloader = False):
     """Return whether or not the given instruction exists in the given data BUT followed specifically
        by a call, return, or some other special instruction (used for FX enable/disable detection)"""
+    # if bootloader:
+    #     pos = bindata.find(initial) 
+    #     return pos >= 0 and (pos & 1) == 0
     for fb in ARDUBOY_CALL_FOLLOW_BYTES:
-        pos = bindata.find(initial + fb) 
-        if pos >= 0 and (pos & 1) == 0:
+        if find_instruction_sequence(bindata, initial + fb):
+            # pos = bindata.find(initial + fb) 
+            # if pos >= 0 and (pos & 1) == 0:
             return True
     return False
 
@@ -323,11 +332,12 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
 @dataclass
 class SketchAnalysis:
     overwrites_caterina: bool = field(default=False)
+    overwrites_cathy: bool = field(default=False) # If this happens, sketch is too large. Probably not used...
     total_pages: int = field(default=0)
     trimmed_data: bytearray = field(default_factory=lambda: bytearray())
     detected_device: str = field(default=None)
 
-def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
+def analyze_sketch(bindata: bytearray, bootloader = False) -> SketchAnalysis:
     """Analyze a sketch binary for various information.
     
     Returns:
@@ -344,19 +354,40 @@ def analyze_sketch(bindata: bytearray) -> SketchAnalysis:
             # Instead of doing += 1, we set it to this current page, as there could be blocks of data within the sketch
             # that are full 0xFF, we still want to write those
             result.total_pages = page + 1
-            if page >= CATERINA_PAGE:
+            if page >= BOOTLOADER_CATERINA_PAGE:
                 result.overwrites_caterina = True
+            if page >= BOOTLOADER_CATHY_SIZE:
+                result.overwrites_cathy = True
     result.trimmed_data = bindata[:result.total_pages * FLASH_PAGESIZE]
     # if find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
     # if bindata.find(ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
-    if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
-        # pos = bindata.find(ARDUBOYFX_ENABLE_BYTES)
-        # logging.warning("FXENABLE: " + ' '.join(f'{byte:02x}' for byte in bindata[pos:pos+8]))
-        result.detected_device = DEVICE_ARDUBOYFX
-    elif find_call_ret(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYMINI_DISABLE_BYTES): 
-        result.detected_device = DEVICE_ARDUBOYMINI
+    # if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
+    if bootloader:
+        if find_instruction_sequence(bindata, ARDUBOYFX_ENABLE_BYTES) and find_instruction_sequence(bindata, ARDUBOYFX_DISABLE_BYTES): 
+            result.detected_device = DEVICE_ARDUBOYFX
+        elif find_instruction_sequence(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_instruction_sequence(bindata, ARDUBOYMINI_DISABLE_BYTES): 
+            result.detected_device = DEVICE_ARDUBOYMINI
+        else:
+            # Probably dangerous to assume it's Arduboy but whatever...
+            result.detected_device = DEVICE_ARDUBOY
     else:
-        # Probably dangerous to assume it's Arduboy but whatever...
-        result.detected_device = DEVICE_ARDUBOY
+        if find_call_ret(bindata, ARDUBOYFX_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYFX_DISABLE_BYTES): 
+            # if bindata.find(ARDUBOYFX_DISABLE_BYTES) >= 0 or bindata.find(ARDUBOYFX_ENABLE_BYTES) >= 0: 
+            # pos = bindata.find(ARDUBOYFX_ENABLE_BYTES)
+            # if pos >= 0:
+            #     logging.warning("FXENABLE: " + ' '.join(f'{byte:02x}' for byte in bindata[pos:pos+8]))
+            # else: 
+            #     logging.warning("NO FXENABLE")
+            # pos = bindata.find(ARDUBOYFX_DISABLE_BYTES)
+            # if pos >= 0:
+            #     logging.warning("FXDISABLE: " + ' '.join(f'{byte:02x}' for byte in bindata[pos:pos+8]))
+            # else: 
+            #     logging.warning("NO FXDISABLE")
+            result.detected_device = DEVICE_ARDUBOYFX
+        elif find_call_ret(bindata, ARDUBOYMINI_ENABLE_BYTES) and find_call_ret(bindata, ARDUBOYMINI_DISABLE_BYTES): 
+            result.detected_device = DEVICE_ARDUBOYMINI
+        else:
+            # Probably dangerous to assume it's Arduboy but whatever...
+            result.detected_device = DEVICE_ARDUBOY
     return result
 

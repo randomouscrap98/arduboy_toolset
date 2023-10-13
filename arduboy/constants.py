@@ -10,6 +10,11 @@ FLASH_PAGESIZE = 128        # Not sure if this is the true page size but it's wh
 FLASH_SIZE = 32768          # Size of the onboard flash (default chip whatever, atmega etc)
 FLASH_PAGECOUNT = FLASH_SIZE // FLASH_PAGESIZE
 
+BOOTLOADER_CATERINA_SIZE = 4096
+BOOTLOADER_CATHY_SIZE = 3072
+BOOTLOADER_CATERINA_PAGE = 224
+BOOTLOADER_CATHY_PAGE = 232
+
 FX_PAGESIZE = 256       # The hardware page size in the FX modchip flash
 FX_BLOCKSIZE = 65536    # The hardware block size in the FX etc
 FX_PAGES_PER_BLOCK = FX_BLOCKSIZE // FX_PAGESIZE 

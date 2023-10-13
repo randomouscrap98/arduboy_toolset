@@ -78,7 +78,7 @@ class ConnectionInfo(QWidget):
     def set_connected_device(self, device = None):
         self.update_count += 1
         if device:
-            self.status_label.setText("Connected!")
+            self.status_label.setText(f"Connected: {device.ex_device_type}")
             self.info_label.setText(device.display_name())
             self.status_picture.setText("✅")
             self.status_picture.setStyleSheet(f"color: {gui_common.SUCCESSCOLOR}")
@@ -117,7 +117,7 @@ class MiniConnectionInfo(QWidget):
     def set_connected_device(self, device : arduboy.device.ArduboyDevice = None):
         self.update_count += 1
         if device:
-            self.status_label.setText("Arduboy Connected: " + device.port)
+            self.status_label.setText(f"Connected: {device.ex_device_type}")
             # self.info_label.setText(device.display_name())
             self.status_picture.setText("✅")
             self.status_picture.setStyleSheet(f"color: {gui_common.SUCCESSCOLOR}")
