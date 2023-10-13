@@ -73,6 +73,22 @@ def is_caterina(s_port):
         return ord(s_port.read(1)) & 0x10 != 0
     return False
 
+# Return the apparent (may be wrong) length of the bootloader
+def bootloader_length(s_port):
+    return  2048 + (2048 if is_caterina(s_port) else 1024)
+
+def read_bootloader(s_port):
+    blength = bootloader_length(s_port)
+    logging.debug(f"Reading bootloader, length = {blength}")
+    # Read a whole 4k section just for "ease"?
+    s_port.write(b"A\x70\x00")  # Start 4K from the end
+    s_port.read(1)
+    s_port.write(b"g\x10\x00F")
+    result = bytearray(s_port.read(0x1000))
+    # Then return only a portion of it
+    return result[-blength:]
+
+
 # Flash the given arduboy hex file to the given connected arduboy. Can report progress
 # by giving a function that accepts a "current" and "total" parameter.
 def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
@@ -93,19 +109,18 @@ def flash_arduhex(bindata: bytearray, s_port, report_progress: None):
         if report_progress:
             report_progress(i, analysis.total_pages)
 
-# Read the sketch off arduboy. 
+# Read the sketch off arduboy. Does not strip unused bytes (but will strip bootloader if configured)
 def backup_sketch(s_port, include_bootloader = False):
     logging.info("Reading sketch...")
     s_port.write(b"A\x00\x00")
     s_port.read(1)
-    if include_bootloader:
-        logging.debug("Including bootloader in sketch backup")
-        s_port.write(b"g\x80\x00F")
-        backupdata = bytearray(s_port.read(0x8000))
-    else:
-        logging.debug("Excluding bootloader in sketch backup")
-        s_port.write(b"g\x70\x00F")
-        backupdata = bytearray(s_port.read(0x7000))
+    # Read the whole thing, we don't know how big the bootloader is yet (and it doesn't matter, just read the whole thing)
+    s_port.write(b"g\x80\x00F")
+    backupdata = bytearray(s_port.read(0x8000))
+    if not include_bootloader:
+        blength = bootloader_length(s_port)
+        logging.debug(f"Stripping bootloader in sketch backup, length = {blength}")
+        backupdata = backupdata[:-blength] # Strip the bootloader
     return backupdata
 
 # Verify that the given arduboy hex file is correctly flashed to the given connected arduboy. Can report progress
