@@ -65,14 +65,14 @@ class MainWindow(QMainWindow):
         self.eepromtab = widget_eeprom.EEPROMWidget()
         self.packagetab = widget_package.PackageWidget()
         self.imageconvtab = widget_imageconv.ImageConvertWidget()
-        self.networktab = widget_network.NetworkBrowseWidget()
+        # self.networktab = widget_network.NetworkBrowseWidget()
         
         tabs.addTab(self.sketchtab, "Sketch")
         tabs.addTab(self.fxtab, "Flashcart")
         tabs.addTab(self.eepromtab, "EEPROM")
         tabs.addTab(self.packagetab, "Package")
         tabs.addTab(self.imageconvtab, "Image")
-        tabs.addTab(self.networktab, "Network")
+        # tabs.addTab(self.networktab, "Network")
 
         # Add widgets to the layout
         layout.addWidget(tabs)
@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
             self.sketchtab.set_connected_device(device) #, self.last_device_type)  
             self.fxtab.set_connected_device(device) #, self.last_device_type)
             self.eepromtab.set_connected_device(device) #, self.last_device_type)
-            self.networktab.set_connected_device(device) #, self.last_device_type)
+            # self.networktab.set_connected_device(device) #, self.last_device_type)
 
 
     def open_help_window(self):

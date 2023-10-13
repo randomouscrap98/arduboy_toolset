@@ -111,8 +111,10 @@ class ProgressWorkerThread(QThread):
 # Perform the given work, which can report both progress and status updates through two lambdas,
 # within a dialog made for reporting progress. The dialog cannot be exited, since I think exiting
 # in the middle of flashing tasks is like... really bad?
-def do_progress_work(work, title, simple = False):
+def do_progress_work(work, title, simple = False, unknown_progress = False):
     dialog = ProgressWindow(title, simple = simple)
+    if unknown_progress:
+        dialog.progress_bar.setRange(0,0)
     worker_thread = ProgressWorkerThread(work, simple = simple)
     worker_thread.connect(dialog)
     worker_thread.start()

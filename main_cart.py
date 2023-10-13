@@ -26,11 +26,10 @@ from typing import List
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog, QComboBox, QDialog
 from PyQt6.QtWidgets import QMessageBox, QListWidgetItem, QListWidget, QFileDialog, QAbstractItemView, QLineEdit
 from PyQt6 import QtGui
-from PyQt6.QtGui import QAction
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QAction, QDesktopServices
+from PyQt6.QtCore import pyqtSignal, Qt, QUrl
 
-# TODO: 
-# - Add some singular self-updating window that displays a realtime view of the debug log? Who owns it, how many can be open, etc
+UPDATE_VALID_THRESHOLD = 0.5
 
 class CartWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -220,6 +219,23 @@ class CartWindow(QMainWindow):
         gimg_action = QAction("Generate image for Slot", self)
         gimg_action.triggered.connect(self.action_imagesingle)
         debug_menu.addAction(gimg_action)
+
+        # -------------------------------
+        # Create an action for opening the help window
+        network_menu = menu_bar.addMenu("Network")
+
+        update_cart_action = QAction("Check for Cart updates", self)
+        update_cart_action.triggered.connect(self.check_cart_updates)
+        network_menu.addAction(update_cart_action)
+
+        open_update_website_action = QAction("Go to cart website", self)
+        open_update_website_action.triggered.connect(self.open_cart_update_website)
+        network_menu.addAction(open_update_website_action)
+        
+        # open_help_action = QAction("Help", self)
+        # open_help_action.setShortcut(QtGui.QKeySequence(Qt.Key.Key_F1))
+        # open_help_action.triggered.connect(self.open_help_window)
+        # help_menu.addAction(open_help_action)
 
         # -------------------------------
         # Create an action for opening the help window
@@ -803,6 +819,41 @@ class CartWindow(QMainWindow):
     def open_about_window(self):
         self.about_window = widgets_common.HtmlWindow("About Arduboy Toolset", "about.html")
         self.about_window.show()
+    
+    def open_cart_update_website(self):
+        url = QUrl(constants.OFFICIAL_INDEX) 
+        QDesktopServices.openUrl(url)
+    
+    def check_cart_updates(self):
+        # Connect to the semi-official cart builder website, download the json, and check which games need an update.
+        # Scan through all the non-category items and see how many don't have author + version + title information. If it's missing
+        # ANY of them, count it against the percentage
+        slots = self.get_slots()
+        count = 0
+        check_update_slots = []
+        for s in slots:
+            if s.is_category():
+                continue
+            count += 1
+            if s.meta.developer and s.meta.title and s.meta.title:
+                check_update_slots.append(s)
+        
+        if not count:
+            raise Exception("Your cart doesn't have any games!")
+
+        if len(check_update_slots) / count < UPDATE_VALID_THRESHOLD:
+            raise Exception("This cart doesn't appear to be based on the semi-official cart, can't perform update!")
+        
+        cartmeta = None
+
+        def do_work(repprog, repstatus):
+            nonlocal cartmeta
+            cartmeta = gui_common.get_official_cartmeta(force = True)
+
+        dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
+
+        if not dialog.error_state:
+            pass
     
 
 # --------------------------------------

@@ -2,23 +2,32 @@
 
 <p>
     Arduboy toolset lets you upload + backup <b>sketches</b>, <b>flashcart data</b>, and <b>EEPROM</b>.
-    There's a rudimentary <b>.arduboy</b> package creator with basic fields, and a separate <b>Cart Editor</b> 
-    you can open from the <u>File</u> menu.
+    There's a rudimentary <b>.arduboy</b> package creator with basic fields, an image tool for turning images into
+    code for use in your sketches, and a separate <b>Cart Editor</b> you can open from the <u>File</u> menu.
+</p>
+
+<h2>Quickstart: Adding games to Arduboy</h2>
+
+<p>
+    If your goal is to simply add games to your arduboy, you want to open the <b>Cart editor</b> from the 
+    <u>File</u> menu and load your flashcart into the program. From there, you can edit the games on your
+    Arduboy then flash them back. Please see the help attached to that window for more information.
 </p>
 
 <h2>Sketches</h2>
 
 <p>
     Sketches are compiled singular programs, usually with a <b>.hex</b> extension. Sometimes a hex file will
-    be embedded inside a <b>.zip</b> or <b>.arduboy</b> file. All three are accepted for upload to Arduboy.
-    Note that Arduboy can only hold one sketch at a time, so uploading will overwrite whatever is currently
-    there. 
+    be embedded inside a <b>.arduboy</b> file, which is just a <b>.zip</b> file in disguise. The sketch upload
+    endpoint only accepts .hex files; it is up to you choose the .hex file you want out of a .arduboy archive
+    if you have one. Note that Arduboy can only hold one sketch at a time, so uploading will overwrite whatever 
+    is currently there. 
 </p>
 
 <p>
     Some sketches use data stored on the "Fx" flash memory. These games usually go on a flashcart, so this 
-    option is only used while developing FX games. It places the development FX data at the end of the
-    flash memory, so you don't have to reflash an entire flashcart.
+    option is <b>only</b> used while developing FX games. It places the development FX data at the end of the
+    flash memory, so you don't have to reflash an entire flashcart while developing
 </p>
 
 <p>

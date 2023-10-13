@@ -15,7 +15,7 @@ import debug_actions
 import logging
 
 from arduboy.constants import *
-from PyQt6.QtWidgets import QCheckBox, QVBoxLayout, QWidget, QPushButton
+from PyQt6.QtWidgets import QCheckBox, QVBoxLayout, QWidget, QPushButton, QLabel
 
 # A fully self contained widget which can upload and backup sketches from arduboy
 class SketchWidget(QWidget):
@@ -40,10 +40,15 @@ class SketchWidget(QWidget):
         self.ssd1309_cb = QCheckBox("Patch for screen SSD1309")
         self.microled_cb = QCheckBox("Patch for Micro LED polarity")
 
+        upload_about = QLabel("NOTE: FX games should be uploaded through the cart builder! This is ONLY for development!") #you should not use this endpoint to upload production FX games, only development images!")
+        upload_about.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
+
+        upload_layout.addWidget(upload_about)
         upload_layout.addWidget(fx_container)
         upload_layout.addWidget(contrast_container)
         upload_layout.addWidget(self.ssd1309_cb)
         upload_layout.addWidget(self.microled_cb)
+
 
         # Backup sketch
         self.backup_picker = widgets_common.FilePicker(constants.HEX_FILEFILTER, True, utils.get_sketch_backup_filename)
@@ -71,6 +76,8 @@ class SketchWidget(QWidget):
 
         def do_work(device, repprog, repstatus):
             repstatus("Checking file...")
+            # NOTE: We specifically accept only hex files to reduce confusion with what this endpoint actually
+            # accepts, as .arduboy files 
             ardparsed = arduboy.arduhex.read_hex(filepath)
             bindata = arduboy.common.hex_to_bin(ardparsed.binaries[0].hex_raw)
             fx_data = None
