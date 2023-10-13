@@ -68,7 +68,7 @@ def arduboy_from_slot(slot: arduboy.fxcart.FxParsedSlot, device: str) -> arduboy
 def detect_device_type(s_port: Serial):
     """
     Using (perhaps faulty) logic, attempt to figure out what kind of device is connected. This function may
-    take some time, as it has to read from the device
+    take some time, as it has to read from the device. Must be in bootloader, as usual!
     """
     logging.info(f"Detecting device on: {s_port.name}")
     bootloader = arduboy.serial.read_bootloader(s_port)

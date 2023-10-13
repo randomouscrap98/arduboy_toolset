@@ -129,9 +129,11 @@ class MainWindow(QMainWindow):
                 # not constantly reading it
                 if self.last_device and self.last_device.display_name() == device.display_name():
                     device.ex_device_type = self.last_device.ex_device_type
-                else:
+                elif device.has_bootloader:
                     with device.connect_serial() as s:
                         device.ex_device_type = arduboy.shortcuts.detect_device_type(s)
+                else:
+                    device.ex_device_type = "Pending Reset (OK!)"
             except Exception as ex:
                 device = None
                 if "no arduboy" not in str(ex).lower():
