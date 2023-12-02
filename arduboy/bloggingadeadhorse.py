@@ -5,8 +5,16 @@ from typing import List
 from arduboy.arduhex import DEVICE_DEFAULT
 from PIL import Image
 
-from arduboy.fxcart import FxParsedSlot
+from arduboy.fxcart import TITLE_IMAGE_LENGTH, FxParsedSlot
 from arduboy.image import pilimage_to_bin
+
+CMKEY_TITLE = "title"
+CMKEY_DEVELOPER = "developer"
+CMKEY_IMAGE = "image"
+CMKEY_CATEGORY = "info"
+CMKEY_PROGRAMDATA = "pdata"
+CMKEY_PROGRAM = "program"
+CMKEY_VERSION = "version"
 
 # I'll make a class later
 # @dataclass
@@ -20,25 +28,36 @@ def prep_cartmeta(cartmeta, device):
     # First, go through all the meta and pull out the right program, and also
     # create the image for the special comparison
     for cm in cartmeta:
-        if device in cm["program"]:
-            cm["pdata"] = cm["program"][device]
-        elif DEVICE_DEFAULT in cm["program"]:
-            cm["pdata"] = cm["program"][device]
+        if device in cm[CMKEY_PROGRAM]:
+            cm[CMKEY_PROGRAMDATA] = cm[CMKEY_PROGRAM][device]
+        elif DEVICE_DEFAULT in cm[CMKEY_PROGRAM]:
+            cm[CMKEY_PROGRAMDATA] = cm[CMKEY_PROGRAM][DEVICE_DEFAULT]
         else:
             continue
 
-        image = base64.b64decode(cm["pdata"]["image64"])
-        image = Image.open(io.BytesIO(image))
-        cm["image"] = pilimage_to_bin(image)
-        cm["category"] = cm["info"] # website calls it "info", but I'm calling it category
+        try:
+            image = base64.b64decode(cm[CMKEY_PROGRAMDATA]["image64"])
+            image = Image.open(io.BytesIO(image))
+            cm[CMKEY_IMAGE] = pilimage_to_bin(image)
+        except:
+            cm[CMKEY_IMAGE] = bytearray(TITLE_IMAGE_LENGTH)
+
+        if CMKEY_TITLE not in cm:
+            cm[CMKEY_TITLE] = ""
+        if CMKEY_DEVELOPER not in cm:
+            cm[CMKEY_DEVELOPER] = ""
 
         result.append(cm)
     
     return result
 
+
 def parse_version(v):
+    if v is None:
+        v = ""
     dv = re.findall(r'\d+', v)
     return [int(d) for d in dv]
+
 
 def version_greater(a, b):
     """Return true if a > b"""
@@ -61,14 +80,35 @@ def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
     and new things
     """
 
-    result = {
-        "unmatched" : originalcart.copy(),
-        "updates" : []
-    }
-
+    unmatched = originalcart.copy()
     validmeta = prep_cartmeta(cartmeta, device)
+    updates = []
+
+    # First, do the "fast" check, this will hopefully get a lot of the possibilities out. 
+    # We're just looking for updates where the title + developer match, but the version
+    # on the server is newer
+    for item in unmatched.copy():
+        for cm in validmeta:
+            if item.meta.title and item.meta.title.lower() == cm[CMKEY_TITLE].lower():
+                if item.meta.developer and item.meta.developer.lower() == cm[CMKEY_DEVELOPER].lower():
+                    if version_greater(cm[CMKEY_VERSION], item.meta.version):
+                        updates.append((item, cm))
+                        validmeta.remove(cm)
+                        unmatched.remove(item)
+                        break
+    
+    # Now for anything remaining, we want to match by exact title screen. THis might be slow?
+    for item in unmatched.copy():
+        for cm in validmeta:
+            if item.image_raw == cm[CMKEY_IMAGE] and version_greater(cm[CMKEY_VERSION], item.meta.version):
+                updates.append((item, cm))
+                validmeta.remove(cm)
+                unmatched.remove(item)
+                break
 
 
-    result["new"] = validmeta
-
-    return result
+    return {
+        "unmatched" : unmatched,
+        "updates" : updates,
+        "new" : validmeta
+    }
