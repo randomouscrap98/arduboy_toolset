@@ -106,7 +106,6 @@ def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
                 unmatched.remove(item)
                 break
 
-
     return {
         "unmatched" : unmatched,
         "updates" : updates,

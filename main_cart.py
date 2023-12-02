@@ -9,6 +9,7 @@ from arduboy.constants import *
 from arduboy.common import *
 
 import widgets_common
+import widget_update
 import widget_progress
 import constants
 import utils
@@ -294,6 +295,8 @@ class CartWindow(QMainWindow):
             debug_actions.remove_global_debug_window()
             if hasattr(self, 'help_window'):
                 self.help_window.close()
+            if hasattr(self, 'update_window'):
+                self.update_window.close()
             if hasattr(self, 'about_window'):
                 self.about_window.close()
             event.accept()
@@ -840,7 +843,8 @@ class CartWindow(QMainWindow):
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 
         if not dialog.error_state:
-            pass
+            self.update_window= widget_update.UpdateWindow({})
+            self.update_window.show()
     
 
 # --------------------------------------
