@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 import utils
 import logging
 import requests
@@ -80,3 +81,5 @@ def get_official_cartmeta(force: bool = False):
         cached_official_cartmeta = r.json()
     
     return cached_official_cartmeta
+
+

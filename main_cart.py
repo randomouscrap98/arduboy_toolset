@@ -829,20 +829,7 @@ class CartWindow(QMainWindow):
         # Scan through all the non-category items and see how many don't have author + version + title information. If it's missing
         # ANY of them, count it against the percentage
         slots = self.get_slots()
-        count = 0
-        check_update_slots = []
-        for s in slots:
-            if s.is_category():
-                continue
-            count += 1
-            if s.meta.developer and s.meta.title and s.meta.title:
-                check_update_slots.append(s)
-        
-        if not count:
-            raise Exception("Your cart doesn't have any games!")
-
-        if len(check_update_slots) / count < UPDATE_VALID_THRESHOLD:
-            raise Exception("This cart doesn't appear to be based on the semi-official cart, can't perform update!")
+        check_update_slots = [s for s in slots if not s.is_category()]
         
         cartmeta = None
 
