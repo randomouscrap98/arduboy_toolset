@@ -171,6 +171,7 @@ ignore/
 !arduboy_toolset.spec
 *log.txt
 .venv*
+*_last.json
 
 !testfiles/*.hex
 !testfiles/*.arduboy

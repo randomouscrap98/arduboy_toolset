@@ -23,6 +23,7 @@ import logging
 import os
 import sys
 import time
+import json
 
 from typing import List
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QInputDialog, QComboBox, QDialog
@@ -841,10 +842,21 @@ class CartWindow(QMainWindow):
         def do_work(repprog, repstatus):
             nonlocal cartmeta
             cartmeta = gui_common.get_official_cartmeta(force = True)
+            with open("badh_last.json", "w") as f:
+                json.dump(cartmeta, f)
+
+        class ByteArrayEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, bytearray) or isinstance(obj, arduboy.fxcart.FxParsedSlot):
+                    # Convert bytearray to a list of integers
+                    return False
+                return super().default(obj)
 
         def do_work_update(repprog, repstatus):
             nonlocal updateresult 
             updateresult = arduboy.bloggingadeadhorse.compute_update(check_update_slots, cartmeta, self.device_select.currentText())
+            with open("updateresult_last.json", "w") as f:
+                json.dump(updateresult, f, cls=ByteArrayEncoder)
 
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 

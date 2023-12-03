@@ -35,6 +35,7 @@ class ProgressWindow(QDialog):
 
         self.progress_bar = QProgressBar()
         layout.addWidget(self.progress_bar)
+        self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if not simple:
             self.ok_button = QPushButton("OK")

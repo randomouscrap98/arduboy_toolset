@@ -15,6 +15,12 @@ CMKEY_CATEGORY = "info"
 CMKEY_PROGRAMDATA = "pdata"
 CMKEY_PROGRAM = "program"
 CMKEY_VERSION = "version"
+CMKEY_ID = "ID"
+
+UPKEY_UPDATES = "updates"
+UPKEY_UNMATCHED = "unmatched"
+UPKEY_NEW = "new"
+UPKEY_CURRENT = "current"
 
 # I'll make a class later
 # @dataclass
@@ -24,10 +30,14 @@ CMKEY_VERSION = "version"
 
 def prep_cartmeta(cartmeta, device):
     result = []
+    seen_ids = []
 
     # First, go through all the meta and pull out the right program, and also
     # create the image for the special comparison
     for cm in cartmeta:
+        if cm[CMKEY_ID] in seen_ids:
+            continue
+        seen_ids.append(cm[CMKEY_ID])
         if device in cm[CMKEY_PROGRAM]:
             cm[CMKEY_PROGRAMDATA] = cm[CMKEY_PROGRAM][device]
         elif DEVICE_DEFAULT in cm[CMKEY_PROGRAM]:
@@ -83,6 +93,7 @@ def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
     unmatched = originalcart.copy()
     validmeta = prep_cartmeta(cartmeta, device)
     updates = []
+    current = []
 
     # First, do the "fast" check, this will hopefully get a lot of the possibilities out. 
     # We're just looking for updates where the title + developer match, but the version
@@ -93,21 +104,27 @@ def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
                 if item.meta.developer and item.meta.developer.lower() == cm[CMKEY_DEVELOPER].lower():
                     if version_greater(cm[CMKEY_VERSION], item.meta.version):
                         updates.append((item, cm))
-                        validmeta.remove(cm)
-                        unmatched.remove(item)
-                        break
+                    else:
+                        current.append((item, cm))
+                    validmeta.remove(cm)
+                    unmatched.remove(item)
+                    break
     
     # Now for anything remaining, we want to match by exact title screen. THis might be slow?
     for item in unmatched.copy():
         for cm in validmeta:
-            if item.image_raw == cm[CMKEY_IMAGE] and version_greater(cm[CMKEY_VERSION], item.meta.version):
-                updates.append((item, cm))
+            if item.image_raw == cm[CMKEY_IMAGE]:
+                if version_greater(cm[CMKEY_VERSION], item.meta.version):
+                    updates.append((item, cm))
+                else: 
+                    current.append((item, cm))
                 validmeta.remove(cm)
                 unmatched.remove(item)
                 break
 
     return {
-        "unmatched" : unmatched,
-        "updates" : updates,
-        "new" : validmeta
+        UPKEY_UNMATCHED : unmatched,
+        UPKEY_UPDATES : updates,
+        UPKEY_NEW : validmeta,
+        UPKEY_CURRENT : current
     }
