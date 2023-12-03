@@ -4,6 +4,7 @@ import arduboy.serial
 import arduboy.fxcart
 import arduboy.shortcuts
 import arduboy.image
+import arduboy.bloggingadeadhorse
 
 from arduboy.constants import *
 from arduboy.common import *
@@ -835,16 +836,24 @@ class CartWindow(QMainWindow):
         check_update_slots = [s for s in slots if not s.is_category()]
         
         cartmeta = None
+        updateresult = None
 
         def do_work(repprog, repstatus):
             nonlocal cartmeta
             cartmeta = gui_common.get_official_cartmeta(force = True)
 
+        def do_work_update(repprog, repstatus):
+            nonlocal updateresult 
+            updateresult = arduboy.bloggingadeadhorse.compute_update(check_update_slots, cartmeta, self.device_select.currentText())
+
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 
         if not dialog.error_state:
-            self.update_window= widget_update.UpdateWindow({})
-            self.update_window.show()
+            dialog = widget_progress.do_progress_work(do_work_update, f"Computing update data...", simple = True, unknown_progress=True)
+
+            if not dialog.error_state:
+                self.update_window= widget_update.UpdateWindow(updateresult)
+                self.update_window.show()
     
 
 # --------------------------------------

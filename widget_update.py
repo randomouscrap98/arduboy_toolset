@@ -6,7 +6,7 @@ import gui_common
 import logging
 
 from PyQt6.QtWidgets import   QPushButton, QLabel,  QDialog, QVBoxLayout, QProgressBar, QMessageBox
-from PyQt6.QtWidgets import   QGroupBox
+from PyQt6.QtWidgets import   QGroupBox, QListWidget, QHBoxLayout, QWidget, QCheckBox
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 
@@ -19,14 +19,61 @@ class UpdateWindow(QDialog):
 
         updatebox = QGroupBox("Updates")
         layout.addWidget(updatebox)
+        self.updatelist = self.make_basic_list(updatebox)
 
         newbox = QGroupBox("New")
         layout.addWidget(newbox)
+        self.newlist = self.make_basic_list(newbox)
+
+        controls = QWidget()
+        controls_layout = QHBoxLayout()
+        controls.setLayout(controls_layout)
+        layout.addWidget(controls)
+
+        self.update_button = QPushButton("Update")
+        self.cancel_button = QPushButton("Cancel")
+        self.update_button.setStyleSheet("font-weight: bold")
+        controls_layout.addWidget(self.cancel_button)
+        controls_layout.addWidget(self.update_button)
         # self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint & ~Qt.WindowType.WindowMaximizeButtonHint)
         # self.resize(, 100)
 
         self.setLayout(layout)
+
     
+    def make_basic_list(self, box):
+        mlayout = QVBoxLayout()
+        listwidget = QListWidget(self)
+        mlayout.addWidget(listwidget)
+        box.setLayout(mlayout)
+
+        controls = QWidget()
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0,0,0,0)
+        controls.setLayout(controls_layout)
+        mlayout.addWidget(controls)
+
+        select_none = QPushButton("Select None")
+        select_all = QPushButton("Select All")
+        controls_layout.addWidget(select_none)
+        controls_layout.addWidget(select_all)
+
+        return listwidget
+
+    
+
+class SelectableListItem(QWidget):
+    
+    def __init__(self, widget):
+        super().__init__()
+
+        layout = QHBoxLayout()
+
+        self.checkbox = QCheckBox()
+        layout.addWidget(self.checkbox)
+        layout.addWidget(widget)
+
+        self.setLayout(layout)
 
 
 # class ProgressWorkerThread(QThread):
