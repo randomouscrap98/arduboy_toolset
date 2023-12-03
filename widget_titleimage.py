@@ -30,9 +30,10 @@ class ImageConvertWorker(QThread):
 class TitleImageWidget(QLabel):
     onimage_bytes = pyqtSignal(bytearray)
 
-    def __init__(self, parent=None, scale=1, modifiable=True):
+    def __init__(self, parent=None, scale=1, modifiable=True, immediate=False):
         super().__init__(parent)
         self.modifiable = modifiable
+        self.immediate = immediate
         if modifiable:
             self.setCursor(QtGui.QCursor(Qt.CursorShape.PointingHandCursor))  # Set cursor to pointing hand
         self.setScaledContents(True)  # Scale the image to fit the label
@@ -50,10 +51,16 @@ class TitleImageWidget(QLabel):
     def set_image_bytes(self, image_bytes):
         if image_bytes is not None and sum(image_bytes) > 0:
             self.image_bytes = image_bytes
-            self.worker = ImageConvertWorker(image_bytes)
-            self.worker.image_done.connect(self._finish_image)
-            self.worker.on_error.connect(lambda ex: gui_utils.show_exception(ex))
-            self.worker.start()
+            if self.immediate:
+                try:
+                    self._finish_image(arduboy.image.bin_to_pilimage(self.image_bytes, raw=True))
+                except Exception as ex:
+                    gui_utils.show_exception(ex)
+            else:
+                self.worker = ImageConvertWorker(image_bytes)
+                self.worker.image_done.connect(self._finish_image)
+                self.worker.on_error.connect(lambda ex: gui_utils.show_exception(ex))
+                self.worker.start()
         else:
             self.image_bytes = None
             self.setPixmap(QtGui.QPixmap())

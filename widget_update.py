@@ -1,5 +1,3 @@
-import arduboy.device
-
 import gui_utils
 import gui_common
 
@@ -17,9 +15,13 @@ from widget_titleimage import TitleImageWidget
 class UpdateWindow(QDialog):
     def __init__(self, updateresult, cartwindow):
         super().__init__()
-        layout = QVBoxLayout()
 
+        self.cartwindow = cartwindow
         self.setWindowTitle("Update Cart")
+        self.resize(800, 700)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
         updatebox = QGroupBox(f"Updates ({len(updateresult[UPKEY_UPDATES])})")
         layout.addWidget(updatebox)
@@ -52,10 +54,6 @@ class UpdateWindow(QDialog):
 
         for update in updateresult[UPKEY_NEW]:
             self.add_selectable_listitem(self.newlist, NewInfo(update))
-
-        self.resize(500, 700)
-
-        self.setLayout(layout)
 
     
     def make_basic_list(self, box):
@@ -105,12 +103,19 @@ class SelectableListItem(QWidget):
         super().__init__()
 
         layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+
+        leftlayout = QVBoxLayout()
+        leftlayout_widget = QWidget()
+        leftlayout_widget.setLayout(leftlayout)
 
         self.checkbox = QCheckBox()
-        layout.addWidget(self.checkbox)
+        leftlayout.addWidget(self.checkbox)
+
+        layout.addWidget(leftlayout_widget)
         layout.addWidget(widget)
 
-        layout.setStretchFactor(self.checkbox, 0)
+        layout.setStretchFactor(leftlayout_widget, 0)
         layout.setStretchFactor(widget, 1)
 
         self.setLayout(layout)
@@ -130,7 +135,7 @@ class BasicInfo(QWidget):
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
 
-        self.image = TitleImageWidget(modifiable=False, scale=0.5)
+        self.image = TitleImageWidget(modifiable=False, immediate=False, scale=0.5)
         if image and len(image):
             self.image.set_image_bytes(image)
         layout.addWidget(self.image)
@@ -149,21 +154,34 @@ class BasicInfo(QWidget):
         infolayout.addWidget(metawidget)
 
 
+
 class UpdateInfo(QWidget):
 
     def __init__(self, original, update):
         super().__init__()
 
         layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0) # Because the 'NewInfo' widget is directly basicinfo, meaning no content margins
         self.setLayout(layout)
 
         originalwidget = BasicInfo(original.meta.title, original.meta.developer, original.meta.version, original.image_raw)
+        originalwidget.setFixedWidth(280)
         layout.addWidget(originalwidget)
 
-        #TODO: some kind of arrow or something here
+        arrow = QLabel("➡")
+        gui_common.set_emoji_font(arrow, 20)
+        arrow.setStyleSheet(f"QLabel {{ color: {gui_common.SUCCESSCOLOR} }}")
+        arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(arrow)
 
         newwidget = BasicInfo(update[CMKEY_TITLE], update[CMKEY_DEVELOPER], update[CMKEY_VERSION], update[CMKEY_IMAGE])
+        newwidget.setFixedWidth(280)
         layout.addWidget(newwidget)
+
+        layout.setStretchFactor(originalwidget, 0)
+        layout.setStretchFactor(arrow, 1)
+        layout.setStretchFactor(newwidget, 0)
+
 
 
 class NewInfo(BasicInfo):
