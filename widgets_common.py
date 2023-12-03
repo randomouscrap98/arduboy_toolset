@@ -1,8 +1,10 @@
-
 import gui_common
 import arduboy.device
 
 import os
+
+from arduboy.constants import *
+from arduboy.common import *
 
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QDialog, QComboBox, QLabel
@@ -345,4 +347,5 @@ class FilePicker(QWidget):
                 return None
 
         return filepath
+
 

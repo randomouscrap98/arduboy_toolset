@@ -864,7 +864,7 @@ class CartWindow(QMainWindow):
             dialog = widget_progress.do_progress_work(do_work_update, f"Computing update data...", simple = True, unknown_progress=True)
 
             if not dialog.error_state:
-                self.update_window= widget_update.UpdateWindow(updateresult)
+                self.update_window= widget_update.UpdateWindow(updateresult, self)
                 self.update_window.show()
     
 

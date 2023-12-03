@@ -11,19 +11,21 @@ from PyQt6.QtWidgets import   QPushButton, QLabel,  QDialog, QVBoxLayout, QProgr
 from PyQt6.QtWidgets import   QGroupBox, QListWidget, QHBoxLayout, QWidget, QCheckBox, QListWidgetItem
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
+from widget_titleimage import TitleImageWidget
+
 
 class UpdateWindow(QDialog):
-    def __init__(self, updateresult):
+    def __init__(self, updateresult, cartwindow):
         super().__init__()
         layout = QVBoxLayout()
 
         self.setWindowTitle("Update Cart")
 
-        updatebox = QGroupBox(f"Updates - {len(updateresult[UPKEY_UPDATES])}")
+        updatebox = QGroupBox(f"Updates ({len(updateresult[UPKEY_UPDATES])})")
         layout.addWidget(updatebox)
         self.updatelist = self.make_basic_list(updatebox)
 
-        newbox = QGroupBox(f"New - {len(updateresult[UPKEY_NEW])}")
+        newbox = QGroupBox(f"New ({len(updateresult[UPKEY_NEW])})")
         layout.addWidget(newbox)
         self.newlist = self.make_basic_list(newbox)
 
@@ -40,6 +42,7 @@ class UpdateWindow(QDialog):
 
         self.update_button = QPushButton("Update")
         self.cancel_button = QPushButton("Cancel")
+        self.cancel_button.clicked.connect(self.close)
         self.update_button.setStyleSheet("font-weight: bold")
         controls_layout.addWidget(self.cancel_button)
         controls_layout.addWidget(self.update_button)
@@ -50,8 +53,7 @@ class UpdateWindow(QDialog):
         for update in updateresult[UPKEY_NEW]:
             self.add_selectable_listitem(self.newlist, NewInfo(update))
 
-        # self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint & ~Qt.WindowType.WindowMaximizeButtonHint)
-        # self.resize(, 100)
+        self.resize(500, 700)
 
         self.setLayout(layout)
 
@@ -96,6 +98,7 @@ class UpdateWindow(QDialog):
     
 
 
+# Also a downloadable item, but that comes later
 class SelectableListItem(QWidget):
     
     def __init__(self, widget):
@@ -107,8 +110,43 @@ class SelectableListItem(QWidget):
         layout.addWidget(self.checkbox)
         layout.addWidget(widget)
 
+        layout.setStretchFactor(self.checkbox, 0)
+        layout.setStretchFactor(widget, 1)
+
         self.setLayout(layout)
 
+
+
+class BasicInfo(QWidget):
+
+    def __init__(self, title, author, version, image):
+        super().__init__()
+
+        title = title or "???"
+        author = author or "???"
+        version = version or "0.0"
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.setLayout(layout)
+
+        self.image = TitleImageWidget(modifiable=False, scale=0.5)
+        if image and len(image):
+            self.image.set_image_bytes(image)
+        layout.addWidget(self.image)
+
+        infolayout = QVBoxLayout()
+        infowidget = QWidget()
+        infowidget.setLayout(infolayout)
+        layout.addWidget(infowidget)
+
+        titlewidget = QLabel(title)
+        titlewidget.setStyleSheet("font-weight: bold")
+        infolayout.addWidget(titlewidget)
+
+        metawidget = QLabel(f"{version} | {author}")
+        metawidget.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
+        infolayout.addWidget(metawidget)
 
 
 class UpdateInfo(QWidget):
@@ -116,12 +154,23 @@ class UpdateInfo(QWidget):
     def __init__(self, original, update):
         super().__init__()
 
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+        originalwidget = BasicInfo(original.meta.title, original.meta.developer, original.meta.version, original.image_raw)
+        layout.addWidget(originalwidget)
+
+        #TODO: some kind of arrow or something here
+
+        newwidget = BasicInfo(update[CMKEY_TITLE], update[CMKEY_DEVELOPER], update[CMKEY_VERSION], update[CMKEY_IMAGE])
+        layout.addWidget(newwidget)
 
 
-class NewInfo(QWidget):
+class NewInfo(BasicInfo):
 
     def __init__(self, update):
-        super().__init__()
+        super().__init__(update[CMKEY_TITLE], update[CMKEY_DEVELOPER], update[CMKEY_VERSION], update[CMKEY_IMAGE])
+
 
 
 
