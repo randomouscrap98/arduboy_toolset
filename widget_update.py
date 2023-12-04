@@ -4,9 +4,12 @@ import widget_progress
 import utils
 import debug_actions
 import constants
+import arduboy.fxcart
+import main_cart
 
 from arduboy.bloggingadeadhorse import *
 
+import time
 import logging
 
 from PyQt6.QtWidgets import   QPushButton, QLabel,  QDialog, QVBoxLayout, QProgressBar, QMessageBox
@@ -19,8 +22,8 @@ DEBUG_NETWORK_FILE = False
 
 
 class UpdateWindow(QDialog):
-    def __init__(self, cartwindow):
-        super().__init__()
+    def __init__(self, cartwindow: main_cart.CartWindow):
+        super().__init__(parent=cartwindow)
 
         self.cartwindow = cartwindow
 
@@ -154,26 +157,74 @@ class UpdateWindow(QDialog):
         if len(updates) + len(new) == 0:
             raise Exception("Nothing selected!")
 
-        cartbin = None
+        cartbin_updates = None
+        cartbin_new = None
 
         def do_work(repprog, repstatus):
-            nonlocal cartbin
-            csv = create_csv(new + [u[1] for u in updates])
+            nonlocal cartbin_updates, cartbin_new
+            csv_new = create_csv(new)
+            csv_updates = create_csv([u[1] for u in updates])
             if DEBUG_NETWORK_FILE:
-                with open(utils.get_filesafe_datetime() + ".csv", "w") as f:
-                    f.write(csv)
-            cartbin = gui_common.get_official_bin(csv)
+                with open(utils.get_filesafe_datetime() + "_updates.csv", "w") as f:
+                    f.write(csv_updates)
+                with open(utils.get_filesafe_datetime() + "_new.csv", "w") as f:
+                    f.write(csv_new)
+            cartbin_updates = gui_common.get_official_bin(csv_updates)
+            cartbin_new = gui_common.get_official_bin(csv_new)
             if DEBUG_NETWORK_FILE:
-                with open(utils.get_filesafe_datetime() + ".bin", "wb") as f:
-                    f.write(cartbin)
+                with open(utils.get_filesafe_datetime() + "_updates.bin", "wb") as f:
+                    f.write(cartbin_updates)
+                with open(utils.get_filesafe_datetime() + "_new.bin", "wb") as f:
+                    f.write(cartbin_new)
         
+        # Perform the work to apply the update. Note that we expect the cart windowo to be empty by this time, so
+        # all actions should be "adding" the slots back in.
         def do_work_apply(repprog, repstatus):
-            pass
+            nonlocal cartbin_new, cartbin_updates
+            # Decompile the binaries
+            parsed_updates = arduboy.fxcart.parse(cartbin_updates)
+            parsed_new = arduboy.fxcart.parse(cartbin_new)
+            # Simple: if your cart doesn't start with a category, add the bootloader category given by the cartbin
+            if len(self.original_slots) == 0 or not self.original_slots[0].is_category():
+                self.cartwindow._add_slot_signal.emit(parsed_new[0], False)
+            # Now we do a very careful iteration over every item in the original slot list. When it's a category,
+            # we add iti, stop, and iterate over the 'new' binaries to see which ones are in this category by name, 
+            # and add them. If it's a program, we check the updates list to see if we should use that one instead.
+            # We use it wholesale, except for the save, which we overwrite with the one from the original slot (if it exists).
+            # This should preserve all the user's unique games, categories, and game order, while still applying updates
+            # and adding new games
+            last_category = None
+            # count = 0
+            # rest = 1
+            time.sleep(0.05)
+            for slot in self.original_slots:
+                scan_new = False # Which category to scan new games for right now, False is "don't scan"
+                if slot.is_category():
+                    scan_new = last_category # We're entering a new category. Scan new games in the old category (to put them at the end)
+                    last_category = slot.meta.title
+                else:
+                    # Check the updates for it, update it if so. Note that we ONLY update the 'slot' variable, which is 
+                    # about to be added. Since this is the "original", we need to preemptively pull out the save file, so
+                    # we can overwrite it without worry
+                    save_file = slot.save_raw
+                if slot == self.original_slots[-1]:
+                    scan_new = last_category # We reached the end of the list, still need to fill whatever this "last" category is
+                if scan_new:
+                    pass
+                self.cartwindow._add_slot_signal.emit(slot, False)
+                # count += 1
+                # if count == rest:
+                #     time.sleep(0.01)
+                #     rest = rest << 1
+
+            # Then, we iterate over whatever is left in the 'new' binary. These are all things that go into a
+            # potentially "new" category, which we'll probably have to create
 
         dialog = widget_progress.do_progress_work(do_work, f"Downloading programs...", simple = True, unknown_progress=True)
 
         if not dialog.error_state:
             debug_actions.global_debug.add_action_str(f"Retrieved update binary from {constants.OFFICIAL_CARTCREATE_URL}")
+            self.cartwindow.clear() # Get rid of what's in there now, we'll be re-adding everything back in, just updated
             dialog = widget_progress.do_progress_work(do_work_apply, f"Applying update...", simple = True, unknown_progress=True)
 
             if not dialog.error_state:
