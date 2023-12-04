@@ -83,3 +83,13 @@ def get_official_cartmeta(force: bool = False):
     return cached_official_cartmeta
 
 
+def get_official_bin(csv):
+    """
+    A blocking function which posts the given CSV to the website, turning it into a binary for download.
+    """
+    response = requests.post(OFFICIAL_CARTCREATE_URL, data = {
+        "output" : csv,
+        "mode" : "bin"
+    })
+    response.raise_for_status()
+    return response.content

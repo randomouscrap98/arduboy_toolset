@@ -847,19 +847,12 @@ class CartWindow(QMainWindow):
                 with open("badh_last.json", "w") as f:
                     json.dump(cartmeta, f)
 
-        class ByteArrayEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, bytearray) or isinstance(obj, arduboy.fxcart.FxParsedSlot):
-                    # Convert bytearray to a list of integers
-                    return False
-                return super().default(obj)
-
         def do_work_update(repprog, repstatus):
             nonlocal updateresult 
             updateresult = arduboy.bloggingadeadhorse.compute_update(check_update_slots, cartmeta, self.device_select.currentText())
             if DEBUG_NETWORK_FILE:
                 with open("updateresult_last.json", "w") as f:
-                    json.dump(updateresult, f, cls=ByteArrayEncoder)
+                    json.dump(updateresult, f, cls=arduboy.bloggingadeadhorse.CartMetaDecoder)
 
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 

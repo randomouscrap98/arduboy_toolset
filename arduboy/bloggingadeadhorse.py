@@ -1,11 +1,13 @@
+from arduboy.arduhex import DEVICE_DEFAULT
+
 import base64
 import io
 import re
-from typing import List
-from arduboy.arduhex import DEVICE_DEFAULT
-from PIL import Image
-
 import logging
+import json
+
+from typing import List
+from PIL import Image
 
 from arduboy.fxcart import TITLE_IMAGE_LENGTH, FxParsedSlot
 from arduboy.image import pilimage_to_bin
@@ -36,6 +38,14 @@ BADH_EOL = "<eol/>"
 # class CartUpdate:
 #     updates: List[(FxParsedSlot, )] = field(default_factory=lambda: [])
 #     unmatched: List[FxParsedSlot] = field(default_factory=lambda: [])
+
+class CartMetaDecoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytearray) or isinstance(obj, FxParsedSlot):
+            # Convert bytearray to a list of integers
+            return False
+        return super().default(obj)
+
 
 # Must already be prepped!
 def create_csv(cartmeta):
