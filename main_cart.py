@@ -831,37 +831,8 @@ class CartWindow(QMainWindow):
         QDesktopServices.openUrl(url)
     
     def check_cart_updates(self):
-        # Connect to the semi-official cart builder website, download the json, and check which games need an update.
-        # Scan through all the non-category items and see how many don't have author + version + title information. If it's missing
-        # ANY of them, count it against the percentage
-        slots = self.get_slots()
-        check_update_slots = [s for s in slots if not s.is_category()]
-        
-        cartmeta = None
-        updateresult = None
-
-        def do_work(repprog, repstatus):
-            nonlocal cartmeta
-            cartmeta = gui_common.get_official_cartmeta(force = True)
-            if DEBUG_NETWORK_FILE:
-                with open("badh_last.json", "w") as f:
-                    json.dump(cartmeta, f)
-
-        def do_work_update(repprog, repstatus):
-            nonlocal updateresult 
-            updateresult = arduboy.bloggingadeadhorse.compute_update(check_update_slots, cartmeta, self.device_select.currentText())
-            if DEBUG_NETWORK_FILE:
-                with open("updateresult_last.json", "w") as f:
-                    json.dump(updateresult, f, cls=arduboy.bloggingadeadhorse.CartMetaDecoder)
-
-        dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
-
-        if not dialog.error_state:
-            dialog = widget_progress.do_progress_work(do_work_update, f"Computing update data...", simple = True, unknown_progress=True)
-
-            if not dialog.error_state:
-                self.update_window= widget_update.UpdateWindow(updateresult, self)
-                self.update_window.show()
+        self.update_window = widget_update.UpdateWindow(self)
+        self.update_window.show()
     
 
 # --------------------------------------

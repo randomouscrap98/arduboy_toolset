@@ -1,5 +1,6 @@
 import gui_utils
 import gui_common
+import widget_progress
 
 from arduboy.bloggingadeadhorse import *
 
@@ -11,12 +12,20 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from widget_titleimage import TitleImageWidget
 
+DEBUG_NETWORK_FILE = False
+
 
 class UpdateWindow(QDialog):
-    def __init__(self, updateresult, cartwindow):
+    def __init__(self, cartwindow):
         super().__init__()
 
         self.cartwindow = cartwindow
+
+        # The progress thing shows exception errors itself... I think
+        updateresult = self.check_for_updates()
+        if not updateresult:
+            self.close()
+
         self.setWindowTitle("Update Cart")
         self.resize(800, 700)
 
@@ -54,6 +63,42 @@ class UpdateWindow(QDialog):
 
         for update in updateresult[UPKEY_NEW]:
             self.add_selectable_listitem(self.newlist, NewInfo(update))
+
+
+    def check_for_updates(self):
+        # Connect to the semi-official cart builder website, download the json, and check which games need an update.
+        # Scan through all the non-category items and see how many don't have author + version + title information. If it's missing
+        # ANY of them, count it against the percentage
+        #TODO: do something with slots, needed for recreation
+        slots = self.cartwindow.get_slots()
+        check_update_slots = [s for s in slots if not s.is_category()]
+        
+        cartmeta = None
+        updateresult = None
+
+        def do_work(repprog, repstatus):
+            nonlocal cartmeta
+            cartmeta = gui_common.get_official_cartmeta(force = True)
+            if DEBUG_NETWORK_FILE:
+                with open("badh_last.json", "w") as f:
+                    json.dump(cartmeta, f)
+
+        def do_work_update(repprog, repstatus):
+            nonlocal updateresult 
+            updateresult = compute_update(check_update_slots, cartmeta, self.cartwindow.device_select.currentText())
+            if DEBUG_NETWORK_FILE:
+                with open("updateresult_last.json", "w") as f:
+                    json.dump(updateresult, f, cls=CartMetaDecoder)
+
+        dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
+
+        if not dialog.error_state:
+            dialog = widget_progress.do_progress_work(do_work_update, f"Computing update data...", simple = True, unknown_progress=True)
+
+            if not dialog.error_state:
+                return updateresult
+        
+        return None
 
     
     def make_basic_list(self, box):
