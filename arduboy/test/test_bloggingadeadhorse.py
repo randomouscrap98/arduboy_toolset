@@ -35,6 +35,13 @@ class TestBloggingADeadHorse(unittest.TestCase):
         for cm in result:
             self.assertTrue("image" in cm)
             self.assertEqual(len(cm["image"]), 1024)
+
+    def test_create_csv_full(self):
+        cartmeta = get_fullcart()
+        prepped = arduboy.bloggingadeadhorse.prep_cartmeta(cartmeta, arduboy.arduhex.DEVICE_ARDUBOYFX)
+        result = arduboy.bloggingadeadhorse.create_csv(prepped)
+        self.assertTrue(len(result) > 5000)
+        self.assertEqual(len(prepped) + 3, len([l for l in result.split(arduboy.bloggingadeadhorse.BADH_EOL) if l]))
     
     def test_version_greater(self):
         for (a, b) in [

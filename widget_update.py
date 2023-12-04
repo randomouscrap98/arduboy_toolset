@@ -178,9 +178,13 @@ class UpdateInfo(QWidget):
         newwidget.setFixedWidth(280)
         layout.addWidget(newwidget)
 
+        spacer = QWidget()
+        layout.addWidget(spacer)
+
         layout.setStretchFactor(originalwidget, 0)
-        layout.setStretchFactor(arrow, 1)
+        layout.setStretchFactor(arrow, 0)
         layout.setStretchFactor(newwidget, 0)
+        layout.setStretchFactor(spacer, 1)
 
 
 

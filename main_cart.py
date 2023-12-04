@@ -33,6 +33,7 @@ from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtCore import pyqtSignal, Qt, QUrl
 
 UPDATE_VALID_THRESHOLD = 0.5
+DEBUG_NETWORK_FILE = False
 
 class CartWindow(QMainWindow):
     _add_slot_signal = pyqtSignal(arduboy.fxcart.FxParsedSlot, bool)
@@ -842,8 +843,9 @@ class CartWindow(QMainWindow):
         def do_work(repprog, repstatus):
             nonlocal cartmeta
             cartmeta = gui_common.get_official_cartmeta(force = True)
-            with open("badh_last.json", "w") as f:
-                json.dump(cartmeta, f)
+            if DEBUG_NETWORK_FILE:
+                with open("badh_last.json", "w") as f:
+                    json.dump(cartmeta, f)
 
         class ByteArrayEncoder(json.JSONEncoder):
             def default(self, obj):
@@ -855,8 +857,9 @@ class CartWindow(QMainWindow):
         def do_work_update(repprog, repstatus):
             nonlocal updateresult 
             updateresult = arduboy.bloggingadeadhorse.compute_update(check_update_slots, cartmeta, self.device_select.currentText())
-            with open("updateresult_last.json", "w") as f:
-                json.dump(updateresult, f, cls=ByteArrayEncoder)
+            if DEBUG_NETWORK_FILE:
+                with open("updateresult_last.json", "w") as f:
+                    json.dump(updateresult, f, cls=ByteArrayEncoder)
 
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 

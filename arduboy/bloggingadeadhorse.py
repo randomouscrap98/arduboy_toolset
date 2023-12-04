@@ -5,28 +5,63 @@ from typing import List
 from arduboy.arduhex import DEVICE_DEFAULT
 from PIL import Image
 
+import logging
+
 from arduboy.fxcart import TITLE_IMAGE_LENGTH, FxParsedSlot
 from arduboy.image import pilimage_to_bin
 
 CMKEY_TITLE = "title"
 CMKEY_DEVELOPER = "developer"
-CMKEY_IMAGE = "image"
-CMKEY_CATEGORY = "info"
+CMKEY_INFO = "info"
+CMKEY_CATEGORY = "info" # TODO: wait for Filmote to update this
 CMKEY_PROGRAMDATA = "pdata"
 CMKEY_PROGRAM = "program"
 CMKEY_VERSION = "version"
 CMKEY_ID = "ID"
+
+CMKEY_IMAGE = "image"
+CMKEY_HEX = "hex"
+CMKEY_FXDATA = "fxdata"
+CMKEY_FXSAVE = "fxsave"
 
 UPKEY_UPDATES = "updates"
 UPKEY_UNMATCHED = "unmatched"
 UPKEY_NEW = "new"
 UPKEY_CURRENT = "current"
 
+BADH_EOL = "<eol/>"
+
 # I'll make a class later
 # @dataclass
 # class CartUpdate:
 #     updates: List[(FxParsedSlot, )] = field(default_factory=lambda: [])
 #     unmatched: List[FxParsedSlot] = field(default_factory=lambda: [])
+
+# Must already be prepped!
+def create_csv(cartmeta):
+    # Make some fake data, we aren't actually going to use this stuff
+    output = 'List;Description;Title;Hex;Data;Save;Version;Developer;Info;Likes;URL;Source;Start;End;Hash' + BADH_EOL
+    output += '0;Bootloader;arduboy-fx-loader.png;;;;;;;;;;;;<eol/>'
+    # JUST IN CASE, make a fake category so everyone is happy
+    output += '1;FAKE_CATEGORY;category-screens/Action.png;;;;;;;;;;;;<eol/>'
+    # And now we actually start adding all the little bits and pieces.
+    id = 2
+
+    # Realistically, we should use a csv builder for this, but I'm worried about any funny quirks the website has,
+    # so I'm just doing it almost exactly like it's done on the website
+    for cm in cartmeta:
+        output += f"{id};{cm[CMKEY_TITLE]};{getpd(cm,CMKEY_IMAGE)};{getpd(cm,CMKEY_HEX)};{getpd(cm,CMKEY_FXDATA)};{getpd(cm,CMKEY_FXSAVE)};"
+        info = cm[CMKEY_INFO].replace(";", ",") # Just in case (the website doesn't do this!)
+        output += f"{cm[CMKEY_VERSION]};{cm[CMKEY_DEVELOPER]};{info};;;;;;;{BADH_EOL}"
+        # NOTE: in the above, there are 7 semicolons. This is technically incorrect, but it's how the website works, so we've 
+        # added that extra one (there should only be 6)
+        id += 1
+
+    return output
+
+def getpd(cm, key):
+    return cm[CMKEY_PROGRAMDATA].get(key, '')
+
 
 def prep_cartmeta(cartmeta, device):
     result = []
@@ -37,6 +72,10 @@ def prep_cartmeta(cartmeta, device):
     for cm in cartmeta:
         if cm[CMKEY_ID] in seen_ids:
             continue
+        # Completely ignore metadata that doesn't include important data
+        if CMKEY_TITLE not in cm or CMKEY_DEVELOPER not in cm or CMKEY_VERSION not in cm:
+            continue
+
         seen_ids.append(cm[CMKEY_ID])
         if device in cm[CMKEY_PROGRAM]:
             cm[CMKEY_PROGRAMDATA] = cm[CMKEY_PROGRAM][device]
@@ -45,17 +84,23 @@ def prep_cartmeta(cartmeta, device):
         else:
             continue
 
-        try:
-            image = base64.b64decode(cm[CMKEY_PROGRAMDATA]["image64"])
-            image = Image.open(io.BytesIO(image))
-            cm[CMKEY_IMAGE] = pilimage_to_bin(image)
-        except:
-            cm[CMKEY_IMAGE] = bytearray(TITLE_IMAGE_LENGTH)
+        image_raw = None 
 
-        if CMKEY_TITLE not in cm:
-            cm[CMKEY_TITLE] = ""
-        if CMKEY_DEVELOPER not in cm:
-            cm[CMKEY_DEVELOPER] = ""
+        try:
+            image_raw = base64.b64decode(cm[CMKEY_PROGRAMDATA]["image64"])
+            image = Image.open(io.BytesIO(image_raw))
+            cm[CMKEY_IMAGE] = pilimage_to_bin(image)
+        except Exception as ex:
+            logging.error(f"Couldn't decode image64 from badh game '{cm[CMKEY_TITLE]}'[{cm[CMKEY_ID]}]: {ex}")
+            cm[CMKEY_IMAGE] = bytearray(TITLE_IMAGE_LENGTH)
+            if image_raw:
+                with open(f'{cm[CMKEY_ID]}.png', "wb") as f:
+                    f.write(image_raw)
+
+        # if CMKEY_TITLE not in cm:
+        #     cm[CMKEY_TITLE] = ""
+        # if CMKEY_DEVELOPER not in cm:
+        #     cm[CMKEY_DEVELOPER] = ""
 
         result.append(cm)
     

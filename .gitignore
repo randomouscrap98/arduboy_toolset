@@ -172,6 +172,7 @@ ignore/
 *log.txt
 .venv*
 *_last.json
+/*.png
 
 !testfiles/*.hex
 !testfiles/*.arduboy
