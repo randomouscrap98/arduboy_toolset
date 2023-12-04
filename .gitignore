@@ -173,6 +173,8 @@ ignore/
 .venv*
 *_last.json
 /*.png
+/adhoc/*.png
+*.csv
 
 !testfiles/*.hex
 !testfiles/*.arduboy
