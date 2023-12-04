@@ -833,6 +833,7 @@ class CartWindow(QMainWindow):
     def check_cart_updates(self):
         self.update_window = widget_update.UpdateWindow(self)
         self.update_window.show()
+        debug_actions.global_debug.add_action_str(f"Retrieved update data from {constants.OFFICIAL_CARTMETA_URL}")
     
 
 # --------------------------------------

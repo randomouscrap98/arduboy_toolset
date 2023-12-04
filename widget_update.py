@@ -1,6 +1,9 @@
 import gui_utils
 import gui_common
 import widget_progress
+import utils
+import debug_actions
+import constants
 
 from arduboy.bloggingadeadhorse import *
 
@@ -22,7 +25,7 @@ class UpdateWindow(QDialog):
         self.cartwindow = cartwindow
 
         # The progress thing shows exception errors itself... I think
-        updateresult = self.check_for_updates()
+        updateresult, self.original_slots = self.check_for_updates(cartwindow)
         if not updateresult:
             self.close()
 
@@ -41,7 +44,6 @@ class UpdateWindow(QDialog):
         self.newlist = self.make_basic_list(newbox)
 
         updateinfo = QLabel(f"{len(updateresult[UPKEY_CURRENT])} up-to-date, {len(updateresult[UPKEY_UNMATCHED])} unmatched")
-        # updateinfo = QLabel(f"{len(updateresult[UPKEY_UPDATES])} Update(s), {len(updateresult[UPKEY_NEW])} New, {len(updateresult[UPKEY_CURRENT])} Current, {len(updateresult[UPKEY_UNMATCHED])} Unmatched")
         updateinfo.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
         updateinfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(updateinfo)
@@ -54,6 +56,7 @@ class UpdateWindow(QDialog):
         self.update_button = QPushButton("Update")
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.clicked.connect(self.close)
+        self.update_button.clicked.connect(self.do_update)
         self.update_button.setStyleSheet("font-weight: bold")
         controls_layout.addWidget(self.cancel_button)
         controls_layout.addWidget(self.update_button)
@@ -65,12 +68,11 @@ class UpdateWindow(QDialog):
             self.add_selectable_listitem(self.newlist, NewInfo(update))
 
 
-    def check_for_updates(self):
+    def check_for_updates(self, cartwindow):
         # Connect to the semi-official cart builder website, download the json, and check which games need an update.
         # Scan through all the non-category items and see how many don't have author + version + title information. If it's missing
         # ANY of them, count it against the percentage
-        #TODO: do something with slots, needed for recreation
-        slots = self.cartwindow.get_slots()
+        slots = cartwindow.get_slots()
         check_update_slots = [s for s in slots if not s.is_category()]
         
         cartmeta = None
@@ -85,7 +87,7 @@ class UpdateWindow(QDialog):
 
         def do_work_update(repprog, repstatus):
             nonlocal updateresult 
-            updateresult = compute_update(check_update_slots, cartmeta, self.cartwindow.device_select.currentText())
+            updateresult = compute_update(check_update_slots, cartmeta, cartwindow.device_select.currentText())
             if DEBUG_NETWORK_FILE:
                 with open("updateresult_last.json", "w") as f:
                     json.dump(updateresult, f, cls=CartMetaDecoder)
@@ -93,12 +95,13 @@ class UpdateWindow(QDialog):
         dialog = widget_progress.do_progress_work(do_work, f"Retrieving update data...", simple = True, unknown_progress=True)
 
         if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Retrieved update master list from {constants.OFFICIAL_CARTMETA_URL}")
             dialog = widget_progress.do_progress_work(do_work_update, f"Computing update data...", simple = True, unknown_progress=True)
 
             if not dialog.error_state:
-                return updateresult
+                return updateresult,slots
         
-        return None
+        return None,slots
 
     
     def make_basic_list(self, box):
@@ -129,6 +132,54 @@ class UpdateWindow(QDialog):
         for x in range(parent.count()):
             widget = parent.itemWidget(parent.item(x)) #.get_slot_data() for x in range(self.list_widget.count())]
             widget.checkbox.setChecked(selected)
+    
+
+    def do_update(self):
+        # First, go collect the values
+        updates = []
+        new = []
+
+        for x in range(self.updatelist.count()):
+            widget = self.updatelist.itemWidget(self.updatelist.item(x))
+            if not widget.checkbox.isChecked():
+                continue
+            updates.append((widget.widget.info_original, widget.widget.info_update))
+
+        for x in range(self.newlist.count()):
+            widget = self.newlist.itemWidget(self.newlist.item(x))
+            if not widget.checkbox.isChecked():
+                continue
+            new.append(widget.widget.info_update)
+        
+        if len(updates) + len(new) == 0:
+            raise Exception("Nothing selected!")
+
+        cartbin = None
+
+        def do_work(repprog, repstatus):
+            nonlocal cartbin
+            csv = create_csv(new + [u[1] for u in updates])
+            if DEBUG_NETWORK_FILE:
+                with open(utils.get_filesafe_datetime() + ".csv", "w") as f:
+                    f.write(csv)
+            cartbin = gui_common.get_official_bin(csv)
+            if DEBUG_NETWORK_FILE:
+                with open(utils.get_filesafe_datetime() + ".bin", "wb") as f:
+                    f.write(cartbin)
+        
+        def do_work_apply(repprog, repstatus):
+            pass
+
+        dialog = widget_progress.do_progress_work(do_work, f"Downloading programs...", simple = True, unknown_progress=True)
+
+        if not dialog.error_state:
+            debug_actions.global_debug.add_action_str(f"Retrieved update binary from {constants.OFFICIAL_CARTCREATE_URL}")
+            dialog = widget_progress.do_progress_work(do_work_apply, f"Applying update...", simple = True, unknown_progress=True)
+
+            if not dialog.error_state:
+                debug_actions.global_debug.add_action_str(f"Applied update to cart: {len(updates)} updated, {len(new)} added")
+                QMessageBox.information(self, "Update complete", f"Update complete, {len(updates)} updated, {len(new)} added. Returning to cart editor", QMessageBox.StandardButton.Ok)
+                self.close()
 
 
     def add_selectable_listitem(self, parent, widget):
@@ -147,6 +198,7 @@ class SelectableListItem(QWidget):
     def __init__(self, widget):
         super().__init__()
 
+        self.widget = widget
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
 
@@ -205,6 +257,9 @@ class UpdateInfo(QWidget):
     def __init__(self, original, update):
         super().__init__()
 
+        self.info_original = original
+        self.info_update = update
+
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0) # Because the 'NewInfo' widget is directly basicinfo, meaning no content margins
         self.setLayout(layout)
@@ -237,6 +292,7 @@ class NewInfo(BasicInfo):
 
     def __init__(self, update):
         super().__init__(update[CMKEY_TITLE], update[CMKEY_DEVELOPER], update[CMKEY_VERSION], update[CMKEY_IMAGE])
+        self.info_update = update
 
 
 
