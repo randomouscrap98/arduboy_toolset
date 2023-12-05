@@ -28,8 +28,8 @@ class UpdateWindow(QDialog):
         self.cartwindow = cartwindow
 
         # The progress thing shows exception errors itself... I think
-        updateresult, self.original_slots = self.check_for_updates(cartwindow)
-        if not updateresult:
+        self.updateresult, self.original_slots = self.check_for_updates(cartwindow)
+        if not self.updateresult:
             self.close()
 
         self.setWindowTitle("Update Cart")
@@ -38,15 +38,15 @@ class UpdateWindow(QDialog):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        updatebox = QGroupBox(f"Updates ({len(updateresult[UPKEY_UPDATES])})")
+        updatebox = QGroupBox(f"Updates ({len(self.updateresult[UPKEY_UPDATES])})")
         layout.addWidget(updatebox)
         self.updatelist = self.make_basic_list(updatebox)
 
-        newbox = QGroupBox(f"New ({len(updateresult[UPKEY_NEW])})")
+        newbox = QGroupBox(f"New ({len(self.updateresult[UPKEY_NEW])})")
         layout.addWidget(newbox)
         self.newlist = self.make_basic_list(newbox)
 
-        updateinfo = QLabel(f"{len(updateresult[UPKEY_CURRENT])} up-to-date, {len(updateresult[UPKEY_UNMATCHED])} unmatched")
+        updateinfo = QLabel(f"{len(self.updateresult[UPKEY_CURRENT])} up-to-date, {len(self.updateresult[UPKEY_UNMATCHED])} unmatched")
         updateinfo.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}")
         updateinfo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(updateinfo)
@@ -64,10 +64,10 @@ class UpdateWindow(QDialog):
         controls_layout.addWidget(self.cancel_button)
         controls_layout.addWidget(self.update_button)
 
-        for (original,update) in updateresult[UPKEY_UPDATES]:
+        for (original,update) in self.updateresult[UPKEY_UPDATES]:
             self.add_selectable_listitem(self.updatelist, UpdateInfo(original, update))
 
-        for update in updateresult[UPKEY_NEW]:
+        for update in self.updateresult[UPKEY_NEW]:
             self.add_selectable_listitem(self.newlist, NewInfo(update))
 
 
@@ -139,20 +139,8 @@ class UpdateWindow(QDialog):
 
     def do_update(self):
         # First, go collect the values
-        updates = []
-        new = []
-
-        for x in range(self.updatelist.count()):
-            widget = self.updatelist.itemWidget(self.updatelist.item(x))
-            if not widget.checkbox.isChecked():
-                continue
-            updates.append((widget.widget.info_original, widget.widget.info_update))
-
-        for x in range(self.newlist.count()):
-            widget = self.newlist.itemWidget(self.newlist.item(x))
-            if not widget.checkbox.isChecked():
-                continue
-            new.append(widget.widget.info_update)
+        updates = self.get_selected(self.updatelist)
+        new = self.get_selected(self.newlist)
         
         if len(updates) + len(new) == 0:
             raise Exception("Nothing selected!")
@@ -181,44 +169,7 @@ class UpdateWindow(QDialog):
         # all actions should be "adding" the slots back in.
         def do_work_apply(repprog, repstatus):
             nonlocal cartbin_new, cartbin_updates
-            # Decompile the binaries
-            parsed_updates = arduboy.fxcart.parse(cartbin_updates)
-            parsed_new = arduboy.fxcart.parse(cartbin_new)
-            # Simple: if your cart doesn't start with a category, add the bootloader category given by the cartbin
-            if len(self.original_slots) == 0 or not self.original_slots[0].is_category():
-                self.cartwindow._add_slot_signal.emit(parsed_new[0], False)
-            # Now we do a very careful iteration over every item in the original slot list. When it's a category,
-            # we add iti, stop, and iterate over the 'new' binaries to see which ones are in this category by name, 
-            # and add them. If it's a program, we check the updates list to see if we should use that one instead.
-            # We use it wholesale, except for the save, which we overwrite with the one from the original slot (if it exists).
-            # This should preserve all the user's unique games, categories, and game order, while still applying updates
-            # and adding new games
-            last_category = None
-            # count = 0
-            # rest = 1
-            time.sleep(0.05)
-            for slot in self.original_slots:
-                scan_new = False # Which category to scan new games for right now, False is "don't scan"
-                if slot.is_category():
-                    scan_new = last_category # We're entering a new category. Scan new games in the old category (to put them at the end)
-                    last_category = slot.meta.title
-                else:
-                    # Check the updates for it, update it if so. Note that we ONLY update the 'slot' variable, which is 
-                    # about to be added. Since this is the "original", we need to preemptively pull out the save file, so
-                    # we can overwrite it without worry
-                    save_file = slot.save_raw
-                if slot == self.original_slots[-1]:
-                    scan_new = last_category # We reached the end of the list, still need to fill whatever this "last" category is
-                if scan_new:
-                    pass
-                self.cartwindow._add_slot_signal.emit(slot, False)
-                # count += 1
-                # if count == rest:
-                #     time.sleep(0.01)
-                #     rest = rest << 1
-
-            # Then, we iterate over whatever is left in the 'new' binary. These are all things that go into a
-            # potentially "new" category, which we'll probably have to create
+            self.apply_update(cartbin_new, cartbin_updates)
 
         dialog = widget_progress.do_progress_work(do_work, f"Downloading programs...", simple = True, unknown_progress=True)
 
@@ -231,6 +182,83 @@ class UpdateWindow(QDialog):
                 debug_actions.global_debug.add_action_str(f"Applied update to cart: {len(updates)} updated, {len(new)} added")
                 QMessageBox.information(self, "Update complete", f"Update complete, {len(updates)} updated, {len(new)} added. Returning to cart editor", QMessageBox.StandardButton.Ok)
                 self.close()
+    
+
+    def get_selected(self, whichlist):
+        result = []
+        for x in range(whichlist.count()):
+            widget = whichlist.itemWidget(whichlist.item(x))
+            if not widget.checkbox.isChecked():
+                continue
+            if whichlist == self.updatelist:
+                result.append((widget.widget.info_original, widget.widget.info_update))
+            elif whichlist == self.newlist:
+                result.append(widget.widget.info_update)
+        return result
+
+
+    def apply_update(self, cartbin_new, cartbin_updates):
+        # nonlocal cartbin_new, cartbin_updates
+        # Decompile the binaries
+        parsed_updates = arduboy.fxcart.parse(cartbin_updates)
+        parsed_new = arduboy.fxcart.parse(cartbin_new)
+        # Simple: if your cart doesn't start with a category, add the bootloader category given by the cartbin
+        if len(self.original_slots) == 0 or not self.original_slots[0].is_category():
+            self.cartwindow._add_slot_signal.emit(parsed_new[0], False)
+        # Now we do a very careful iteration over every item in the original slot list. When it's a category,
+        # we add iti, stop, and iterate over the 'new' binaries to see which ones are in this category by name, 
+        # and add them. If it's a program, we check the updates list to see if we should use that one instead.
+        # We use it wholesale, except for the save, which we overwrite with the one from the original slot (if it exists).
+        # This should preserve all the user's unique games, categories, and game order, while still applying updates
+        # and adding new games
+        last_category = None
+        time.sleep(0.05)
+        for (i, slot) in enumerate(self.original_slots):
+            scan_new = False # Which category to scan new games for right now, False is "don't scan"
+            if slot.is_category():
+                scan_new = last_category # We're entering a new category. Scan new games in the old category (to put them at the end)
+                last_category = slot.meta.title
+            else:
+                # Check the updates for it, update it if so. Note that we ONLY update the 'slot' variable, which is 
+                # about to be added. Since this is the "original", we need to preemptively pull out the save file, so
+                # we can overwrite it without worry
+                save_file = slot.save_raw
+                # This is ridiculously slow.... sorry, I should do better
+                for (uslot, umeta) in self.updateresult[UPKEY_UPDATES]:
+                    if slot == uslot: # This was in the update
+                        for us in parsed_updates: # Go look for the selected update slot.
+                            if meta_matches_slot(umeta, us):
+                                slot = us
+                                if save_file:
+                                    slot.save_raw = save_file
+                                parsed_updates.remove(us)
+                                logging.debug(f"Updated {us.meta.title}")
+                                break
+                        break
+            if i == len(self.original_slots) - 1:
+                scan_new = last_category # We reached the end of the list, still need to fill whatever this "last" category is
+            if scan_new:
+                putnew = []
+                # This is ridiculously slow
+                for nmeta in self.updateresult[UPKEY_NEW]:
+                    if nmeta[CMKEY_CATEGORY].lower() == scan_new.lower():
+                        for ns in parsed_new:
+                            if meta_matches_slot(nmeta, ns):
+                                self.cartwindow._add_slot_signal.emit(ns, False)
+                                parsed_new.remove(ns)
+                                putnew.append(ns.meta.title)
+                                break
+                if len(putnew):
+                    logging.debug(f"Put '{','.join(putnew)}' into category {scan_new}")
+                else:
+                    logging.debug(f"No new games for category {scan_new}")
+            self.cartwindow._add_slot_signal.emit(slot, False)
+
+        # Then, we iterate over whatever is left in the 'new' binary. These are all things that go into a
+        # potentially "new" category, which we'll probably have to create
+        leftover_updates = [s.meta.title for s in parsed_updates if not s.is_category()]
+        leftover_new = [s.meta.title for s in parsed_new if not s.is_category()]
+        logging.warning(f"Leftover updates: {len(leftover_updates)} - {','.join(leftover_updates)} new: {len(leftover_new)} - {','.join(leftover_new)}")
 
 
     def add_selectable_listitem(self, parent, widget):

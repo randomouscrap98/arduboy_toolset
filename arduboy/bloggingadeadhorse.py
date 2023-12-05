@@ -15,7 +15,7 @@ from arduboy.image import pilimage_to_bin
 CMKEY_TITLE = "title"
 CMKEY_DEVELOPER = "developer"
 CMKEY_INFO = "info"
-CMKEY_CATEGORY = "info" # TODO: wait for Filmote to update this
+CMKEY_CATEGORY = "category" 
 CMKEY_PROGRAMDATA = "pdata"
 CMKEY_PROGRAM = "program"
 CMKEY_VERSION = "version"
@@ -138,6 +138,9 @@ def version_greater(a, b):
     # If all positions possible are the same, version a is greater if it has more segments
     return len(da) > len(db)
 
+def meta_matches_slot(meta, slot):
+    return slot.meta.title and slot.meta.title.lower() == meta[CMKEY_TITLE].lower() and slot.meta.developer and slot.meta.developer.lower() == meta[CMKEY_DEVELOPER].lower()
+
 
 def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
     """
@@ -155,15 +158,14 @@ def compute_update(originalcart: List[FxParsedSlot], cartmeta, device):
     # on the server is newer
     for item in unmatched.copy():
         for cm in validmeta:
-            if item.meta.title and item.meta.title.lower() == cm[CMKEY_TITLE].lower():
-                if item.meta.developer and item.meta.developer.lower() == cm[CMKEY_DEVELOPER].lower():
-                    if version_greater(cm[CMKEY_VERSION], item.meta.version):
-                        updates.append((item, cm))
-                    else:
-                        current.append((item, cm))
-                    validmeta.remove(cm)
-                    unmatched.remove(item)
-                    break
+            if meta_matches_slot(cm, item):
+                if version_greater(cm[CMKEY_VERSION], item.meta.version):
+                    updates.append((item, cm))
+                else:
+                    current.append((item, cm))
+                validmeta.remove(cm)
+                unmatched.remove(item)
+                break
     
     # Now for anything remaining, we want to match by exact title screen. THis might be slow?
     for item in unmatched.copy():
