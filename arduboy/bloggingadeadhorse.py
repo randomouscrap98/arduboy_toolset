@@ -32,6 +32,7 @@ UPKEY_NEW = "new"
 UPKEY_CURRENT = "current"
 
 BADH_EOL = "<eol/>"
+FAKE_CATEGORY = "FAKE_CATEGORY"
 
 # I'll make a class later
 # @dataclass
@@ -51,11 +52,13 @@ class CartMetaDecoder(json.JSONEncoder):
 def create_csv(cartmeta):
     # Make some fake data, we aren't actually going to use this stuff
     output = 'List;Description;Title;Hex;Data;Save;Version;Developer;Info;Likes;URL;Source;Start;End;Hash' + BADH_EOL
-    output += '0;Bootloader;arduboy-fx-loader.png;;;;;;;;;;;;<eol/>'
+    output += '0;Bootloader;arduboy-fx-loader.png;;;;;;;;;;;;' + BADH_EOL
     # JUST IN CASE, make a fake category so everyone is happy
-    output += '1;FAKE_CATEGORY;category-screens/Action.png;;;;;;;;;;;;<eol/>'
+    output += f'1;{FAKE_CATEGORY};arduboy-fx-loader.png;;;;;;;;;;;;' + BADH_EOL
     # And now we actually start adding all the little bits and pieces.
     id = 2
+
+    categories = []
 
     # Realistically, we should use a csv builder for this, but I'm worried about any funny quirks the website has,
     # so I'm just doing it almost exactly like it's done on the website
@@ -65,6 +68,14 @@ def create_csv(cartmeta):
         output += f"{cm[CMKEY_VERSION]};{cm[CMKEY_DEVELOPER]};{info};;;;;;;{BADH_EOL}"
         # NOTE: in the above, there are 7 semicolons. This is technically incorrect, but it's how the website works, so we've 
         # added that extra one (there should only be 6)
+        category = cm.get(CMKEY_CATEGORY, '')
+        if category and category not in categories:
+            categories.append(cm[CMKEY_CATEGORY])
+        id += 1
+    
+    # Now for each category, add them to the end. This is in case you need them to fill out the 'missing' categories
+    for category in categories:
+        output += f"{id};{category};category-screens/{category.replace(' ', '')}.png;;;;;;;;;;;;{BADH_EOL}"
         id += 1
 
     return output

@@ -41,7 +41,7 @@ class TestBloggingADeadHorse(unittest.TestCase):
         prepped = arduboy.bloggingadeadhorse.prep_cartmeta(cartmeta, arduboy.arduhex.DEVICE_ARDUBOYFX)
         result = arduboy.bloggingadeadhorse.create_csv(prepped)
         self.assertTrue(len(result) > 5000)
-        self.assertEqual(len(prepped) + 3, len([l for l in result.split(arduboy.bloggingadeadhorse.BADH_EOL) if l]))
+        self.assertTrue(len(prepped) <= len([l for l in result.split(arduboy.bloggingadeadhorse.BADH_EOL) if l]))
     
     def test_version_greater(self):
         for (a, b) in [

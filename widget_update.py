@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from widget_titleimage import TitleImageWidget
 
-DEBUG_NETWORK_FILE = False
+DEBUG_NETWORK_FILE = True
 
 
 class UpdateWindow(QDialog):
@@ -154,9 +154,9 @@ class UpdateWindow(QDialog):
             csv_updates = create_csv([u[1] for u in updates])
             if DEBUG_NETWORK_FILE:
                 with open(utils.get_filesafe_datetime() + "_updates.csv", "w") as f:
-                    f.write(csv_updates)
+                    f.write(csv_updates.replace(BADH_EOL, "\n"))
                 with open(utils.get_filesafe_datetime() + "_new.csv", "w") as f:
-                    f.write(csv_new)
+                    f.write(csv_new.replace(BADH_EOL, "\n"))
             cartbin_updates = gui_common.get_official_bin(csv_updates)
             cartbin_new = gui_common.get_official_bin(csv_new)
             if DEBUG_NETWORK_FILE:
@@ -179,6 +179,7 @@ class UpdateWindow(QDialog):
             dialog = widget_progress.do_progress_work(do_work_apply, f"Applying update...", simple = True, unknown_progress=True)
 
             if not dialog.error_state:
+                self.cartwindow.set_modified(True)
                 debug_actions.global_debug.add_action_str(f"Applied update to cart: {len(updates)} updated, {len(new)} added")
                 QMessageBox.information(self, "Update complete", f"Update complete, {len(updates)} updated, {len(new)} added. Returning to cart editor", QMessageBox.StandardButton.Ok)
                 self.close()
@@ -211,13 +212,21 @@ class UpdateWindow(QDialog):
         # We use it wholesale, except for the save, which we overwrite with the one from the original slot (if it exists).
         # This should preserve all the user's unique games, categories, and game order, while still applying updates
         # and adding new games
-        last_category = None
         time.sleep(0.05)
+        categories = []
         for (i, slot) in enumerate(self.original_slots):
             scan_new = False # Which category to scan new games for right now, False is "don't scan"
             if slot.is_category():
-                scan_new = last_category # We're entering a new category. Scan new games in the old category (to put them at the end)
-                last_category = slot.meta.title
+                if not slot.meta.title: # Go find a replacement
+                    # This is ridiculously slow.... sorry, I should do better
+                    for us in [s for s in (parsed_updates + parsed_new) if s.is_category()]: # Go find all categories
+                        if us.image_raw == slot.image_raw:
+                            slot = us
+                            logging.debug(f"Using new category info for {slot.meta.title}")
+                            break
+                if len(categories):
+                    scan_new = categories[-1] # We're entering a new category. Scan new games in the old category (to put them at the end)
+                categories.append(slot.meta.title)
             else:
                 # Check the updates for it, update it if so. Note that we ONLY update the 'slot' variable, which is 
                 # about to be added. Since this is the "original", we need to preemptively pull out the save file, so
@@ -235,30 +244,39 @@ class UpdateWindow(QDialog):
                                 logging.debug(f"Updated {us.meta.title}")
                                 break
                         break
-            if i == len(self.original_slots) - 1:
-                scan_new = last_category # We reached the end of the list, still need to fill whatever this "last" category is
+            if i == len(self.original_slots) - 1 and len(categories):
+                scan_new = categories[-1] # We reached the end of the list, still need to fill whatever this "last" category is
             if scan_new:
-                putnew = []
-                # This is ridiculously slow
-                for nmeta in self.updateresult[UPKEY_NEW]:
-                    if nmeta[CMKEY_CATEGORY].lower() == scan_new.lower():
-                        for ns in parsed_new:
-                            if meta_matches_slot(nmeta, ns):
-                                self.cartwindow._add_slot_signal.emit(ns, False)
-                                parsed_new.remove(ns)
-                                putnew.append(ns.meta.title)
-                                break
-                if len(putnew):
-                    logging.debug(f"Put '{','.join(putnew)}' into category {scan_new}")
-                else:
-                    logging.debug(f"No new games for category {scan_new}")
+                self.add_all_to_category(scan_new, parsed_new)
             self.cartwindow._add_slot_signal.emit(slot, False)
 
         # Then, we iterate over whatever is left in the 'new' binary. These are all things that go into a
         # potentially "new" category, which we'll probably have to create
+        for category in [s for s in parsed_new if s.is_category()]:
+            if category.meta.title not in categories and category.meta.title != FAKE_CATEGORY:
+                self.cartwindow._add_slot_signal.emit(category, False)
+                self.add_all_to_category(category.meta.title, parsed_new)
+
         leftover_updates = [s.meta.title for s in parsed_updates if not s.is_category()]
         leftover_new = [s.meta.title for s in parsed_new if not s.is_category()]
         logging.warning(f"Leftover updates: {len(leftover_updates)} - {','.join(leftover_updates)} new: {len(leftover_new)} - {','.join(leftover_new)}")
+
+
+    def add_all_to_category(self, category, parsed_new):
+        putnew = []
+        # This is ridiculously slow
+        for nmeta in self.updateresult[UPKEY_NEW]:
+            if nmeta[CMKEY_CATEGORY].lower() == category.lower():
+                for ns in parsed_new:
+                    if meta_matches_slot(nmeta, ns):
+                        self.cartwindow._add_slot_signal.emit(ns, False)
+                        parsed_new.remove(ns)
+                        putnew.append(ns.meta.title)
+                        break
+        if len(putnew):
+            logging.debug(f"Put '{','.join(putnew)}' into category {category}")
+        else:
+            logging.debug(f"No new games for category {category}")
 
 
     def add_selectable_listitem(self, parent, widget):
