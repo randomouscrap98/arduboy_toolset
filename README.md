@@ -19,6 +19,7 @@ The toolset allows you to:
 * Create/edit custom flashcarts with custom categories
 * Create/edit `.arduboy` package files
 * Convert images into code or data for use with the Arduboy2 or FX library
+* Update your Arduboy FX with the latest games and updates from the [official cart website](http://www.bloggingadeadhorse.com/cart/Cart.html)
 
 ## Quickstart
 
@@ -41,6 +42,11 @@ You can add games by dragging and dropping `.hex` or `.arduboy` files into the w
 the currently focused menu item. If you accidently place a game where you don't want it, you can drag the games around
 in the list, or press `Ctrl-delete` or use the `Cart` menu to remove them. When you're ready to put everything back on 
 your Arduboy, use the `File` menu again to `Flash to Arduboy`. 
+
+Get the latest games by using the `Network` menu to update your cart. This connects to the offical cart website
+and calculates which games you're missing and which need an update. **WARNING:** there are no unique identifiers for
+games, so a best attempt is made to match games against the official cart website, but it can get it wrong! Always
+check the update window for correctness before applying the update!
 
 ## Caveats
 

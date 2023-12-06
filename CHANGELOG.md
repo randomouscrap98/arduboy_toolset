@@ -1,3 +1,9 @@
+## 0.7
+* Added network features
+* Added ability to update cart in-place from official cart website without losing saves or custom games
+* Fix bootloader size issue in sketch backup
+* Fix bug on very few games where large blocks of white pixels in data would be trimmed
+
 ## 0.6.1
 * Fixed weird C++ object deleted bug
 * Fixed inability to open cart builder by itself anymore
