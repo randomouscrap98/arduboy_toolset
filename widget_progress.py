@@ -18,15 +18,16 @@ class ProgressWindow(QDialog):
         self.error_state = False
         self.simple = simple
 
+        self.status_label = QLabel("Waiting...")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_label)
+
         if simple:
-            self.resize(300, 100)
+            self.status_label.setText("Please wait...")
+            self.resize(300, 80)
         else:
             self.resize(400, 200)
-
-            self.status_label = QLabel("Waiting...")
-            self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             gui_utils.mod_font_size(self.status_label, 2)
-            layout.addWidget(self.status_label)
 
             self.device_label = QLabel(device if device else "~")
             self.device_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -52,10 +53,11 @@ class ProgressWindow(QDialog):
             self.device_label.setText(device)
 
     def set_status(self, status):
-        if self.simple:
-            self.setWindowTitle(status)
-        else:
-            self.status_label.setText(status)
+        self.status_label.setText(status)
+        # if self.simple:
+        #     self.setWindowTitle(status)
+        # else:
+        #     self.status_label.setText(status)
 
     def set_complete(self):
         if self.simple:

@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from widget_titleimage import TitleImageWidget
 
-DEBUG_NETWORK_FILE = True
+DEBUG_NETWORK_FILE = False
 
 
 class UpdateWindow(QDialog):
@@ -30,7 +30,11 @@ class UpdateWindow(QDialog):
         # The progress thing shows exception errors itself... I think
         self.updateresult, self.original_slots = self.check_for_updates(cartwindow)
         if not self.updateresult:
-            self.close()
+            raise Exception("Failed to download update metadata!")
+        
+        if len(self.updateresult[UPKEY_NEW]) + len(self.updateresult[UPKEY_UPDATES]) == 0:
+            # QMessageBox.information(self, "Update cancelled", "No updates found for your cart", QMessageBox.StandardButton.Ok)
+            raise Exception("No updates found for your cart")
 
         self.setWindowTitle("Update Cart")
         self.resize(800, 700)
@@ -83,6 +87,7 @@ class UpdateWindow(QDialog):
 
         def do_work(repprog, repstatus):
             nonlocal cartmeta
+            repstatus(f"Downloading metadata from\n{constants.OFFICIAL_CARTMETA_URL}")
             cartmeta = gui_common.get_official_cartmeta(force = True)
             if DEBUG_NETWORK_FILE:
                 with open("badh_last.json", "w") as f:
@@ -150,6 +155,7 @@ class UpdateWindow(QDialog):
 
         def do_work(repprog, repstatus):
             nonlocal cartbin_updates, cartbin_new
+            repstatus("Creating CSV for request...")
             csv_new = create_csv(new)
             csv_updates = create_csv([u[1] for u in updates])
             if DEBUG_NETWORK_FILE:
@@ -157,7 +163,9 @@ class UpdateWindow(QDialog):
                     f.write(csv_updates.replace(BADH_EOL, "\n"))
                 with open(utils.get_filesafe_datetime() + "_new.csv", "w") as f:
                     f.write(csv_new.replace(BADH_EOL, "\n"))
+            repstatus(f"Downloading updates from\n{constants.OFFICIAL_CARTCREATE_URL}")
             cartbin_updates = gui_common.get_official_bin(csv_updates)
+            repstatus(f"Downloading new programs from\n{constants.OFFICIAL_CARTCREATE_URL}")
             cartbin_new = gui_common.get_official_bin(csv_new)
             if DEBUG_NETWORK_FILE:
                 with open(utils.get_filesafe_datetime() + "_updates.bin", "wb") as f:
@@ -171,7 +179,7 @@ class UpdateWindow(QDialog):
             nonlocal cartbin_new, cartbin_updates
             self.apply_update(cartbin_new, cartbin_updates)
 
-        dialog = widget_progress.do_progress_work(do_work, f"Downloading programs...", simple = True, unknown_progress=True)
+        dialog = widget_progress.do_progress_work(do_work, f"Downloading update...", simple = True, unknown_progress=True)
 
         if not dialog.error_state:
             debug_actions.global_debug.add_action_str(f"Retrieved update binary from {constants.OFFICIAL_CARTCREATE_URL}")
@@ -199,13 +207,15 @@ class UpdateWindow(QDialog):
 
 
     def apply_update(self, cartbin_new, cartbin_updates):
-        # nonlocal cartbin_new, cartbin_updates
         # Decompile the binaries
         parsed_updates = arduboy.fxcart.parse(cartbin_updates)
         parsed_new = arduboy.fxcart.parse(cartbin_new)
         # Simple: if your cart doesn't start with a category, add the bootloader category given by the cartbin
         if len(self.original_slots) == 0 or not self.original_slots[0].is_category():
             self.cartwindow._add_slot_signal.emit(parsed_new[0], False)
+        # Now that we've done that, remove the bootloaders and fake category
+        parsed_updates = parsed_updates[2:]
+        parsed_new = parsed_new[2:]
         # Now we do a very careful iteration over every item in the original slot list. When it's a category,
         # we add iti, stop, and iterate over the 'new' binaries to see which ones are in this category by name, 
         # and add them. If it's a program, we check the updates list to see if we should use that one instead.
@@ -253,7 +263,7 @@ class UpdateWindow(QDialog):
         # Then, we iterate over whatever is left in the 'new' binary. These are all things that go into a
         # potentially "new" category, which we'll probably have to create
         for category in [s for s in parsed_new if s.is_category()]:
-            if category.meta.title not in categories and category.meta.title != FAKE_CATEGORY:
+            if category.meta.title not in categories: # and category.meta.title != FAKE_CATEGORY:
                 self.cartwindow._add_slot_signal.emit(category, False)
                 self.add_all_to_category(category.meta.title, parsed_new)
 
@@ -393,50 +403,3 @@ class NewInfo(BasicInfo):
 
 
 
-
-# class ProgressWorkerThread(QThread):
-#     update_progress = pyqtSignal(int, int)
-#     update_status = pyqtSignal(str)
-#     update_device = pyqtSignal(str)
-#     report_error = pyqtSignal(Exception)
-# 
-#     def __init__(self, work, simple = False):
-#         super().__init__()
-#         self.work = work
-#         self.simple = simple
-# 
-#     def run(self):
-#         try:
-#             if self.simple:
-#                 # Yes, when simple, the work actually doesn't take the extra data. Be careful! This is dumb design!
-#                 self.work(lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
-#             else:
-#                 self.update_status.emit("Waiting for bootloader...")
-#                 device = arduboy.device.find_single()
-#                 self.update_device.emit(device.display_name())
-#                 self.work(device, lambda cur, tot: self.update_progress.emit(cur, tot), lambda stat: self.update_status.emit(stat))
-#         except Exception as ex:
-#             self.report_error.emit(ex)
-#     
-#     # Connect this worker thread to the given progress window by connecting up all the little signals
-#     def connect(self, pwindow):
-#         self.update_progress.connect(pwindow.report_progress)
-#         self.update_status.connect(pwindow.set_status)
-#         self.update_device.connect(pwindow.set_device)
-#         self.report_error.connect(pwindow.report_error)
-#         self.finished.connect(pwindow.set_complete)
-# 
-# 
-# # Perform the given work, which can report both progress and status updates through two lambdas,
-# # within a dialog made for reporting progress. The dialog cannot be exited, since I think exiting
-# # in the middle of flashing tasks is like... really bad?
-# def do_progress_work(work, title, simple = False, unknown_progress = False):
-#     dialog = ProgressWindow(title, simple = simple)
-#     if unknown_progress:
-#         dialog.progress_bar.setRange(0,0)
-#     worker_thread = ProgressWorkerThread(work, simple = simple)
-#     worker_thread.connect(dialog)
-#     worker_thread.start()
-#     dialog.exec()
-#     return dialog
-# 

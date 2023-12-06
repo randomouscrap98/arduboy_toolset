@@ -391,15 +391,15 @@ class CartWindow(QMainWindow):
         fxbin = bytearray()
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
-            repstatus("Generating missing images")
+            repstatus("Generating missing images...")
             for slot,widget in slots:
                 if not slot.has_image():
                     pilimage = utils.make_titlescreen_from_slot(slot)
                     slot.image_raw = arduboy.image.pilimage_to_bin(pilimage)
                     widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
-            repstatus("Compiling FX cart")
+            repstatus("Compiling FX cart...")
             fxbin = arduboy.fxcart.compile([x for x,_ in slots], repprog)
-        dialog = widget_progress.do_progress_work(do_work, "Compiling FX", simple = True)
+        dialog = widget_progress.do_progress_work(do_work, "Compiling FX Cart", simple = True)
         if dialog.error_state:
             return None
         else:
@@ -462,7 +462,7 @@ class CartWindow(QMainWindow):
         def do_work(repprog, repstatus):
             nonlocal parsed # widgits # parsed
             parsed = arduboy.fxcart.parse(bindata, repprog)
-            repstatus("Rendering items")
+            repstatus("Rendering items...")
             count = 0
             rest = 1
             for slot in parsed:
@@ -475,7 +475,7 @@ class CartWindow(QMainWindow):
                     rest = rest << 1
         self.list_widget.blockSignals(True)
         try:
-            dialog = widget_progress.do_progress_work(do_work, "Parsing binary", simple = True)
+            dialog = widget_progress.do_progress_work(do_work, "Loading cart", simple = True)
             if not dialog.error_state:
                 if filepath:
                     self.filepath = filepath
@@ -831,7 +831,11 @@ class CartWindow(QMainWindow):
         QDesktopServices.openUrl(url)
     
     def check_cart_updates(self):
-        self.update_window = widget_update.UpdateWindow(self)
+        try:
+            self.update_window = widget_update.UpdateWindow(self)
+        except Exception as ex:
+            QMessageBox.information(self, "Update cancelled", str(ex), QMessageBox.StandardButton.Ok)
+            return
         self.update_window.show()
         debug_actions.global_debug.add_action_str(f"Retrieved update data from {constants.OFFICIAL_CARTMETA_URL}")
     
