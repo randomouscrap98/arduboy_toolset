@@ -1,11 +1,10 @@
-import gui_utils
 import gui_common
 import widget_progress
 import utils
 import debug_actions
 import constants
 import arduboy.fxcart
-import main_cart
+# import main_cart
 
 from arduboy.bloggingadeadhorse import *
 
@@ -22,7 +21,7 @@ DEBUG_NETWORK_FILE = False
 
 
 class UpdateWindow(QDialog):
-    def __init__(self, cartwindow: main_cart.CartWindow):
+    def __init__(self, cartwindow): #: main_cart.CartWindow):
         super().__init__(parent=cartwindow)
 
         self.cartwindow = cartwindow

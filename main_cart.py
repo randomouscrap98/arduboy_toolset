@@ -389,6 +389,15 @@ class CartWindow(QMainWindow):
     def get_current_as_raw(self):
         slots = self.get_slots_widgets()
         fxbin = bytearray()
+
+        # for slot,widget in slots:
+        #     if not slot.has_image():
+        #         pilimage = utils.make_titlescreen_from_slot(slot)
+        #         slot.image_raw = arduboy.image.pilimage_to_bin(pilimage)
+        #         widget.image._finish_image(pilimage.convert("L").tobytes()) # Very hacky backdoor stuff! TODO: make this nicer!
+        # fxbin = arduboy.fxcart.compile([x for x,_ in slots])
+        # return fxbin
+
         def do_work(repprog, repstatus):
             nonlocal slots, fxbin
             repstatus("Generating missing images...")

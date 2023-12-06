@@ -304,9 +304,9 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     # All the raw data we're about to dump into the flashcart. Some may be modified later
     header = default_header()
     title = slot.image_raw
-    program = pad_data(slot.program_raw, FX_PAGESIZE)  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
-    datafile = pad_data(slot.data_raw, FX_PAGESIZE) 
-    savefile = pad_data(slot.save_raw, SAVE_ALIGNMENT) 
+    program = bytearray(pad_data(slot.program_raw, FX_PAGESIZE))  # WARN: YOU MUST ALWAYS PAD THE PROGRAM! You don't know who's supplying it!
+    datafile = bytearray(pad_data(slot.data_raw, FX_PAGESIZE))
+    savefile = bytearray(pad_data(slot.save_raw, SAVE_ALIGNMENT))
     # These are "post-padding" sizes. Program and data are padded to page size, save is padded to save size (4096)
     programsize = len(program)
     datasize = len(datafile)

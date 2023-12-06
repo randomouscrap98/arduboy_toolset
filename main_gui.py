@@ -14,7 +14,7 @@ import widget_fx
 import widget_eeprom
 import widget_package
 import widget_imageconv
-import widget_network
+# import widget_network
 import widgets_common
 import debug_actions
 
