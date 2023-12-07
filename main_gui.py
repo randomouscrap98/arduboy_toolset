@@ -14,6 +14,7 @@ import widget_fx
 import widget_eeprom
 import widget_package
 import widget_imageconv
+import widget_fxdev
 # import widget_network
 import widgets_common
 import debug_actions
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
         self.eepromtab = widget_eeprom.EEPROMWidget()
         self.packagetab = widget_package.PackageWidget()
         self.imageconvtab = widget_imageconv.ImageConvertWidget()
+        self.fxdevtab = widget_fxdev.FxDevWidget()
         # self.networktab = widget_network.NetworkBrowseWidget()
         
         tabs.addTab(self.sketchtab, "Sketch")
@@ -72,6 +74,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.eepromtab, "EEPROM")
         tabs.addTab(self.packagetab, "Package")
         tabs.addTab(self.imageconvtab, "Image")
+        tabs.addTab(self.fxdevtab, "FX Dev")
         # tabs.addTab(self.networktab, "Network")
 
         # Add widgets to the layout

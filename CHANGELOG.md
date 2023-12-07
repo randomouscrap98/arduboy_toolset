@@ -1,3 +1,6 @@
+## 0.7.1
+* Added basic support for fx dev build
+
 ## 0.7
 * Added network features
 * Added ability to update cart in-place from official cart website without losing saves or custom games
