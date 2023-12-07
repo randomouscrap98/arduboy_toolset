@@ -204,7 +204,7 @@ def build_fx(fxdata_file):
   logging.info("Building FX data using {}".format(fxbuilder.filename))
   lineNr = 0
   while lineNr < len(lines):
-    parts = [p for p in re.split("([ ,]|[\\'].*[\\'])", lines[lineNr]) if p.strip() and p != ',']
+    parts = [p for p in re.split('([ ,]|"[^"]*"|\'[^\']*\')', lines[lineNr]) if p.strip() and p != ',']
     for i in range (len(parts)):
       part = parts[i]
       #strip unwanted chars
@@ -263,10 +263,7 @@ def build_fx(fxdata_file):
           namespace = False
         #handle strings
         elif (part[:1] == "'") or (part[:1] == '"'):
-          if  part[:1] == "'": 
-            part = part[1:part.rfind("'")]
-          else:  
-            part = part[1:part.rfind('"')]
+          part = part[1:-1]
           #handle include
           if include == True:
             lines[lineNr+1:lineNr+1] = fxbuilder.includeFile(part)      

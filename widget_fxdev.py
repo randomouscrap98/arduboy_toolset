@@ -7,7 +7,7 @@ import debug_actions
 
 from arduboy.fxdata_build import build_fx
 
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QCheckBox, QLabel
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QMessageBox, QLabel
 
 # A fully self contained widget which can do fx dev work
 class FxDevWidget(QWidget):
@@ -37,4 +37,12 @@ class FxDevWidget(QWidget):
         self.setLayout(fx_layout)
 
     def do_build(self):
-        pass
+        filepath = self.dev_picker.check_filepath(self) 
+        if not filepath: return
+        self.dev_button.setDisabled(True)
+        try:
+            result = build_fx(filepath)
+            QMessageBox.information(self, "FX Data Build Complete", "Files written:\n\n" + "\n".join(result.values()), QMessageBox.StandardButton.Ok)
+            debug_actions.global_debug.add_action_str(f"Build fx data from {filepath}")
+        finally:
+            self.dev_button.setDisabled(False)
