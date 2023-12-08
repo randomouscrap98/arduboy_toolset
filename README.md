@@ -28,7 +28,9 @@ The toolset allows you to:
 * For **MacOS** (requires a modern version, sorry!): mount the `.dmg` and run the tool directly from within. There is no installer
 * For **Linux**, you probably need to add yourself to a dialout group, or run the program as sudo:
   * `sudo usermod -a -G dialout <username>`, just once
-  * The download is not an archive, it's the executable itself. `chmod 700 arduboy_toolset_whatever` then run from command line
+  * There are no releases for Linux. Clone the repo (or download the source from release) and if you're 
+    unsure, just run `sh linux_easyrun.sh`. Feel free to modify the script if you don't like it! All requirements 
+    are satisfied by pip and python 3.8 or greater
 
 The first window is the basic toolset, letting you upload and download stuff from your Arduboy. Most of the tools
 are here, including the `.arduboy` package creator and image converter.

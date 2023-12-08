@@ -1,5 +1,6 @@
 ## 0.7.1
 * Added basic support for fx dev build
+* Added "easy" script for Linux, since releases are not built anymore
 
 ## 0.7
 * Added network features

@@ -23,9 +23,10 @@ echo "Entering virtual environment $VENVDIR"
 
 # Restore the requirements every time. Yes this is wasteful
 echo "Installing requirements"
-$PIP install -r requirements.txt
+$LPIP install -r requirements.txt
 
 # Run the program
+echo "Running program"
 $LPYTHON main_gui.py
 
 # Exit the virtual environment (probably not necessary)
