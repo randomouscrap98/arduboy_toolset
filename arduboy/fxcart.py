@@ -293,7 +293,7 @@ def fix_parsed_slots(parsed_slots: List[FxParsedSlot]):
         slot.category = category
         count += 1
 
-def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, nextpage = 0) -> bytearray:
+def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF) -> bytearray:
     """
     Compile a single slot (with the given page identifiers, VERY important) and return the result. 
     
@@ -325,7 +325,7 @@ def compile_single(slot: FxParsedSlot, currentpage = 0, previouspage = 0xFFFF, n
     if total_binary_length & 0xFF:
         raise Exception(f"Sum of binary sizes is not page aligned for game {slot.meta.title}! Size: {total_binary_length}")
     slotpages   = PREAMBLE_PAGES + (total_binary_length >> 8)
-    nextpage += slotpages
+    nextpage = currentpage + slotpages
     header[7] = slot.category   #list number
     write_2byte_value(previouspage, header, PREVIOUS_PAGE_HEADER_INDEX)
     write_2byte_value(nextpage, header, NEXT_PAGE_HEADER_INDEX)
@@ -372,23 +372,21 @@ def compile(parsed_slots: List[FxParsedSlot],  report_progress = None):
     fix_parsed_slots(parsed_slots)
     previouspage = 0xFFFF
     currentpage = 0
-    nextpage = 0
     result = bytearray()
     games = 0
     categories = 0
     for slot in parsed_slots:
-        slotbin = compile_single(slot, currentpage, previouspage, nextpage)
+        slotbin = compile_single(slot, currentpage, previouspage)
         result = result + slotbin
-        nextpage += (len(slotbin) >> 8)
         if get_program_size_bytes(result, currentpage * FX_PAGESIZE) > 0:
             games += 1
         else:
             categories += 1
         previouspage = currentpage
-        currentpage = nextpage
+        currentpage += (len(slotbin) >> 8)
         if report_progress:
             report_progress(games + categories, len(parsed_slots))
-    if nextpage < 65536:
+    if currentpage < 65536:
         result += bytearray(b'\xFF' * 256)
     logging.info(f"Compiled fx flashcart, {len(result)} bytes, {games} games, {categories} categories")
     return result
