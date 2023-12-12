@@ -9,7 +9,7 @@ import gui_utils
 import utils
 import debug_actions
 
-from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QCheckBox, QLabel
+from PyQt6.QtWidgets import QVBoxLayout, QWidget, QPushButton, QCheckBox, QLabel, QMessageBox
 
 # A fully self contained widget which can upload and backup fx data from arduboy
 class FxWidget(QWidget):
@@ -48,7 +48,10 @@ class FxWidget(QWidget):
         warninglabel = QLabel("NOTE: Flashcarts take much longer to upload + backup than sketches!")
         warninglabel.setStyleSheet(f"color: {gui_common.SUBDUEDCOLOR}; padding: 10px")
 
-        gui_utils.add_children_nostretch(fx_layout, [self.coninfo, upload_group, backup_group, warninglabel])
+        self.size_button = QPushButton("Check current cart size")
+        self.size_button.clicked.connect(self.do_checksize)
+
+        gui_utils.add_children_nostretch(fx_layout, [self.coninfo, upload_group, backup_group, self.size_button, warninglabel])
 
         self.setLayout(fx_layout)
 
@@ -56,6 +59,7 @@ class FxWidget(QWidget):
         self.coninfo.set_connected_device(device)
         self.upload_button.setEnabled(device is not None)
         self.backup_button.setEnabled(device is not None)
+        self.size_button.setEnabled(device is not None)
 
     def do_upload(self): 
         filepath = self.upload_picker.check_filepath(self) 
@@ -93,3 +97,20 @@ class FxWidget(QWidget):
         dialog = widget_progress.do_progress_work(do_work, "Backup FX Flash")
         if not dialog.error_state:
             debug_actions.global_debug.add_action_str(f"Backed up Arduboy flashcart to {filepath}")
+    
+
+    def do_checksize(self):
+
+        flashsize = 0
+        slots = 0
+
+        def do_work(device, repprog, repstatus):
+            nonlocal flashsize, slots
+            repstatus("Reading FX metadata...")
+            s_port = device.connect_serial()
+            flashsize, slots = arduboy.serial.scan_fx(s_port, None, repprog)
+
+        dialog = widget_progress.do_progress_work(do_work, "Check FX flashcart data")
+        if not dialog.error_state:
+            QMessageBox.information(self, "Check FX flashcart complete", f"Current flashcart is:\n\n  {flashsize} bytes\n  {slots} slots", QMessageBox.StandardButton.Ok)
+            debug_actions.global_debug.add_action_str(f"Checked flashcart size ({flashsize} bytes, {slots} slots)")
