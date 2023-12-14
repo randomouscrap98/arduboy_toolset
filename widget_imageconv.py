@@ -237,7 +237,7 @@ class ImageConvertWidget(QWidget):
         if filepath:
             code = self.convert_self_code()
             with open(filepath, "w") as f:
-                f.write("#pragma once\n\n#include <stdint.h>\n#include <avr/pgmspace.h>\n\n" + code)
+                f.write(arduboy.image.IMAGEHEADER_PREAMBLE + code)
 
     def do_convert_fx(self):
         self.validate_inputs()

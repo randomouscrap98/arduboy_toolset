@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 # Should probably not be a constant... some kind of config?
 IMAGE_THRESHOLD = 64
 ALPHA_THRESHOLD = 128
+IMAGEHEADER_PREAMBLE = "#pragma once\n\n#include <stdint.h>\n#include <avr/pgmspace.h>\n\n"
 
 # Convert a block of arduboy image bytes (should be 1024) to a PILlow image
 def bin_to_pilimage(byteData, raw = False):
