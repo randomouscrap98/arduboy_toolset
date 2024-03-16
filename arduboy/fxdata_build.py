@@ -10,6 +10,8 @@ import platform
 import logging
 
 from PIL import Image
+# from constants import FX_PAGESIZE
+# from arduboy.common import pad_data
 
 constants = [
   #normal bitmap modes
@@ -249,6 +251,8 @@ def build_fx(fxdata_file):
         elif part == 'string'  : t = 7
         elif part == 'include' : include = True
         elif part == 'datasection'  : pass
+        # NOTE: this is seriously broken! What about padding? How has this not an issue?? I can't 
+        # read anything within the save space because of this!!!
         elif part == 'savesection'  : saveStart = len(bytes)
         #handle namespace
         elif part == 'namespace':

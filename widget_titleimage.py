@@ -39,7 +39,7 @@ class TitleImageWidget(QLabel):
         self.setScaledContents(True)  # Scale the image to fit the label
         self.set_image_bytes(None)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setFixedSize(SCREEN_WIDTH * scale, SCREEN_HEIGHT * scale)
+        self.setFixedSize(int(SCREEN_WIDTH * scale), int(SCREEN_HEIGHT * scale))
         self.setStyleSheet(f"background-color: {gui_common.SUBDUEDCOLOR}")
     
     def set_image_pil(self, image_pil):
