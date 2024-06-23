@@ -79,8 +79,12 @@ DEVICE_DEFAULT = DEVICE_ARDUBOY
 ALLOWED_DEVICES = [ DEVICE_ARDUBOY, DEVICE_ARDUBOYFX, DEVICE_ARDUBOYMINI ]
 
 def device_allowed(real_device: str, test_device: str) -> bool:
+    device = test_device.lower()
     """Determine whether the given actual device is allowed to use binaries from the given test device"""
-    return test_device.lower() == DEVICE_ARDUBOY.lower() or real_device.lower() == test_device.lower()
+    # Small change 2024-06: There is a chance that the format is slightly different, whether
+    # on accident or on purpose. So, for non-default matches, we check for starts or ends.
+    # The "Starts" can be unsafe, considering that devices could be substrings...
+    return device == DEVICE_ARDUBOY.lower() or device.startswith(real_device.lower()) or device.endswith(real_device.lower())
 
 
 @dataclass
@@ -203,7 +207,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
             def extract(fn): # Simple function to extract a file, it's always the same
                 zip_ref.extract(fn, temp_dir)
                 extract_file = os.path.join(temp_dir, fn)
-                logging.debug(f"Reading arduboy archive file {extract_file} (taken from archive into temp file)")
+                logging.debug(f"Reading arduboy archive file {
+                              extract_file} (taken from archive into temp file)")
                 return extract_file
             def extract_image(fn): # Simple function to get a parsed PIL.Image from the zip
                 extract_file = extract(fn)
@@ -255,11 +260,13 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                 for binary in [x for x in info[KEY_BINARIES] if KEY_TITLE in x]:
                     title = binary[KEY_TITLE]
                     if KEY_BINFILE not in binary:
-                        raise Exception(f"No {KEY_BINFILE} set for binary '{title}', can't parse arduboy archive!")
+                        raise Exception(f"No {KEY_BINFILE} set for binary '{
+                                        title}', can't parse arduboy archive!")
                     if KEY_DEVICE not in binary:
                         raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
                     binresult = ArduboyBinary(binary[KEY_DEVICE], title)
-                    with open(extract(binary[KEY_BINFILE]),"r") as f: # The arduboy utilities opens with just "r", no binary flags set.
+                    # The arduboy utilities opens with just "r", no binary flags set.
+                    with open(extract(binary[KEY_BINFILE]),"r") as f:
                         binresult.hex_raw = f.read()
                     if KEY_DATAFILE in binary:
                         with open(extract(binary[KEY_DATAFILE]), "rb") as f:
@@ -289,7 +296,8 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
         info = { 
             KEY_SCHEMA : DEFAULT_SCHEMA, 
             KEY_BINARIES : [], 
-            KEY_CONTRIBUTORS : [ asdict(x) for x in ard_parsed.contributors ] # Just a mostly direct use, very simple
+            # Just a mostly direct use, very simple
+            KEY_CONTRIBUTORS : [ asdict(x) for x in ard_parsed.contributors ]
         }
         ard_parsed.fill_info(info) # All the easy info we don't have to worry about
         # Make SURE there is a title, even though fill_info sets it if it exists!
@@ -390,4 +398,3 @@ def analyze_sketch(bindata: bytearray, bootloader = False) -> SketchAnalysis:
             # Probably dangerous to assume it's Arduboy but whatever...
             result.detected_device = DEVICE_ARDUBOY
     return result
-

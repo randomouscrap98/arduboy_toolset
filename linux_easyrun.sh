@@ -6,15 +6,13 @@ set -e
 
 # Set these if you need
 LPYTHON=python3
-LPIP=pip
+LPIP=pip3
 VENVDIR=.venv
 
-
 # Create the virtual environment if it doesn't exist
-if [ ! -d "$VENVDIR" ]
-then
-    echo "Creating virtual environment $VENVDIR"
-    $LPYTHON -m venv "$VENVDIR"
+if [ ! -d "$VENVDIR" ]; then
+	echo "Creating virtual environment $VENVDIR"
+	$LPYTHON -m venv "$VENVDIR"
 fi
 
 # Enter the virtual environment
@@ -31,3 +29,4 @@ $LPYTHON main_gui.py
 
 # Exit the virtual environment (probably not necessary)
 deactivate
+
