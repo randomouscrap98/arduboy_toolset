@@ -207,8 +207,8 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
             def extract(fn): # Simple function to extract a file, it's always the same
                 zip_ref.extract(fn, temp_dir)
                 extract_file = os.path.join(temp_dir, fn)
-                logging.debug(f"Reading arduboy archive file {
-                              extract_file} (taken from archive into temp file)")
+                logging.debug("Reading arduboy archive file " + extract_file +
+                              " (taken from archive into temp file)")
                 return extract_file
             def extract_image(fn): # Simple function to get a parsed PIL.Image from the zip
                 extract_file = extract(fn)
@@ -260,10 +260,11 @@ def read_arduboy(filepath: str) -> ArduboyParsed:
                 for binary in [x for x in info[KEY_BINARIES] if KEY_TITLE in x]:
                     title = binary[KEY_TITLE]
                     if KEY_BINFILE not in binary:
-                        raise Exception(f"No {KEY_BINFILE} set for binary '{
-                                        title}', can't parse arduboy archive!")
+                        raise Exception("No {KEY_BINFILE} set for binary '" +
+                                        title + "', can't parse arduboy archive!")
                     if KEY_DEVICE not in binary:
-                        raise Exception(f"No device set for binary '{title}', can't parse arduboy archive!")
+                        raise Exception("No device set for binary '" + title +
+                                        "', can't parse arduboy archive!")
                     binresult = ArduboyBinary(binary[KEY_DEVICE], title)
                     # The arduboy utilities opens with just "r", no binary flags set.
                     with open(extract(binary[KEY_BINFILE]),"r") as f:
@@ -306,13 +307,13 @@ def write_arduboy(ard_parsed: ArduboyParsed, filepath: str):
         for binary in ard_parsed.binaries:
             bindata = { KEY_DEVICE : binary.device or DEVICE_DEFAULT }
             bindata[KEY_TITLE] = binary.title or (info[KEY_TITLE] + " - " + bindata[KEY_DEVICE])
-            def set_file_field(field, nameappend):
-                bindata[field] = slugify.slugify(bindata[KEY_TITLE]) + nameappend
-                files.append(os.path.join(tempdir, bindata[field]))
+            def set_file_field(f, nameappend):
+                bindata[f] = slugify.slugify(bindata[KEY_TITLE]) + nameappend
+                files.append(os.path.join(tempdir, bindata[f]))
                 return files[-1]
-            def write_bin(data, field, nameappend, mode):
+            def write_bin(data, fd, nameappend, mode):
                 if data and len(data) > 0:
-                    filename = set_file_field(field, nameappend)
+                    filename = set_file_field(fd, nameappend)
                     with open(filename, mode) as f:
                         f.write(data)
             write_bin(binary.hex_raw, KEY_BINFILE, ".hex", "w")
