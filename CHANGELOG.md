@@ -1,3 +1,8 @@
+## 0.7.2
+* Fix error on MacOS when trying to update cart
+* Allow non-standard device strings, so long as they start or end with something known
+* Fix some string errors on linux
+
 ## 0.7.1
 * Added basic support for fx dev build
 * Added "easy" script for Linux, since releases are not built anymore
