@@ -34,6 +34,8 @@ UPKEY_CURRENT = "current"
 BADH_EOL = "<eol/>"
 FAKE_CATEGORY = "FAKE_CATEGORY"
 
+DEBUG_BROKEN_IMAGES = False
+
 # I'll make a class later
 # @dataclass
 # class CartUpdate:
@@ -112,9 +114,9 @@ def prep_cartmeta(cartmeta, device):
             image = Image.open(io.BytesIO(image_raw))
             cm[CMKEY_IMAGE] = pilimage_to_bin(image)
         except Exception as ex:
-            logging.error(f"Couldn't decode image64 from badh game '{cm[CMKEY_TITLE]}'[{cm[CMKEY_ID]}]: {ex}")
+            logging.error(f"Couldn't decode image64 from game '{cm[CMKEY_TITLE]}'[{cm[CMKEY_ID]}]: {ex}")
             cm[CMKEY_IMAGE] = bytearray(TITLE_IMAGE_LENGTH)
-            if image_raw:
+            if image_raw and DEBUG_BROKEN_IMAGES:
                 with open(f'{cm[CMKEY_ID]}.png', "wb") as f:
                     f.write(image_raw)
 
