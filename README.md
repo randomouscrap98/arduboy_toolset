@@ -10,7 +10,7 @@
 </p>
 
 A set of personal tools derived heavily from https://github.com/MrBlinky/Arduboy-Python-Utilities. 
-This is a fan project and not an official too, use at your own risk (see license).
+This is a fan project and not an official tool, use at your own risk (see license).
 
 The toolset allows you to:
 * Upload and backup sketches + eeprom
@@ -20,6 +20,8 @@ The toolset allows you to:
 * Create/edit `.arduboy` package files
 * Convert images into code or data for use with the Arduboy2 or FX library
 * Update your Arduboy FX with the latest games and updates from the [official cart website](http://www.bloggingadeadhorse.com/cart/Cart.html)
+
+If you like CLI tools better, see [ardugotools](https://github.com/randomouscrap98/ardugotools/), which has near feature-parity (plus some extra features).
 
 ## Quickstart
 
