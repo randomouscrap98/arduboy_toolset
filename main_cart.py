@@ -473,15 +473,11 @@ class CartWindow(QMainWindow):
             parsed = arduboy.fxcart.parse(bindata, repprog)
             repstatus("Rendering items...")
             count = 0
-            rest = 1
             for slot in parsed:
                 self._add_slot_signal.emit(slot, count == 0)
                 count += 1
                 repprog(count, len(parsed))
-                # This is a hack. The UI does not update unless this is here. An exponentially decreasing thread sleep
-                if count == rest:
-                    time.sleep(0.01)
-                    rest = rest << 1
+                
         self.list_widget.blockSignals(True)
         try:
             dialog = widget_progress.do_progress_work(do_work, "Loading cart", simple = True)

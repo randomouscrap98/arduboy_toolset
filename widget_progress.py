@@ -45,6 +45,7 @@ class ProgressWindow(QDialog):
             layout.addWidget(self.ok_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.setLayout(layout)
+        self.show()
     
     def set_device(self, device):
         if self.simple:
