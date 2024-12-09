@@ -114,3 +114,5 @@ pyinstaller arduboy_toolset.spec
   to a txt file next to the executable
 - Windows will often mark it as some kind of "dangerous file". Please see 
   https://github.com/pyinstaller/pyinstaller/issues/5854
+- When on linux, it may complain about missing "xcb" as part of qt6. I fixed this
+  on debian by installing libxcb-cursor0 (not sure why it's needed)
