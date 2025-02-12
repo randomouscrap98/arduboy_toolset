@@ -19,7 +19,7 @@ The toolset allows you to:
 * Create/edit custom flashcarts with custom categories
 * Create/edit `.arduboy` package files
 * Convert images into code or data for use with the Arduboy2 or FX library
-* Update your Arduboy FX with the latest games and updates from the [official cart website](http://www.bloggingadeadhorse.com/cart/Cart.html)
+* Update your Arduboy FX with the latest games and updates from the [official cart website](http://www.bloggingadeadhorse.com/cart/CartBuilder.html)
 
 If you like CLI tools better, see [ardugotools](https://github.com/randomouscrap98/ardugotools/), which has near feature-parity (plus some extra features).
 
