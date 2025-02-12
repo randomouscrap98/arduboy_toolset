@@ -78,6 +78,7 @@ def get_official_cartmeta(force: bool = False):
     if force or not cached_official_cartmeta:
         # There is a cartdate you could use but it seems unreliable for now (sorry filmote!!)
         r = requests.get(OFFICIAL_CARTMETA_URL + "?device=ArduboyFX|ArduboyMini")
+        r.raise_for_status()
         cached_official_cartmeta = r.json()
     
     return cached_official_cartmeta
