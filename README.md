@@ -116,5 +116,6 @@ pyinstaller arduboy_toolset.spec
   https://github.com/pyinstaller/pyinstaller/issues/5854
 - When on linux, it may complain about missing "xcb" as part of qt6. I fixed this
   on debian by installing libxcb-cursor0 (not sure why it's needed)
+  - On arch, that's `xcb-util xcb-util-cursor xcb-util-wm xcb-util-xrm`
 - Also on linux, I've started to need "python3-dev" to build some of these wheels. I 
   didn't used to need it, not sure what happened.

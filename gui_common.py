@@ -13,19 +13,30 @@ SUCCESSCOLOR = "#30c249"
 ERRORCOLOR = "#c23030"
 BACKUPCOLOR = "#308dc2"
 
+CARTMETA_HEADERS = {
+    'Accept': 'application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    # 'Host': '',
+    "User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36"
+}
+
 # I don't know what registering a font multiple times will do, might as well just make it a global
 EMOJIFONT = None
+
 
 def setup_font(name):
     font_id = QtGui.QFontDatabase.addApplicationFont(utils.resource_file(name))
     if font_id != -1:
-        loaded_font_families = QtGui.QFontDatabase.applicationFontFamilies(font_id)
+        loaded_font_families = QtGui.QFontDatabase.applicationFontFamilies(
+            font_id)
         if loaded_font_families:
             return loaded_font_families[0]
         else:
-            raise Exception(f"Failed to find font after adding to database: {name}")
+            raise Exception(
+                f"Failed to find font after adding to database: {name}")
     else:
         raise Exception(f"Failed adding font to database: {name}")
+
 
 def try_create_emoji_font():
     # Register the emoji font
@@ -33,9 +44,11 @@ def try_create_emoji_font():
     try:
         EMOJIFONT = setup_font("NotoEmoji-Medium.ttf")
     except Exception as ex:
-        logging.error(f"Could not load emoji font, falling back to system default! Error: {ex}")
+        logging.error(
+            f"Could not load emoji font, falling back to system default! Error: {ex}")
 
-def set_emoji_font(widget, size = None):
+
+def set_emoji_font(widget, size=None):
     global EMOJIFONT
     font = widget.font()
     if size is None:
@@ -44,27 +57,32 @@ def set_emoji_font(widget, size = None):
         widget.setFont(QtGui.QFont(EMOJIFONT, size))
     else:
         font.setPointSize(size)
-        widget.setFont(font) 
+        widget.setFont(font)
+
 
 def set_font_size(widget, size):
     font = widget.font()  # Get the current font of the label
     font.setPointSize(int(size))
-    widget.setFont(font) 
+    widget.setFont(font)
+
 
 def mod_font_size(widget, mod_size):
     font = widget.font()
     newsize = int(font.pointSize() * mod_size)
     font.setPointSize(newsize)
-    widget.setFont(font) 
+    widget.setFont(font)
     return newsize
 
+
 def make_button_bigger(button):
-    newsize = mod_font_size(button, 1.25) # This is part of having a file action: the button is bigger
+    # This is part of having a file action: the button is bigger
+    newsize = mod_font_size(button, 1.25)
     padding = newsize * 0.75
     button.setStyleSheet(f"padding: {padding}px {padding * 3}px")
 
 
 cached_official_cartmeta = None
+
 
 def get_official_cartmeta(force: bool = False):
     """
@@ -78,12 +96,12 @@ def get_official_cartmeta(force: bool = False):
     if force or not cached_official_cartmeta:
         # There is a cartdate you could use but it seems unreliable for now (sorry filmote!!)
         r = requests.get(
-            url = OFFICIAL_CARTMETA_URL + "?device=ArduboyFX|ArduboyMini",
-                headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36"},
+            url=OFFICIAL_CARTMETA_URL + "?device=ArduboyFX|ArduboyMini",
+            headers=CARTMETA_HEADERS,
         )
         r.raise_for_status()
         cached_official_cartmeta = r.json()
-    
+
     return cached_official_cartmeta
 
 
@@ -91,9 +109,13 @@ def get_official_bin(csv):
     """
     A blocking function which posts the given CSV to the website, turning it into a binary for download.
     """
-    response = requests.post(OFFICIAL_CARTCREATE_URL, data = {
-        "output" : csv,
-        "mode" : "bin"
-    })
+    response = requests.post(
+        url=OFFICIAL_CARTCREATE_URL,
+        headers=CARTMETA_HEADERS,
+        data={
+            "output": csv,
+            "mode": "bin"
+        }
+    )
     response.raise_for_status()
     return response.content
